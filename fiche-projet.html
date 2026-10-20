@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--ink:#14213d;--mut:#5b6478;--line:#dde2ec;--acc:#1f4fd8;--ok:#15803d;--warn:#c2740c;--ko:#c62828}
+@media(prefers-color-scheme:dark){:root{--bg:#161a24;--card:#1f2432;--ink:#eef1f7;--mut:#9aa3b8;--line:#323a4e;--acc:#7da2ff;--ok:#4ade80;--warn:#fbbf24;--ko:#f87171}}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,"Segoe UI",sans-serif}
+header{padding-bottom:14px;margin-bottom:16px;border-bottom:3px solid var(--acc)}
+.ref{color:var(--mut);font-size:13px}
+h1{font:600 26px/1.2 Georgia,"Iowan Old Style",serif;margin:2px 0 8px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card);font-size:12px;margin-right:6px}
+.pill.ko{border-color:var(--ko);color:var(--ko)}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 10px;font-weight:600}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;margin:0}
+dt{color:var(--mut)}dd{margin:0;font-weight:500}
+.tl{position:relative;height:64px;margin:6px 8px 0}
+.tl .axis{position:absolute;left:0;right:0;top:30px;height:4px;border-radius:2px;background:var(--line)}
+.tl .dot{position:absolute;top:24px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--card);border:3px solid var(--acc)}
+.tl .dot.ok{background:var(--ok);border-color:var(--ok)}.tl .dot.ko{border-color:var(--ko)}
+.tl .today{position:absolute;top:8px;bottom:0;width:2px;background:var(--ko)}
+.tl .today::before{content:"Aujourd’hui";position:absolute;top:-4px;left:6px;font-size:11px;color:var(--ko);white-space:nowrap}
+.tl .end{position:absolute;top:44px;font-size:12px;color:var(--mut)}
+.meter{height:12px;border-radius:6px;background:var(--line);overflow:hidden;margin:8px 0 4px}
+.meter i{display:block;height:100%}
+.row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.empty{color:var(--mut)}
+p{margin:0;white-space:pre-wrap}
+</style></head>
+<body><div id="app" class="empty">Sélectionnez un projet dans la liste.</div>
+<script>
+grist.ready({requiredAccess:'read table'});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toD=v=>{if(v===null||v===undefined||v==='')return null;const d=typeof v==='number'?new Date(v*1000):new Date(v);return isNaN(d)?null:d};
+const fmt=v=>{const d=toD(v);return d?d.toLocaleDateString('fr-FR'):'—'};
+const col=p=>p>100?'var(--ko)':p>=80?'var(--warn)':'var(--ok)';
+const dd=(k,v)=>`<dt>${k}</dt><dd>${v||'—'}</dd>`;
+function render(r){
+  let jal=[];try{jal=JSON.parse(r.Jalons_json||'[]')}catch(e){}
+  const pct=Math.round((r.Taux_conso||0)*100);
+  const a=toD(r.Date_debut),b=toD(r.Date_fin_prevue),now=new Date();
+  let tl='<div class="empty">Renseignez les dates de début et de fin prévue pour afficher la frise.</div>';
+  if(a&&b&&b>a){
+    const pos=d=>Math.max(0,Math.min(100,(d-a)/(b-a)*100));
+    const dots=jal.map(j=>{const d=toD(j.d);return d?`<div class="dot ${j.s==='Atteint'?'ok':j.s==='En retard'?'ko':''}" style="left:${pos(d)}%" title="${esc(j.l)} – ${fmt(j.d)}"></div>`:''}).join('');
+    tl=`<div class="tl"><div class="axis"></div>${dots}
+      ${now>=a&&now<=b?`<div class="today" style="left:${pos(now)}%"></div>`:''}
+      <span class="end" style="left:0">${fmt(a)}</span><span class="end" style="right:0">${fmt(b)}</span></div>`;
+  }
+  document.getElementById('app').className='';
+  document.getElementById('app').innerHTML=`
+  <header><div class="ref">${esc(r.Reference)}</div><h1>${esc(r.Titre)||'Sans titre'}</h1>
+    <span class="pill">${esc(r.Type_nom)||'Type non défini'}</span><span class="pill">${esc(r.Statut)}</span>
+    ${r.Retard?'<span class="pill ko">En retard</span>':''}</header>
+  <section><h2>Calendrier</h2>${tl}</section>
+  <section><h2>Charge de travail</h2>
+    <div>${r.Charge_reelle||0} j réalisés sur ${r.Charge_prevue||0} j prévus (${pct} %) &nbsp; ${esc(r.Alerte_charge)}</div>
+    <div class="meter"><i style="width:${Math.min(pct,100)}%;background:${col(pct)}"></i></div></section>
+  <section><h2>Intervenants</h2><dl>
+    ${dd('Commanditaire',esc([r.Niveau_commanditaire,r.Commanditaire].filter(Boolean).join(' – ')))}
+    ${dd('Bénéficiaire',esc(r.Beneficiaire))}${dd('Agents BET',esc(r.Agent_nom))}${dd('Suivi',esc(r.Suivi_nom))}</dl></section>
+  <section><h2>Jalons (${Math.round((r.Avancement_jalons||0)*100)} % atteints)</h2>
+    ${jal.map(j=>`<div class="row"><span>${j.s==='Atteint'?'✔':j.s==='En retard'?'⚠':'○'} ${esc(j.l)}</span><span>${fmt(j.d)}</span></div>`).join('')||'<div class="empty">Aucun jalon. Ajoutez-en dans la page Projets.</div>'}</section>
+  ${r.Description?`<section><h2>Description</h2><p>${esc(r.Description)}</p></section>`:''}`;
+}
+grist.onRecord(r=>{if(r)render(r)});
+</script></body></html>
