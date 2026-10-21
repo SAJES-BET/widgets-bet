@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--ink:#14213d;--mut:#5b6478;--line:#dde2ec;--acc:#1f4fd8;--ok:#15803d;--warn:#c2740c;--ko:#c62828}
+@media(prefers-color-scheme:dark){:root{--bg:#161a24;--card:#1f2432;--ink:#eef1f7;--mut:#9aa3b8;--line:#323a4e;--acc:#7da2ff;--ok:#4ade80;--warn:#fbbf24;--ko:#f87171}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,"Segoe UI",sans-serif}
+#app{display:grid;grid-template-columns:270px 1fr;height:100vh}
+aside{border-right:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;min-height:0}
+.top{padding:10px;display:grid;gap:8px;border-bottom:1px solid var(--line)}
+#list{overflow:auto;flex:1}
+.it{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.it:hover,.it.sel{background:var(--bg)}.it.sel{border-left:4px solid var(--acc);padding-left:8px}
+.it b{display:block}.it span,.sub{color:var(--mut);font-size:12px}
+main{overflow:auto;padding:18px 22px}
+h1{font:600 24px/1.2 Georgia,"Iowan Old Style",serif;margin:0 0 12px}
+h2{font-size:15px;margin:0 0 10px}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:2px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);border-color:transparent}
+.bad{border-color:var(--ko)!important}.msg{color:var(--ko);font-size:12px}
+.btn{font:inherit;cursor:pointer;border:1px solid var(--acc);background:var(--acc);color:var(--bg);border-radius:6px;padding:6px 12px;font-weight:600;width:auto}
+.btn.s{background:none;color:var(--acc)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:2px 4px 2px 10px}
+.chips span button{border:0;background:none;color:var(--mut);cursor:pointer;font-size:16px}
+.chips select{width:auto}
+.jr{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px}
+.row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
+.meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:8px 0 4px}.meter i{display:block;height:100%}
+#st{position:fixed;right:16px;bottom:12px;padding:4px 12px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:12px;opacity:0;transition:opacity .3s}
+@media(max-width:700px){#app{grid-template-columns:1fr;height:auto}aside{max-height:240px}.jr{grid-template-columns:1fr 1fr}}
+</style></head>
+<body><div id="app"><aside><div class="top"><button class="btn" id="add">+ Nouveau</button><input id="q" placeholder="Rechercher…"><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="old" style="width:auto">Afficher les archivés</label></div><div id="list"></div></aside>
+<main id="main"><div class="sub">Chargement…</div></main></div><div id="st"></div>
+<script>
+grist.ready({requiredAccess:'full'});
+const JST=['À venir','Atteint','En retard'];
+const CFG={
+ Projets:{name:'Projets',label:'projet',title:r=>r.Titre||'(sans titre)',sub:r=>[r.Reference,r.Statut].filter(Boolean).join(' · '),old:r=>r.Statut==='Archivé',
+  create:()=>({Statut:'À cadrer',Date_debut:sec(new Date().toISOString().slice(0,10))}),
+  secs:[['Identité',[['Reference','Référence','text'],['Titre','Titre','text'],['Type','Type','ref'],['Statut','Statut','choice']]],
+   ['Acteurs',[['Niveau_commanditaire','Niveau du commanditaire','choice'],['Commanditaire','Commanditaire','text'],['Beneficiaire','Bénéficiaire','text'],['Agent','Agents BET en charge','multi','agents'],['Suivi_par','Suivi par','multi','refs']]],
+   ['Calendrier et charge',[['Date_debut','Début','date'],['Date_fin_prevue','Fin prévue','date'],['Charge_prevue','Charge prévue (jours)','num']]],
+   ['Description',[['Description','','area']]]]},
+ Agents:{name:'Agents',label:'agent',title:r=>r.Nom_complet||'(nouvel agent)',sub:r=>r.Fonction||'',old:r=>!r.Actif,
+  create:()=>({Actif:true,Capacite_annuelle:200}),
+  secs:[['Identité',[['Prenom','Prénom','text'],['Nom','Nom','text'],['Fonction','Fonction','text'],['Email','Email','text']]],
+   ['Statut et capacité',[['Capacite_annuelle','Capacité annuelle (jours)','num'],['Referent_suivi','Référent·e de suivi','bool'],['Actif','Actif·ve','bool']]]]}};
+let T=null,rows=[],sel=null,want=null,q='',showOld=false,L={},CH=null,jal=[],tps=[],tm;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ids=v=>Array.isArray(v)?v.filter(x=>typeof x==='number'):[];
+const iso=v=>typeof v==='number'?new Date(v*1000).toISOString().slice(0,10):'';
+function sec(s){return s?Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10))/1000:null}
+const act=a=>grist.docApi.applyUserActions(a);
+const cur=()=>rows.find(r=>r.id===sel);
+const visible=()=>{const c=CFG[T];return rows.filter(r=>(showOld||!c.old(r))&&(c.title(r)+' '+c.sub(r)).toLowerCase().includes(q)).slice().reverse()};
+function flash(t,bad){const e=$('#st');e.textContent=t;e.style.color=bad?'var(--ko)':'var(--ok)';e.style.opacity=1;clearTimeout(tm);tm=setTimeout(()=>e.style.opacity=0,2800)}
+async function save(tbl,id,f){try{await act([['UpdateRecord',tbl,id,f]]);flash('✓ Enregistré')}catch(e){flash('Enregistrement refusé : '+(e.message||e),1)}}
+async function choices(){if(CH)return CH;CH={};try{const Tb=await grist.docApi.fetchTable('_grist_Tables'),C=await grist.docApi.fetchTable('_grist_Tables_column');const t=Tb.id[Tb.tableId.indexOf('Projets')];for(const k of['Statut','Niveau_commanditaire']){const i=C.id.findIndex((_,n)=>C.parentId[n]===t&&C.colId[n]===k);const o=JSON.parse(C.widgetOptions[i]||'{}');if(o.choices)CH[k]=o.choices}}catch(e){}
+  CH.Statut=CH.Statut||['À cadrer','En cours','En pause','Terminé','Archivé'];CH.Niveau_commanditaire=CH.Niveau_commanditaire||['MJ','Direction','Service','Bureau'];return CH}
+async function load(){const A=await grist.docApi.fetchTable('Agents'),Ty=await grist.docApi.fetchTable('Types');
+  const ag=A.id.map((id,i)=>({id,n:A.Nom_complet[i],a:A.Actif[i],r:A.Referent_suivi[i]}));
+  L.names={};ag.forEach(x=>L.names[x.id]=x.n);L.agents=ag.filter(x=>x.a);L.refs=ag.filter(x=>x.a&&x.r);
+  L.types=Ty.id.map((id,i)=>({id,n:Ty.Libelle[i]}));Object.assign(L,await choices())}
+async function sub(){jal=[];tps=[];if(T!=='Projets')return;
+  const J=await grist.docApi.fetchTable('Jalons'),P=await grist.docApi.fetchTable('Temps');
+  jal=J.id.map((id,i)=>({id,p:J.Projet[i],l:J.Libelle[i],d:J.Date[i],s:J.Statut[i]})).filter(x=>x.p===sel).sort((a,b)=>(a.d||1e12)-(b.d||1e12));
+  tps=P.id.map((id,i)=>({id,p:P.Projet[i],d:P.Date[i],a:P.Agent[i],j:P.Jours[i],c:P.Commentaire[i]})).filter(x=>x.p===sel).sort((a,b)=>(b.d||0)-(a.d||0)).slice(0,6)}
+const meter=p=>`<div class="meter"><i style="width:${Math.min(p,100)}%;background:${p>100?'var(--ko)':p>=80?'var(--warn)':'var(--ok)'}"></i></div>`;
+function kpi(r){if(T==='Agents'){const p=Math.round((r.Taux_occupation||0)*100);return `<b>${r.Nb_projets_actifs||0}</b> projet(s) en cours · <b>${r.Charge_reelle_annee||0} j</b> réalisés cette année · occupation <b>${p} %</b>${meter(p)}`}
+  const p=Math.round((r.Taux_conso||0)*100);return `<b>${r.Charge_reelle||0} j</b> réalisés sur <b>${r.Charge_prevue||0} j</b> prévus (${p} %) ${esc(r.Alerte_charge)} ${r.Retard?'· <b style="color:var(--ko)">⚠ En retard</b>':''}${meter(p)}<div class="sub">Jalons atteints : ${Math.round((r.Avancement_jalons||0)*100)} %</div>`}
+function inp([k,lab,t,src],r){const v=r[k];let h;
+  if(t==='text')h=`<input data-k="${k}" value="${esc(v)}">`;
+  else if(t==='num')h=`<input data-k="${k}" type="number" step="0.5" min="0" value="${v??''}">`;
+  else if(t==='date')h=`<input data-k="${k}" type="date" value="${iso(v)}">`;
+  else if(t==='area')h=`<textarea data-k="${k}" rows="4">${esc(v)}</textarea>`;
+  else if(t==='bool')return `<label style="display:flex;gap:8px;align-items:center;color:var(--ink);padding-top:18px"><input data-k="${k}" type="checkbox" style="width:auto" ${v?'checked':''}>${lab}</label>`;
+  else if(t==='choice')h=`<select data-k="${k}"><option value=""></option>${[...new Set([...(L[k]||[]),v].filter(Boolean))].map(x=>`<option ${x===v?'selected':''}>${esc(x)}</option>`).join('')}</select>`;
+  else if(t==='ref')h=`<select data-k="${k}" data-t="ref"><option value="0"></option>${L.types.map(x=>`<option value="${x.id}" ${x.id===v?'selected':''}>${esc(x.n)}</option>`).join('')}</select>`;
+  else{const c=ids(v);h=`<div class="chips" data-k="${k}">${c.map(i=>`<span>${esc(L.names[i]||'?')}<button data-rm="${i}">×</button></span>`).join('')}<select data-add><option value="">+ Ajouter…</option>${L[src].filter(a=>!c.includes(a.id)).map(a=>`<option value="${a.id}">${esc(a.n)}</option>`).join('')}</select></div>`}
+  return `<div><label>${lab}</label>${h}<div class="msg" data-m="${k}"></div></div>`}
+function extra(){const td=new Date().toISOString().slice(0,10),a0=ids(cur().Agent)[0];
+  return `<div class="sec"><h2>Jalons</h2>${jal.map(j=>`<div class="jr"><input data-j="${j.id}" data-jk="Libelle" value="${esc(j.l)}" placeholder="Libellé du jalon"><input type="date" data-j="${j.id}" data-jk="Date" value="${iso(j.d)}"><select data-j="${j.id}" data-jk="Statut">${JST.map(s=>`<option ${s===j.s?'selected':''}>${s}</option>`).join('')}</select><button class="btn s" data-delj="${j.id}" title="Supprimer">×</button></div>`).join('')}<button class="btn s" id="addj">+ Ajouter un jalon</button></div>
+  <div class="sec"><h2>Temps passé</h2><div class="g"><div><label>Agent</label><select id="ta">${L.agents.map(a=>`<option value="${a.id}" ${a.id===a0?'selected':''}>${esc(a.n)}</option>`).join('')}</select></div><div><label>Date</label><input id="td" type="date" value="${td}"></div><div><label>Jours (0,5 = demi-journée)</label><input id="tj" type="number" step="0.5" min="0"></div><div><label>Commentaire</label><input id="tc"></div></div>
+  <button class="btn" id="addt" style="margin:10px 0">Enregistrer le temps</button>${tps.map(t=>`<div class="row"><span>${esc(iso(t.d).split('-').reverse().join('/'))} · ${esc(L.names[t.a]||'?')} · ${t.j} j ${esc(t.c)}</span><button class="btn s" data-delt="${t.id}" title="Supprimer">×</button></div>`).join('')}</div>`}
+async function build(){const m=$('#main'),st=m.scrollTop,r=cur(),c=CFG[T];
+  if(!r){m.innerHTML='<div class="sub">Aucun élément. Cliquez sur « + Nouveau ».</div>';return}
+  await load();await sub();
+  m.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px"><h1>${esc(c.title(r))}</h1>${T==='Projets'?'<button class="btn s" id="arch" style="height:34px">Archiver</button>':''}</div><div class="sec" id="kpi">${kpi(r)}</div>`
+   +c.secs.map(([t,fs])=>`<div class="sec"><h2>${t}</h2><div class="g">${fs.map(f=>inp(f,r)).join('')}</div></div>`).join('')+(T==='Projets'?extra():'');
+  m.scrollTop=st}
+function live(){const r=cur();if(!r||!$('#kpi'))return;$('#kpi').innerHTML=kpi(r);
+  document.querySelectorAll('[data-k]').forEach(e=>{if(e===document.activeElement||e.classList.contains('chips'))return;const v=r[e.dataset.k];if(e.type==='checkbox')e.checked=!!v;else e.value=e.type==='date'?iso(v):(v??'')})}
+function renderList(){const c=CFG[T];$('#list').innerHTML=visible().map(r=>`<div class="it ${r.id===sel?'sel':''}" data-id="${r.id}"><b>${esc(c.title(r))}</b><span>${esc(c.sub(r))}${r.Retard?' · ⚠ retard':''}</span></div>`).join('')||'<div class="it"><span>Aucun résultat</span></div>'}
+function check(k,v,r){
+  if(k==='Titre'&&!v)return 'Le titre est obligatoire.';
+  if(k==='Reference'&&v&&rows.some(x=>x.id!==r.id&&x.Reference===v))return 'Cette référence existe déjà.';
+  if((k==='Charge_prevue'||k==='Capacite_annuelle')&&v<0)return 'Valeur négative impossible.';
+  if(k==='Date_fin_prevue'&&v&&r.Date_debut&&v<r.Date_debut)return 'La fin ne peut pas précéder le début.';
+  if(k==='Date_debut'&&v&&r.Date_fin_prevue&&v>r.Date_fin_prevue)return 'Le début ne peut pas suivre la fin.';
+  return ''}
+function val(el){if(el.type==='checkbox')return el.checked;if(el.type==='number')return el.value===''?null:+el.value;if(el.type==='date')return sec(el.value);if(el.dataset.t==='ref')return +el.value||0;return el.value}
+async function onChange(el){const k=el.dataset.k,r=cur(),v=val(el),err=check(k,v,r),m=$(`[data-m="${k}"]`);
+  el.classList.toggle('bad',!!err);if(m)m.textContent=err;if(err)return flash(err,1);
+  await save(CFG[T].name,r.id,{[k]:v})}
+function setMulti(b,list){const k=b.dataset.k,r=cur();r[k]=['L',...list];save(CFG[T].name,r.id,{[k]:['L',...list]});build()}
+document.addEventListener('change',e=>{const el=e.target;
+  if(el.id==='old'){showOld=el.checked;return renderList()}
+  if(el.dataset.j)return save('Jalons',+el.dataset.j,{[el.dataset.jk]:el.dataset.jk==='Date'?sec(el.value):el.value});
+  if(el.matches('[data-add]')){if(el.value){const b=el.closest('.chips');setMulti(b,[...ids(cur()[b.dataset.k]),+el.value])}return}
+  if(el.dataset.k)onChange(el)});
+document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value.toLowerCase();renderList()}});
+document.addEventListener('click',async e=>{const t=e.target,it=t.closest&&t.closest('.it');
+  const run=async a=>{try{await act(a);flash('✓ Enregistré');await build()}catch(x){flash('Refusé : '+(x.message||x),1)}};
+  if(it&&it.dataset.id){sel=+it.dataset.id;await build();return renderList()}
+  if(t.dataset.rm){const b=t.closest('.chips');return setMulti(b,ids(cur()[b.dataset.k]).filter(i=>i!==+t.dataset.rm))}
+  if(t.id==='add'){try{const r=await act([['AddRecord',CFG[T].name,null,CFG[T].create()]]);want=r.retValues[0];flash('✓ Créé');if(rows.some(x=>x.id===want)){sel=want;want=null;await build();renderList()}}catch(x){flash('Création refusée : '+(x.message||x),1)}return}
+  if(t.id==='arch'){if(confirm('Archiver ce projet ? Il reste dans les statistiques.')){await save('Projets',sel,{Statut:'Archivé'});const f=visible().filter(r=>r.id!==sel);sel=f[0]?f[0].id:null;await build();renderList()}return}
+  if(t.id==='addj')return run([['AddRecord','Jalons',null,{Projet:sel,Statut:'À venir'}]]);
+  if(t.dataset.delj)return run([['RemoveRecord','Jalons',+t.dataset.delj]]);
+  if(t.dataset.delt)return run([['RemoveRecord','Temps',+t.dataset.delt]]);
+  if(t.id==='addt'){const j=+$('#tj').value,a=+$('#ta').value;if(!(j>0)||!a)return flash('Choisissez un agent et un nombre de jours.',1);
+    return run([['AddRecord','Temps',null,{Projet:sel,Agent:a,Date:sec($('#td').value),Jours:j,Commentaire:$('#tc').value}]])}});
+grist.onRecords(async r=>{rows=r;
+  if(!T){try{T=await grist.selectedTable.getTableId()}catch(e){}if(!T&&r[0])T='Titre' in r[0]?'Projets':'Prenom' in r[0]?'Agents':null;
+    if(!CFG[T]){$('#main').textContent='Table non reconnue : liez ce widget à la table Projets ou Agents.';return}$('#add').textContent='+ Nouveau '+CFG[T].label}
+  if(want&&rows.some(x=>x.id===want)){sel=want;want=null;await build()}
+  else if(!sel||!rows.some(x=>x.id===sel)){const f=visible();sel=f.length?f[0].id:null;await build()}else live();
+  renderList()});
+</script></body></html>
