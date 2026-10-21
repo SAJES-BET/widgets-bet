@@ -63,14 +63,16 @@ function flash(t,bad){const e=$('#st');e.textContent=t;e.style.color=bad?'var(--
 async function save(tbl,id,f){try{await act([['UpdateRecord',tbl,id,f]]);flash('✓ Enregistré')}catch(e){flash('Enregistrement refusé : '+(e.message||e),1)}}
 async function choices(){if(CH)return CH;CH={};try{const Tb=await grist.docApi.fetchTable('_grist_Tables'),C=await grist.docApi.fetchTable('_grist_Tables_column');const t=Tb.id[Tb.tableId.indexOf('Projets')];for(const k of['Statut','Niveau_commanditaire']){const i=C.id.findIndex((_,n)=>C.parentId[n]===t&&C.colId[n]===k);const o=JSON.parse(C.widgetOptions[i]||'{}');if(o.choices)CH[k]=o.choices}}catch(e){}
   CH.Statut=CH.Statut||['À cadrer','En cours','En pause','Terminé','Archivé'];CH.Niveau_commanditaire=CH.Niveau_commanditaire||['MJ','Direction','Service','Bureau'];return CH}
-async function load(){const A=await grist.docApi.fetchTable('Agents'),Ty=await grist.docApi.fetchTable('Types');
-  const ag=A.id.map((id,i)=>({id,n:A.Nom_complet[i],a:A.Actif[i],r:A.Referent_suivi[i]}));
+const g=async n=>{try{return await grist.docApi.fetchTable(n)}catch(e){return{id:[]}}};
+const v=(t,c,i)=>t[c]?t[c][i]:undefined;
+async function load(){const A=await g('Agents'),Ty=await g('Types');
+  const ag=A.id.map((id,i)=>({id,n:v(A,'Nom_complet',i)||v(A,'Nom',i)||('Agent '+id),a:v(A,'Actif',i),r:v(A,'Referent_suivi',i)}));
   L.names={};ag.forEach(x=>L.names[x.id]=x.n);L.agents=ag.filter(x=>x.a);L.refs=ag.filter(x=>x.a&&x.r);
-  L.types=Ty.id.map((id,i)=>({id,n:Ty.Libelle[i]}));Object.assign(L,await choices())}
+  L.types=Ty.id.map((id,i)=>({id,n:v(Ty,'Libelle',i)||v(Ty,'Nom',i)||('Type '+id)}));Object.assign(L,await choices())}
 async function sub(){jal=[];tps=[];if(T!=='Projets')return;
-  const J=await grist.docApi.fetchTable('Jalons'),P=await grist.docApi.fetchTable('Temps');
-  jal=J.id.map((id,i)=>({id,p:J.Projet[i],l:J.Libelle[i],d:J.Date[i],s:J.Statut[i]})).filter(x=>x.p===sel).sort((a,b)=>(a.d||1e12)-(b.d||1e12));
-  tps=P.id.map((id,i)=>({id,p:P.Projet[i],d:P.Date[i],a:P.Agent[i],j:P.Jours[i],c:P.Commentaire[i]})).filter(x=>x.p===sel).sort((a,b)=>(b.d||0)-(a.d||0)).slice(0,6)}
+  const J=await g('Jalons'),P=await g('Temps');
+  jal=J.id.map((id,i)=>({id,p:v(J,'Projet',i),l:v(J,'Libelle',i),d:v(J,'Date',i),s:v(J,'Statut',i)})).filter(x=>x.p===sel).sort((a,b)=>(a.d||1e12)-(b.d||1e12));
+  tps=P.id.map((id,i)=>({id,p:v(P,'Projet',i),d:v(P,'Date',i),a:v(P,'Agent',i),j:v(P,'Jours',i),c:v(P,'Commentaire',i)})).filter(x=>x.p===sel).sort((a,b)=>(b.d||0)-(a.d||0)).slice(0,6)}
 const meter=p=>`<div class="meter"><i style="width:${Math.min(p,100)}%;background:${p>100?'var(--ko)':p>=80?'var(--warn)':'var(--ok)'}"></i></div>`;
 function kpi(r){if(T==='Agents'){const p=Math.round((r.Taux_occupation||0)*100);return `<b>${r.Nb_projets_actifs||0}</b> projet(s) en cours · <b>${r.Charge_reelle_annee||0} j</b> réalisés cette année · occupation <b>${p} %</b>${meter(p)}`}
   const p=Math.round((r.Taux_conso||0)*100);return `<b>${r.Charge_reelle||0} j</b> réalisés sur <b>${r.Charge_prevue||0} j</b> prévus (${p} %) ${esc(r.Alerte_charge)} ${r.Retard?'· <b style="color:var(--ko)">⚠ En retard</b>':''}${meter(p)}<div class="sub">Jalons atteints : ${Math.round((r.Avancement_jalons||0)*100)} %</div>`}
@@ -88,7 +90,8 @@ function extra(){const td=new Date().toISOString().slice(0,10),a0=ids(cur().Agen
   return `<div class="sec"><h2>Jalons</h2>${jal.map(j=>`<div class="jr"><input data-j="${j.id}" data-jk="Libelle" value="${esc(j.l)}" placeholder="Libellé du jalon"><input type="date" data-j="${j.id}" data-jk="Date" value="${iso(j.d)}"><select data-j="${j.id}" data-jk="Statut">${JST.map(s=>`<option ${s===j.s?'selected':''}>${s}</option>`).join('')}</select><button class="btn s" data-delj="${j.id}" title="Supprimer">×</button></div>`).join('')}<button class="btn s" id="addj">+ Ajouter un jalon</button></div>
   <div class="sec"><h2>Temps passé</h2><div class="g"><div><label>Agent</label><select id="ta">${L.agents.map(a=>`<option value="${a.id}" ${a.id===a0?'selected':''}>${esc(a.n)}</option>`).join('')}</select></div><div><label>Date</label><input id="td" type="date" value="${td}"></div><div><label>Jours (0,5 = demi-journée)</label><input id="tj" type="number" step="0.5" min="0"></div><div><label>Commentaire</label><input id="tc"></div></div>
   <button class="btn" id="addt" style="margin:10px 0">Enregistrer le temps</button>${tps.map(t=>`<div class="row"><span>${esc(iso(t.d).split('-').reverse().join('/'))} · ${esc(L.names[t.a]||'?')} · ${t.j} j ${esc(t.c)}</span><button class="btn s" data-delt="${t.id}" title="Supprimer">×</button></div>`).join('')}</div>`}
-async function build(){const m=$('#main'),st=m.scrollTop,r=cur(),c=CFG[T];
+async function build(){try{await build0()}catch(e){$('#main').innerHTML='<div class="sec"><b>Erreur d’affichage</b><div class="msg">'+esc(e.message||e)+'</div></div>'}}
+async function build0(){const m=$('#main'),st=m.scrollTop,r=cur(),c=CFG[T];
   if(!r){m.innerHTML='<div class="sub">Aucun élément. Cliquez sur « + Nouveau ».</div>';return}
   await load();await sub();
   m.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px"><h1>${esc(c.title(r))}</h1>${T==='Projets'?'<button class="btn s" id="arch" style="height:34px">Archiver</button>':''}</div><div class="sec" id="kpi">${kpi(r)}</div>`
@@ -126,10 +129,11 @@ document.addEventListener('click',async e=>{const t=e.target,it=t.closest&&t.clo
   if(t.dataset.delt)return run([['RemoveRecord','Temps',+t.dataset.delt]]);
   if(t.id==='addt'){const j=+$('#tj').value,a=+$('#ta').value;if(!(j>0)||!a)return flash('Choisissez un agent et un nombre de jours.',1);
     return run([['AddRecord','Temps',null,{Projet:sel,Agent:a,Date:sec($('#td').value),Jours:j,Commentaire:$('#tc').value}]])}});
-grist.onRecords(async r=>{rows=r;
+let busy=Promise.resolve();grist.onRecords(r=>{rows=r;busy=busy.then(handle).catch(e=>{$('#main').textContent='Erreur : '+(e.message||e)})});
+async function handle(){const r=rows;
   if(!T){try{T=await grist.selectedTable.getTableId()}catch(e){}if(!T&&r[0])T='Titre' in r[0]?'Projets':'Prenom' in r[0]?'Agents':null;
     if(!CFG[T]){$('#main').textContent='Table non reconnue : liez ce widget à la table Projets ou Agents.';return}$('#add').textContent='+ Nouveau '+CFG[T].label}
   if(want&&rows.some(x=>x.id===want)){sel=want;want=null;await build()}
   else if(!sel||!rows.some(x=>x.id===sel)){const f=visible();sel=f.length?f[0].id:null;await build()}else live();
-  renderList()});
+  renderList()}
 </script></body></html>
