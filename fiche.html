@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fiche</title>
+<script src="https://grist.numerique.gouv.fr/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#11131b;--card:#181b25;--field:#232734;--line:#2c3140;--txt:#e8eaf0;--mut:#9aa0b4;--acc:#5b8cff;--ok:#3fb67a;--warn:#f0a43c;--bad:#f26b6b}
+@media (prefers-color-scheme:light){:root{--bg:#f6f7fb;--card:#fff;--field:#eef0f6;--line:#d9dce7;--txt:#1b1f2a;--mut:#626a80;--acc:#2f5fd8}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column}
+#bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+#bar .sp{flex:1}
+button,select{font:inherit;color:var(--txt);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover,select:hover{border-color:var(--acc)}
+button:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button.nav{width:36px;padding:6px 0;font-size:15px}
+button:disabled{opacity:.35;cursor:default;border-color:var(--line)}
+#sel{min-width:220px;max-width:420px;flex:0 1 380px}
+#cnt{color:var(--mut);font-variant-numeric:tabular-nums;min-width:56px}
+main{flex:1;overflow:auto;padding:18px 16px 28px}
+.wrap{max-width:860px;margin:0 auto}
+.eyebrow{color:var(--mut);font-size:13px}
+h1{font:700 30px/1.2 Georgia,"Times New Roman",serif;margin:2px 0 10px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 12px;font-size:13px}
+.chip.ok{border-color:var(--ok);color:var(--ok)}.chip.bad{border-color:var(--bad);color:var(--bad)}
+.head{display:flex;gap:16px;align-items:center;padding-bottom:14px;border-bottom:3px solid var(--acc);margin-bottom:16px}
+.avatar{flex:none;width:64px;height:64px;border-radius:50%;background:var(--acc);color:#fff;display:grid;place-items:center;font:700 28px Georgia,serif}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card h2{margin:0 0 12px;font-size:16px}
+.bar{height:12px;border-radius:99px;background:var(--field);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--ok)}
+.bar>i.warn{background:var(--warn)}.bar>i.bad{background:var(--bad)}.bar>i.acc{background:var(--acc)}
+.row{display:flex;gap:10px;margin:6px 0}.row .k{flex:0 0 120px;color:var(--mut)}.row .v{font-weight:600}
+.tl{position:relative;height:6px;background:var(--field);border-radius:99px;margin:30px 4px 10px}
+.tl>i{position:absolute;left:0;top:0;bottom:0;background:var(--acc);border-radius:99px}
+.tl>b{position:absolute;top:-12px;bottom:-12px;width:2px;background:var(--bad)}
+.tl>b span{position:absolute;top:-16px;left:4px;white-space:nowrap;color:var(--bad);font-size:12px;font-weight:400}
+.tl>b.r span{left:auto;right:4px}
+.dates{display:flex;justify-content:space-between;color:var(--mut);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi b{display:block;font:700 26px Georgia,serif}.kpi span{color:var(--mut);font-size:12px}
+.ms{display:flex;align-items:center;gap:10px;padding:5px 0}
+.dot{flex:none;width:12px;height:12px;border-radius:50%;border:2px solid var(--mut)}
+.dot.ok{background:var(--ok);border-color:var(--ok)}.dot.bad{background:var(--bad);border-color:var(--bad)}
+.ms .d{margin-left:auto;color:var(--mut)}
+.pj{padding:8px 0;border-top:1px solid var(--line)}.pj:first-of-type{border-top:0}
+.pj .t{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.muted{color:var(--mut)}
+.desc{white-space:pre-wrap}
+.empty{max-width:860px;margin:60px auto;text-align:center;color:var(--mut)}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}}
+@media print{
+ :root{--bg:#fff;--card:#fff;--field:#eceef3;--line:#c9cdd8;--txt:#000;--mut:#555}
+ #bar{display:none}body{display:block;height:auto;background:#fff}main{overflow:visible;padding:0}
+ .card{break-inside:avoid}.avatar,.bar>i,.tl>i,.dot{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+</head>
+<body>
+<header id="bar" role="toolbar" aria-label="Navigation entre les fiches">
+  <button class="nav" id="prev" title="Fiche précédente (←)" aria-label="Fiche précédente">◀</button>
+  <select id="sel" aria-label="Choisir une fiche"></select>
+  <button class="nav" id="next" title="Fiche suivante (→)" aria-label="Fiche suivante">▶</button>
+  <span id="cnt" aria-live="polite"></span>
+  <span class="sp"></span>
+  <button id="print">Imprimer / PDF</button>
+  <button id="csv">Exporter en CSV</button>
+</header>
+<main><div class="wrap" id="fiche"></div></main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => Number(v) || 0;
+const fmtN = v => (Math.round(num(v) * 10) / 10).toLocaleString('fr-FR');
+const pct = v => Math.round(num(v) * 100);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const fmtD = v => {
+  if (v == null || v === '') return '';
+  const d = typeof v === 'number' ? new Date(v * 1000) : new Date(v);
+  return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', {timeZone: 'UTC'});
+};
+const level = t => t > 1 ? 'bad' : t >= 0.8 ? 'warn' : '';
+const parse = s => { try { return JSON.parse(s || '[]'); } catch (e) { return []; } };
+
+let rows = [], cur = null, mode = null;
+
+function label(r) {
+  if (mode === 'projet') {
+    const ref = (r.Reference || '').trim(), t = (r.Titre || '').trim();
+    return (ref && t ? ref + ' — ' + t : ref || t) || '(Fiche sans titre)';
+  }
+  return ((r.Nom_complet || '').trim() || '(Sans nom)') + (r.Actif === false ? ' (inactif)' : '');
+}
+
+/* ---------- Rendu : projet ---------- */
+function renderProjet(r) {
+  const deb = r.Date_debut, fin = r.Date_fin_prevue, now = Date.now() / 1000;
+  const prev = num(r.Charge_prevue), reel = num(r.Charge_reelle), taux = prev ? reel / prev : 0;
+  const lv = level(taux);
+  const etat = !prev ? '' : taux > 1 ? 'Dépassement' : taux >= 0.8 ? '> 80 %' : 'OK';
+  let cal = '<span class="muted">Dates non renseignées</span>';
+  if (typeof deb === 'number' && typeof fin === 'number' && fin > deb) {
+    const p = clamp((now - deb) / (fin - deb));
+    cal = `<div class="tl"><i style="width:${p * 100}%"></i><b class="${p > .8 ? 'r' : ''}" style="left:${p * 100}%"><span>Aujourd’hui</span></b></div>
+           <div class="dates"><span>${fmtD(deb)}</span><span>${fmtD(fin)}</span></div>`;
+  } else if (deb || fin) {
+    cal = `<div class="dates"><span>${fmtD(deb) || '—'}</span><span>${fmtD(fin) || '—'}</span></div>`;
+  }
+  if (r.Date_fin_reelle) cal += `<div class="muted" style="margin-top:8px">Terminé le ${fmtD(r.Date_fin_reelle)}</div>`;
+
+  const jal = parse(r.Jalons_json).filter(j => j.l || j.d);
+  const done = jal.filter(j => j.s === 'Atteint').length;
+  const jalHtml = jal.length ? jal.map(j => `<div class="ms"><span class="dot ${j.s === 'Atteint' ? 'ok' : j.s === 'En retard' ? 'bad' : ''}"></span>
+      <span>${esc(j.l) || '—'}</span><span class="d">${esc(fmtD(j.d)) || '—'}</span></div>`).join('')
+    : '<span class="muted">Aucun jalon renseigné</span>';
+
+  const comm = [r.Niveau_commanditaire, r.Commanditaire].filter(Boolean).join(' – ');
+  const line = (k, v) => `<div class="row"><span class="k">${k}</span><span class="v">${esc(v) || '—'}</span></div>`;
+
+  return `
+  <div class="eyebrow">${esc((r.Reference || '').trim())}</div>
+  <h1>${esc(r.Titre) || '(Sans titre)'}</h1>
+  <div class="chips">${r.Type_nom ? `<span class="chip">${esc(r.Type_nom)}</span>` : ''}
+    ${r.Statut ? `<span class="chip">${esc(r.Statut)}</span>` : ''}
+    ${r.Retard ? '<span class="chip bad">En retard</span>' : ''}</div>
+  <div class="card" style="margin-top:14px"><h2>Calendrier</h2>${cal}</div>
+  <div class="card"><h2>Charge de travail</h2>
+    ${prev ? `<div style="margin-bottom:10px">${fmtN(reel)} j réalisés sur ${fmtN(prev)} j prévus (${pct(taux)} %)
+      <span class="chip ${lv === 'bad' ? 'bad' : lv === '' ? 'ok' : ''}" style="margin-left:8px">${etat}</span></div>
+      <div class="bar"><i class="${lv}" style="width:${clamp(taux) * 100}%"></i></div>`
+      : `<span class="muted">Charge prévue non renseignée (${fmtN(reel)} j réalisés)</span>`}</div>
+  <div class="card"><h2>Intervenants</h2>
+    ${line('Commanditaire', comm)}${line('Bénéficiaire', r.Beneficiaire)}${line('Agents BET', r.Agent_nom)}${line('Suivi', r.Suivi_nom)}</div>
+  <div class="card"><h2>Jalons (${jal.length ? Math.round(done / jal.length * 100) : 0} % atteints)</h2>${jalHtml}</div>
+  <div class="card"><h2>Description</h2>${r.Description ? `<div class="desc">${esc(r.Description)}</div>` : '<span class="muted">Aucune description</span>'}</div>`;
+}
+
+/* ---------- Rendu : agent ---------- */
+function renderAgent(r) {
+  const cap = num(r.Capacite_annuelle), prev = num(r.Charge_prevue), tx = num(r.Taux_occupation);
+  const fonction = (r.Fonction || '').split(/\n+/).map(s => s.trim()).filter(Boolean).join(' · ');
+  const subHtml = [esc(fonction), r.Email ? `<a style="color:inherit" href="mailto:${esc(r.Email)}">${esc(r.Email)}</a>` : ''].filter(Boolean).join(' · ');
+  const projets = parse(r.Projets_json);
+  const pj = projets.length ? projets.map(p => {
+    const t = p.p ? p.r / p.p : 0;
+    return `<div class="pj"><div class="t"><b>${esc(p.t) || '(Sans titre)'}</b><span class="chip">${esc(p.s)}</span></div>
+      <div class="muted" style="margin-bottom:6px">${fmtN(p.r)} j réalisés sur ${fmtN(p.p)} j prévus</div>
+      <div class="bar"><i class="${level(t)}" style="width:${clamp(t) * 100}%"></i></div></div>`;
+  }).join('') : '<span class="muted">Aucun projet pour le moment.</span>';
+  const kpi = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`;
+
+  return `
+  <div class="head">
+    <div class="avatar" aria-hidden="true">${esc((r.Prenom || r.Nom_complet || '?').trim().charAt(0).toUpperCase())}</div>
+    <div><h1 style="margin:0">${esc(r.Nom_complet)}</h1>
+      <div class="muted">${subHtml}</div>
+      <div class="chips" style="margin:8px 0 0">${r.Referent_suivi ? '<span class="chip">Référent·e de suivi</span>' : ''}${r.Actif === false ? '<span class="chip bad">Inactif</span>' : ''}</div></div>
+  </div>
+  <div class="card"><div class="kpis">
+    ${kpi(num(r.Nb_projets_actifs), 'projets en cours')}${kpi(num(r.Nb_projets_suivis), 'projets suivis')}
+    ${kpi(fmtN(r.Charge_reelle_annee) + ' j', 'réalisés cette année')}${kpi(fmtN(cap) + ' j', 'capacité annuelle')}</div></div>
+  <div class="card">
+    <h2>Occupation sur l’année : ${pct(tx)} %</h2>
+    <div class="bar" style="margin-bottom:18px"><i class="${level(tx)}" style="width:${clamp(tx) * 100}%"></i></div>
+    <h2>Charge prévue par projet (${fmtN(prev)} j sur ${fmtN(cap)} j)</h2>
+    <div class="bar"><i class="acc" style="width:${cap ? clamp(prev / cap) * 100 : 0}%"></i></div></div>
+  <div class="card"><h2>Projets portés</h2>${pj}</div>`;
+}
+
+/* ---------- Navigation ---------- */
+function buildSelect() {
+  $('sel').innerHTML = rows.map(r => `<option value="${r.id}">${esc(label(r))}</option>`).join('');
+}
+function render() {
+  const i = rows.findIndex(r => r.id === cur);
+  const r = rows[i];
+  $('sel').value = r ? String(r.id) : '';
+  $('cnt').textContent = rows.length ? `${i + 1} / ${rows.length}` : '';
+  $('prev').disabled = i <= 0;
+  $('next').disabled = i < 0 || i >= rows.length - 1;
+  $('print').disabled = $('csv').disabled = !r;
+  $('fiche').innerHTML = r ? (mode === 'projet' ? renderProjet(r) : renderAgent(r))
+                           : '<div class="empty">Aucune fiche à afficher.</div>';
+  document.title = r ? label(r) : 'Fiche';
+}
+function go(id) {
+  if (id == null || id === cur) return;
+  cur = id; render();
+  try { grist.setCursorPos({rowId: id}); } catch (e) {}
+  $('fiche').parentElement.scrollTop = 0;
+}
+function step(d) {
+  const i = rows.findIndex(r => r.id === cur), n = rows[i + d];
+  if (n) go(n.id);
+}
+$('prev').onclick = () => step(-1);
+$('next').onclick = () => step(1);
+$('sel').onchange = e => go(Number(e.target.value));
+document.addEventListener('keydown', e => {
+  if (/^(SELECT|INPUT|TEXTAREA)$/.test(e.target.tagName) || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === 'ArrowLeft') step(-1); else if (e.key === 'ArrowRight') step(1);
+});
+
+/* ---------- Impression / PDF et export CSV ---------- */
+$('print').onclick = () => window.print();
+$('csv').onclick = () => {
+  const r = rows.find(x => x.id === cur); if (!r) return;
+  let data;
+  if (mode === 'projet') {
+    data = [['Référence', r.Reference], ['Titre', r.Titre], ['Type', r.Type_nom], ['Statut', r.Statut],
+      ['Niveau commanditaire', r.Niveau_commanditaire], ['Commanditaire', r.Commanditaire], ['Bénéficiaire', r.Beneficiaire],
+      ['Agents', r.Agent_nom], ['Suivi', r.Suivi_nom], ['Date de début', fmtD(r.Date_debut)],
+      ['Date de fin prévue', fmtD(r.Date_fin_prevue)], ['Date de fin réelle', fmtD(r.Date_fin_reelle)],
+      ['Charge prévue (j)', r.Charge_prevue], ['Charge réelle (j)', r.Charge_reelle], ['Taux de consommation', pct(r.Taux_conso) + ' %'],
+      ['Description', r.Description]];
+    parse(r.Jalons_json).filter(j => j.l || j.d).forEach((j, i) => data.push([`Jalon ${i + 1}`, `${j.l} | ${fmtD(j.d)} | ${j.s}`]));
+  } else {
+    data = [['Nom', r.Nom_complet], ['Fonction', (r.Fonction || '').replace(/\n+/g, ' · ')], ['Email', r.Email],
+      ['Référent·e de suivi', r.Referent_suivi ? 'Oui' : 'Non'], ['Actif', r.Actif === false ? 'Non' : 'Oui'],
+      ['Capacité annuelle (j)', r.Capacite_annuelle], ['Réalisés cette année (j)', r.Charge_reelle_annee],
+      ['Charge prévue (j)', r.Charge_prevue], ['Taux d’occupation', pct(r.Taux_occupation) + ' %'],
+      ['Projets en cours', r.Nb_projets_actifs], ['Projets suivis', r.Nb_projets_suivis]];
+    parse(r.Projets_json).forEach((p, i) => data.push([`Projet ${i + 1}`, `${p.t} | ${p.s} | ${fmtN(p.p)} j prévus | ${fmtN(p.r)} j réalisés`]));
+  }
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const csv = '﻿' + [['Champ', 'Valeur'], ...data].map(l => l.map(q).join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
+  a.download = 'fiche-' + label(r).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+};
+
+/* ---------- Connexion à Grist ---------- */
+grist.ready({requiredAccess: 'full'});
+grist.onRecords(recs => {
+  rows = recs;
+  if (!mode && recs.length) mode = 'Titre' in recs[0] ? 'projet' : 'Nom_complet' in recs[0] ? 'agent' : null;
+  buildSelect();
+  if (!rows.some(r => r.id === cur)) cur = rows.length ? rows[0].id : null;
+  render();
+});
+grist.onRecord(r => {
+  if (r && r.id && r.id !== cur && rows.some(x => x.id === r.id)) { cur = r.id; render(); }
+});
+</script>
+</body>
+</html>
