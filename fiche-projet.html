@@ -28,6 +28,10 @@ dt{color:var(--mut)}dd{margin:0;font-weight:500}
 .row:first-of-type{border-top:0}
 .empty{color:var(--mut)}
 p{margin:0;white-space:pre-wrap}
+
+button.pill{font:inherit;font-size:12px;cursor:pointer;color:var(--ink)}
+table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;text-align:right;border-top:1px solid var(--line)}th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:500;font-size:12px;border-top:0}
+@media print{:root{--bg:#fff;--card:#fff;--ink:#14213d;--mut:#5b6478;--line:#dde2ec;--acc:#1f4fd8;--acc2:#9db4f5;--ok:#15803d;--warn:#c2740c;--ko:#c62828}body{padding:0}.noprint{display:none!important}section{break-inside:avoid}}
 </style></head>
 <body><div id="app" class="empty">Sélectionnez un projet dans la liste.</div>
 <script>
@@ -53,7 +57,7 @@ function render(r){
   document.getElementById('app').innerHTML=`
   <header><div class="ref">${esc(r.Reference)}</div><h1>${esc(r.Titre)||'Sans titre'}</h1>
     <span class="pill">${esc(r.Type_nom)||'Type non défini'}</span><span class="pill">${esc(r.Statut)}</span>
-    ${r.Retard?'<span class="pill ko">En retard</span>':''}</header>
+    ${r.Retard?'<span class="pill ko">En retard</span>':''}<div class="noprint" style="margin-top:8px"><button class="pill" id="pdf">Imprimer / PDF</button><button class="pill" id="csv">Exporter en CSV</button></div></header>
   <section><h2>Calendrier</h2>${tl}</section>
   <section><h2>Charge de travail</h2>
     <div>${r.Charge_reelle||0} j réalisés sur ${r.Charge_prevue||0} j prévus (${pct} %) &nbsp; ${esc(r.Alerte_charge)}</div>
@@ -65,5 +69,9 @@ function render(r){
     ${jal.map(j=>`<div class="row"><span>${j.s==='Atteint'?'✔':j.s==='En retard'?'⚠':'○'} ${esc(j.l)}</span><span>${fmt(j.d)}</span></div>`).join('')||'<div class="empty">Aucun jalon. Ajoutez-en dans la page Projets.</div>'}</section>
   ${r.Description?`<section><h2>Description</h2><p>${esc(r.Description)}</p></section>`:''}`;
 }
-grist.onRecord(r=>{if(r)render(r)});
+const EXP={csv(n,rows){const t=rows.map(r=>r.map(c=>'"'+(typeof c==='number'?String(c).replace('.',','):String(c??'')).replace(/"/g,'""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+t],{type:'text/csv;charset=utf-8'}));a.download=n+'.csv';document.body.appendChild(a);a.click();a.remove()},pdf(){try{window.print()}catch(e){alert('Impression bloquée : utilisez Ctrl+P sur la page Grist.')}}};
+function wire(r){let jal=[];try{jal=JSON.parse(r.Jalons_json||'[]')}catch(e){}
+  document.getElementById('pdf').onclick=EXP.pdf;
+  document.getElementById('csv').onclick=()=>EXP.csv('projet-'+(r.Reference||r.id),[['Référence','Titre','Type','Statut','Niveau commanditaire','Commanditaire','Bénéficiaire','Agents','Suivi','Début','Fin prévue','Charge prévue','Charge réelle'],[r.Reference,r.Titre,r.Type_nom,r.Statut,r.Niveau_commanditaire,r.Commanditaire,r.Beneficiaire,r.Agent_nom,r.Suivi_nom,fmt(r.Date_debut),fmt(r.Date_fin_prevue),r.Charge_prevue,r.Charge_reelle],[],['Jalon','Date','Statut']].concat(jal.map(j=>[j.l,fmt(j.d),j.s])))}
+grist.onRecord(r=>{if(!r)return;render(r);wire(r)});
 </script></body></html>

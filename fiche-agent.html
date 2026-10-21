@@ -23,6 +23,10 @@ h2{font-size:15px;margin:0 0 10px;font-weight:600}
 .row:first-of-type{border-top:0}
 .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 .empty{color:var(--mut)}
+
+button.pill{font:inherit;font-size:12px;cursor:pointer;color:var(--ink)}
+table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;text-align:right;border-top:1px solid var(--line)}th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:500;font-size:12px;border-top:0}
+@media print{:root{--bg:#fff;--card:#fff;--ink:#14213d;--mut:#5b6478;--line:#dde2ec;--acc:#1f4fd8;--acc2:#9db4f5;--ok:#15803d;--warn:#c2740c;--ko:#c62828}body{padding:0}.noprint{display:none!important}section{break-inside:avoid}}
 </style></head>
 <body><div id="app" class="empty">Sélectionnez un agent dans la liste.</div>
 <script>
@@ -42,7 +46,7 @@ function render(r){
   document.getElementById('app').innerHTML=`
   <header><div class="av">${esc(ini)}</div><div>
     <h1>${esc(r.Nom_complet)}</h1><div class="sub">${esc(r.Fonction)||'Fonction non renseignée'}${r.Email?' · '+esc(r.Email):''}</div>
-    <div style="margin-top:6px">${r.Referent_suivi?'<span class="pill">Référent·e de suivi</span>':''}${r.Actif?'':'<span class="pill">Inactif·ve</span>'}</div></div></header>
+    <div style="margin-top:6px">${r.Referent_suivi?'<span class="pill">Référent·e de suivi</span>':''}${r.Actif?'':'<span class="pill">Inactif·ve</span>'}</div><div class="noprint" style="margin-top:8px"><button class="pill" id="pdf">Imprimer / PDF</button><button class="pill" id="csv">Exporter en CSV</button></div></div></header>
   <section><div class="facts">
     <div><b>${r.Nb_projets_actifs||0}</b><span>projets en cours</span></div>
     <div><b>${r.Nb_projets_suivis||0}</b><span>projets suivis</span></div>
@@ -55,5 +59,9 @@ function render(r){
   <section><h2>Projets portés</h2>
     ${ps.map((x,i)=>`<div class="row"><span><i class="sw" style="background:${palette[i%palette.length]}"></i>${esc(x.t)} <span class="sub">(${esc(x.s)})</span></span><span>${num(x.r)} / ${num(x.p)} j</span></div>`).join('')||'<div class="empty">Aucun projet pour le moment.</div>'}</section>`;
 }
-grist.onRecord(r=>{if(r)render(r)});
+const EXP={csv(n,rows){const t=rows.map(r=>r.map(c=>'"'+(typeof c==='number'?String(c).replace('.',','):String(c??'')).replace(/"/g,'""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+t],{type:'text/csv;charset=utf-8'}));a.download=n+'.csv';document.body.appendChild(a);a.click();a.remove()},pdf(){try{window.print()}catch(e){alert('Impression bloquée : utilisez Ctrl+P sur la page Grist.')}}};
+function wire(r){let ps=[];try{ps=JSON.parse(r.Projets_json||'[]')}catch(e){}
+  document.getElementById('pdf').onclick=EXP.pdf;
+  document.getElementById('csv').onclick=()=>EXP.csv('agent-'+(r.Nom_complet||r.id),[['Agent','Fonction','Capacité annuelle (j)','Réalisé cette année (j)','Taux d’occupation','Projets en cours','Projets suivis'],[r.Nom_complet,r.Fonction,r.Capacite_annuelle,r.Charge_reelle_annee,Math.round((r.Taux_occupation||0)*100)+' %',r.Nb_projets_actifs,r.Nb_projets_suivis],[],['Projet','Statut','Prévu (j)','Réel (j)']].concat(ps.map(x=>[x.t,x.s,x.p,x.r])))}
+grist.onRecord(r=>{if(!r)return;render(r);wire(r)});
 </script></body></html>

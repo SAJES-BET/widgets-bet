@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#f4f6fa;--card:#fff;--ink:#14213d;--mut:#5b6478;--line:#dde2ec;--acc:#1f4fd8;--acc2:#9db4f5;--ok:#15803d;--warn:#c2740c;--ko:#c62828}
+@media(prefers-color-scheme:dark){:root{--bg:#161a24;--card:#1f2432;--ink:#eef1f7;--mut:#9aa3b8;--line:#323a4e;--acc:#7da2ff;--acc2:#3b4f86;--ok:#4ade80;--warn:#fbbf24;--ko:#f87171}}
+*{box-sizing:border-box}
+body{margin:0;padding:20px;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,"Segoe UI",sans-serif}
+header{padding-bottom:12px;margin-bottom:14px;border-bottom:3px solid var(--acc)}
+h1{font:600 26px/1.2 Georgia,"Iowan Old Style",serif;margin:0 0 8px}
+.chip{font:inherit;font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.chip.on{background:var(--acc);border-color:var(--acc);color:var(--bg)}
+.facts{display:flex;gap:28px;flex-wrap:wrap}
+.facts b{display:block;font:600 24px Georgia,serif}.facts span{color:var(--mut);font-size:12px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 4px;font-weight:600}
+.hint{color:var(--mut);font-size:12px;margin-bottom:10px}
+.ag{display:grid;grid-template-columns:170px 1fr 150px;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.ag:first-of-type{border-top:0}
+.nm{font-weight:600}.sub{color:var(--mut);font-size:12px}
+.track{position:relative;height:16px;border-radius:5px;background:var(--line);overflow:hidden}
+.track .p{position:absolute;inset:0 auto 0 0;background:var(--acc2)}
+.track .r{position:absolute;left:0;top:5px;height:6px;border-radius:3px}
+.num{text-align:right;font-size:12px;color:var(--mut)}
+.sb{display:grid;grid-template-columns:150px 1fr 50px;gap:10px;align-items:center;padding:4px 0}
+.sb .bar{height:8px;border-radius:4px;background:var(--acc)}
+.empty{color:var(--mut)}
+@media(max-width:620px){.ag{grid-template-columns:1fr}.num{text-align:left}}
+
+button.pill{font:inherit;font-size:12px;cursor:pointer;color:var(--ink)}
+table{width:100%;border-collapse:collapse}th,td{padding:6px 8px;text-align:right;border-top:1px solid var(--line)}th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:500;font-size:12px;border-top:0}
+@media print{:root{--bg:#fff;--card:#fff;--ink:#14213d;--mut:#5b6478;--line:#dde2ec;--acc:#1f4fd8;--acc2:#9db4f5;--ok:#15803d;--warn:#c2740c;--ko:#c62828}body{padding:0}.noprint{display:none!important}section{break-inside:avoid}}
+</style></head>
+<body><div id="app" class="empty">Chargement de l’équipe…</div>
+<script>
+grist.ready({requiredAccess:'full'});
+let recs=[],inactive=false,tab='ens',temps=null;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=v=>Math.round((v||0)*10)/10;
+const sum=(a,k)=>a.reduce((s,x)=>s+(+x[k]||0),0);
+const col=p=>p>1?'var(--ko)':p>=.85?'var(--warn)':'var(--ok)';
+function render(){
+  const f=recs.filter(r=>inactive||r.Actif).sort((a,b)=>(b.Taux_occupation||0)-(a.Taux_occupation||0));
+  const cap=sum(f,'Capacite_annuelle'),reel=sum(f,'Charge_reelle_annee'),prev=sum(f,'Charge_prevue');
+  const refs=f.filter(r=>r.Referent_suivi);
+  const mxS=Math.max(1,...refs.map(r=>r.Nb_projets_suivis||0));
+  document.getElementById('app').className='';
+  document.getElementById('app').innerHTML=`
+  <header><h1>Activité du bureau : équipe</h1><div class="noprint" style="display:flex;gap:6px;flex-wrap:wrap"><button class="chip ${tab==='ens'?'on':''}" data-t="ens">Vue d’ensemble</button><button class="chip ${tab==='an'?'on':''}" data-t="an">Par année</button><button class="chip ${inactive?'on':''}" id="ina">Inclure les agents inactifs</button><button class="chip" id="csv">Exporter en CSV</button><button class="chip" id="pdf">Imprimer / PDF</button></div></header>
+  ${tab==='an'?yearView(f):`<section><div class="facts">
+    <div><b>${f.length}</b><span>agents</span></div>
+    <div><b>${num(cap)} j</b><span>capacité annuelle cumulée</span></div>
+    <div><b>${num(reel)} j</b><span>réalisés cette année (${cap?Math.round(reel/cap*100):0} %)</span></div>
+    <div><b>${num(prev)} j</b><span>prévus sur les projets en cours</span></div></div></section>
+  <section><h2>Charge par agent</h2>
+    <div class="hint">Barre claire : charge prévue sur les projets en cours. Trait plein : jours réalisés cette année. Les deux sont comparés à la capacité annuelle.</div>
+    ${f.map(r=>{const c=r.Capacite_annuelle||1,t=r.Taux_occupation||0,p=(r.Charge_prevue||0)/c;
+      return `<div class="ag"><div><div class="nm">${esc(r.Nom_complet)}</div><div class="sub">${esc(r.Fonction)}</div></div>
+      <div class="track" title="Prévu ${num(r.Charge_prevue)} j · réalisé ${num(r.Charge_reelle_annee)} j · capacité ${num(r.Capacite_annuelle)} j"><div class="p" style="width:${Math.min(p*100,100)}%"></div><div class="r" style="width:${Math.min(t*100,100)}%;background:${col(t)}"></div></div>
+      <div class="num">${Math.round(t*100)} % · ${r.Nb_projets_actifs||0} projet(s)</div></div>`}).join('')||'<div class="empty">Aucun agent. Ajoutez-en dans la page Équipe.</div>'}</section>
+  <section><h2>Projets suivis par les référents</h2><div class="hint">Projets en cours dont la personne assure le suivi.</div>
+    ${refs.map(r=>`<div class="sb"><span>${esc(r.Nom_complet)}</span><div class="bar" style="width:${(r.Nb_projets_suivis||0)/mxS*100}%"></div><span class="num">${r.Nb_projets_suivis||0}</span></div>`).join('')||'<div class="empty">Cochez « Referent_suivi » pour les référents.</div>'}</section>`}`;
+  document.getElementById('ina').onclick=()=>{inactive=!inactive;render()};
+  document.querySelectorAll('.chip[data-t]').forEach(b=>b.onclick=()=>{tab=b.dataset.t;render()});
+  document.getElementById('csv').onclick=()=>exportCsv(f);
+  document.getElementById('pdf').onclick=EXP.pdf;
+}
+const EXP={csv(n,rows){const t=rows.map(r=>r.map(c=>'"'+(typeof c==='number'?String(c).replace('.',','):String(c??'')).replace(/"/g,'""')+'"').join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+t],{type:'text/csv;charset=utf-8'}));a.download=n+'.csv';document.body.appendChild(a);a.click();a.remove()},pdf(){try{window.print()}catch(e){alert('Impression bloquée : utilisez Ctrl+P sur la page Grist.')}}};
+async function loadTemps(){try{temps=await grist.docApi.fetchTable('Temps')}catch(e){temps=false}render()}
+function matrix(){const M={},ys=new Set();temps.id.forEach((_,i)=>{const d=temps.Date[i];if(typeof d!=='number')return;const y=new Date(d*1000).getFullYear();ys.add(y);const k=temps.Agent[i]+'|'+y;M[k]=(M[k]||0)+(+temps.Jours[i]||0)});return{Y:[...ys].sort(),get:(a,y)=>M[a+'|'+y]||0}}
+function yearView(f){
+  if(temps===null)return '<div class="empty">Chargement des saisies de temps…</div>';
+  if(temps===false)return '<section>Les saisies de temps sont inaccessibles. Dans le panneau de droite du widget, réglez le niveau d’accès sur « Accès complet au document ».</section>';
+  const m=matrix();
+  if(!m.Y.length)return '<section class="empty">Aucune saisie de temps datée pour le moment.</section>';
+  return `<section><h2>Jours saisis par agent et par année</h2><div class="hint">Entre parenthèses : part de la capacité annuelle.</div><table><tr><th>Agent</th>${m.Y.map(y=>`<th>${y}</th>`).join('')}</tr>
+  ${f.map(r=>`<tr><td>${esc(r.Nom_complet)}</td>${m.Y.map(y=>{const v=m.get(r.id,y);return `<td>${v?num(v)+' j ('+Math.round(v/(r.Capacite_annuelle||1)*100)+' %)':'—'}</td>`}).join('')}</tr>`).join('')}
+  <tr><th>Total équipe</th>${m.Y.map(y=>`<th>${num(f.reduce((s,r)=>s+m.get(r.id,y),0))} j</th>`).join('')}</tr></table></section>`}
+function exportCsv(f){
+  if(tab==='an'&&temps){const m=matrix();EXP.csv('equipe-par-annee',[['Agent','Capacité annuelle (j)',...m.Y.map(y=>'Jours '+y)]].concat(f.map(r=>[r.Nom_complet,r.Capacite_annuelle,...m.Y.map(y=>m.get(r.id,y))])));return}
+  EXP.csv('synthese-equipe',[['Agent','Fonction','Capacité annuelle (j)','Charge prévue (j)','Réalisé cette année (j)','Taux d’occupation','Projets en cours','Projets suivis']].concat(f.map(r=>[r.Nom_complet,r.Fonction,r.Capacite_annuelle,r.Charge_prevue,r.Charge_reelle_annee,Math.round((r.Taux_occupation||0)*100)+' %',r.Nb_projets_actifs,r.Nb_projets_suivis])))}
+grist.onRecords(r=>{recs=r;render();loadTemps()});
+</script></body></html>
