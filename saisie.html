@@ -32,10 +32,26 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);border-colo
 .row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:5px 0;border-top:1px solid var(--line)}
 .meter{height:10px;border-radius:5px;background:var(--line);overflow:hidden;margin:8px 0 4px}.meter i{display:block;height:100%}
 #st{position:fixed;right:16px;bottom:12px;padding:4px 12px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:12px;opacity:0;transition:opacity .3s}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);padding:18px 20px;width:min(540px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog h2{font:600 20px/1.2 Georgia,"Iowan Old Style",serif;margin:0 0 14px}
+dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.ck{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 10px;max-height:150px;overflow:auto;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.ck label,label.cb{display:flex;gap:6px;align-items:center;margin:0;color:var(--ink);font-size:13px}.ck input,label.cb input{width:auto}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.btn:disabled{opacity:.5;cursor:default}
 @media(max-width:700px){#app{grid-template-columns:1fr;height:auto}aside{max-height:240px}.jr{grid-template-columns:1fr 1fr}}
 </style></head>
 <body><div id="app"><aside><div class="top"><button class="btn" id="add">+ Nouveau</button><input id="q" placeholder="Rechercher…"><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="old" style="width:auto">Afficher les archivés</label></div><div id="list"></div></aside>
 <main id="main"><div class="sub">Chargement…</div></main></div><div id="st"></div>
+<dialog id="np"><form id="npf" novalidate>
+<h2>Nouveau projet</h2>
+<div class="f"><label for="np-t">Titre *</label><input id="np-t" maxlength="200" autocomplete="off"><div class="msg" id="np-m"></div></div>
+<div class="f"><label for="np-ty">Type</label><select id="np-ty"></select></div>
+<div class="f"><label>Agents BET en charge</label><div class="ck" id="np-ag"></div></div>
+<div class="g2"><div><label for="np-d">Début</label><input type="date" id="np-d"></div><div><label for="np-f">Fin prévue</label><input type="date" id="np-f"></div></div>
+<label class="cb"><input type="checkbox" id="np-j" checked>Créer les jalons types</label><div class="sub" id="np-jl" style="margin-top:4px"></div>
+<div class="acts"><button type="button" class="btn s" id="np-x">Annuler</button><button type="submit" class="btn" id="np-ok">Créer le projet</button></div>
+</form></dialog>
 <script>
 grist.ready({requiredAccess:'full'});
 const JST=['À venir','Atteint','En retard'];
@@ -50,6 +66,15 @@ const CFG={
   create:()=>({Actif:true,Capacite_annuelle:200}),
   secs:[['Identité',[['Prenom','Prénom','text'],['Nom','Nom','text'],['Fonction','Fonction','text'],['Email','Email','text']]],
    ['Statut et capacité',[['Capacite_annuelle','Capacité annuelle (jours)','num'],['Referent_suivi','Référent·e de suivi','bool'],['Actif','Actif·ve','bool']]]]}};
+/* Jalons types créés avec un nouveau projet : [libellé, position en % de la durée du projet].
+   Les mots-clés (cle) servent à reconnaître le type par son libellé. À adapter librement par le bureau. */
+const MODELES={
+ ditp:{cle:['ditp'],j:[['Lettre de saisine',0],['Réunion de cadrage',10],['Livrable intermédiaire',50],['Restitution',90],['Clôture et retour d’expérience',100]]},
+ diag:{cle:['diagnostic'],j:[['Lettre de mission et cadrage',0],['Entretiens et collecte',30],['Diagnostic provisoire',60],['Restitution du diagnostic',85],['Plan d’action validé',100]]},
+ pp:{cle:['politique'],j:[['Cadrage et commande',0],['Comité de pilotage de lancement',15],['Analyse et collecte',45],['Rapport provisoire',75],['Rapport final',100]]},
+ def:{cle:[],j:[['Cadrage validé',0],['Point d’étape',50],['Livrable final',100]]}};
+const norm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const modele=lab=>{const n=norm(lab);return Object.values(MODELES).find(m=>m.cle.some(k=>n.includes(k)))||MODELES.def};
 let T=null,rows=[],sel=null,want=null,q='',showOld=false,L={},CH=null,jal=[],tps=[],tm;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -124,6 +149,7 @@ document.addEventListener('click',async e=>{const t=e.target,it=t.closest&&t.clo
   const run=async a=>{try{await act(a);flash('✓ Enregistré');await build()}catch(x){flash('Refusé : '+(x.message||x),1)}};
   if(it&&it.dataset.id){sel=+it.dataset.id;await build();return renderList()}
   if(t.dataset.rm){const b=t.closest('.chips');return setMulti(b,ids(cur()[b.dataset.k]).filter(i=>i!==+t.dataset.rm))}
+  if(t.id==='add'&&T==='Projets')return openNew();
   if(t.id==='add'){try{const r=await act([['AddRecord',CFG[T].name,null,CFG[T].create()]]);want=r.retValues[0];flash('✓ Créé');if(rows.some(x=>x.id===want)){sel=want;want=null;await build();renderList()}}catch(x){flash('Création refusée : '+(x.message||x),1)}return}
   if(t.id==='arch'){if(confirm('Archiver ce projet ? Il reste dans les statistiques.')){await save('Projets',sel,{Statut:'Archivé'});const f=visible().filter(r=>r.id!==sel);sel=f[0]?f[0].id:null;await build();renderList()}return}
   if(t.id==='addj')return run([['AddRecord','Jalons',null,{Projet:sel,Statut:'À venir'}]]);
@@ -131,6 +157,30 @@ document.addEventListener('click',async e=>{const t=e.target,it=t.closest&&t.clo
   if(t.dataset.delt)return run([['RemoveRecord','Temps',+t.dataset.delt]]);
   if(t.id==='addt'){const j=+$('#tj').value,a=+$('#ta').value;if(!(j>0)||!a)return flash('Choisissez un agent et un nombre de jours.',1);
     return run([['AddRecord','Temps',null,{Projet:sel,Agent:a,Date:sec($('#td').value),Jours:j,Commentaire:$('#tc').value}]])}});
+/* ---- Nouveau projet : mini-formulaire, référence automatique, jalons types ---- */
+function nextRef(){const y=new Date().getFullYear();let m=0;rows.forEach(r=>{const x=/^(\d{4})-(\d+)$/.exec(String(r.Reference||'').trim());if(x&&+x[1]===y)m=Math.max(m,+x[2])});return y+'-'+String(m+1).padStart(3,'0')}
+function npPrev(){const ty=L.types.find(x=>x.id===+$('#np-ty').value),m=modele(ty&&ty.n),dated=$('#np-d').value&&$('#np-f').value;
+  $('#np-jl').textContent='Jalons : '+m.j.map(x=>x[0]).join(' · ')+(dated?' (dates réparties entre le début et la fin)':' (sans date : renseignez le début et la fin pour les placer automatiquement)')}
+async function openNew(){await load();$('#np-t').value='';$('#np-m').textContent='';
+  $('#np-ty').innerHTML='<option value="0">— Non précisé —</option>'+L.types.map(x=>`<option value="${x.id}">${esc(x.n)}</option>`).join('');
+  $('#np-ag').innerHTML=L.agents.map(a=>`<label><input type="checkbox" value="${a.id}">${esc(a.n)}</label>`).join('')||'<span class="sub">Aucun agent actif</span>';
+  $('#np-d').value=new Date().toISOString().slice(0,10);$('#np-f').value='';$('#np-j').checked=true;npPrev();$('#np').showModal();$('#np-t').focus()}
+async function createNew(ev){ev.preventDefault();const t=$('#np-t').value.trim(),d=sec($('#np-d').value),f=sec($('#np-f').value),m=$('#np-m');
+  if(!t){m.textContent='Le titre est obligatoire.';$('#np-t').focus();return}
+  if(d&&f&&f<d){m.textContent='La fin ne peut pas précéder le début.';return}
+  const ty=+$('#np-ty').value||0,ag=[...document.querySelectorAll('#np-ag input:checked')].map(x=>+x.value);
+  $('#np-ok').disabled=true;
+  try{const rec={Reference:nextRef(),Titre:t,Type:ty,Statut:'À cadrer',Date_debut:d,Date_fin_prevue:f};if(ag.length)rec.Agent=['L',...ag];
+    const r=await act([['AddRecord','Projets',null,rec]]),id=r.retValues[0];
+    if($('#np-j').checked){const tp=L.types.find(x=>x.id===ty),mo=modele(tp&&tp.n);
+      await act(mo.j.map(([l,p])=>['AddRecord','Jalons',null,{Projet:id,Libelle:l,Statut:'À venir',Date:d&&f?d+Math.round(p/100*(f-d)/86400)*86400:null}]))}
+    $('#np').close();flash('✓ Projet créé');q='';$('#q').value='';want=id;
+    if(rows.some(x=>x.id===id)){sel=id;want=null;await build();renderList()}}
+  catch(x){flash('Création refusée : '+(x.message||x),1)}
+  $('#np-ok').disabled=false}
+$('#npf').addEventListener('submit',createNew);$('#np-x').addEventListener('click',()=>$('#np').close());
+['#np-ty','#np-d','#np-f'].forEach(s=>$(s).addEventListener('change',()=>{$('#np-m').textContent='';npPrev()}));
+$('#np-t').addEventListener('input',()=>$('#np-m').textContent='');
 let busy=Promise.resolve();grist.onRecords(r=>{rows=r;busy=busy.then(handle).catch(e=>{$('#main').textContent='Erreur : '+(e.message||e)})});
 async function handle(){const r=rows;
   if(!T){try{T=await grist.selectedTable.getTableId()}catch(e){}if(!T&&r[0])T='Titre' in r[0]?'Projets':'Prenom' in r[0]?'Agents':null;

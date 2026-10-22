@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mon temps</title>
+<script src="https://grist.numerique.gouv.fr/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#11131b;--card:#181b25;--field:#232734;--line:#2c3140;--txt:#e8eaf0;--mut:#9aa0b4;--acc:#5b8cff;--ok:#3fb67a;--warn:#f0a43c;--bad:#f26b6b}
+@media (prefers-color-scheme:light){:root{--bg:#f6f7fb;--card:#fff;--field:#eef0f6;--line:#d9dce7;--txt:#1b1f2a;--mut:#626a80;--acc:#2f5fd8}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:14px 16px 40px}
+h1{font:700 24px/1.2 Georgia,"Times New Roman",serif;margin:0 0 12px}
+button,select,input{font:inherit;color:var(--txt)}
+button,select{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover,select:hover{border-color:var(--acc)}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button:disabled{opacity:.4;cursor:default}
+.btn{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.btn.s{background:var(--card);color:var(--txt);font-weight:400}
+.top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px}
+.who{display:flex;align-items:center;gap:8px}
+.who label{color:var(--mut)}
+.week{display:flex;align-items:center;gap:6px}
+.week .lbl{min-width:230px;text-align:center;font-weight:600}
+.week .nav{width:36px;padding:6px 0}
+.sp{flex:1}
+.sum{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 12px;font-size:13px}
+.chip b{font-variant-numeric:tabular-nums}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:auto}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th,td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:500;font-size:13px;white-space:nowrap}
+th.today{color:var(--acc);font-weight:700}
+td.p,th.p{text-align:left;padding-left:14px;width:36%}
+td.p b{display:block;overflow-wrap:anywhere}
+td.p small{color:var(--mut)}
+td.q{width:1%;padding-right:12px;white-space:nowrap}
+tbody tr:last-child td{border-bottom:0}
+tfoot td{border-top:2px solid var(--line);border-bottom:0;font-weight:700;font-variant-numeric:tabular-nums}
+tfoot td.p{font-weight:600;color:var(--mut)}
+.c{width:64px;height:38px;text-align:center;background:var(--field);border:1px solid var(--line);border-radius:8px;font-variant-numeric:tabular-nums}
+.c::placeholder{color:var(--mut)}
+.c.has{border-color:var(--acc);font-weight:700}
+.c.bad{border-color:var(--bad)}
+td.today .c{box-shadow:0 0 0 1px var(--acc) inset}
+.ok{color:var(--ok)}.over{color:var(--bad)}
+.add{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.add select{max-width:100%}
+.note{color:var(--mut);font-size:13px;margin-top:10px}
+.empty{padding:40px 20px;text-align:center;color:var(--mut)}
+.empty b{color:var(--txt);display:block;font-size:16px;margin-bottom:6px}
+#st{position:fixed;right:16px;bottom:12px;padding:5px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none}
+@media (max-width:560px){.week .lbl{min-width:0;flex:1}.c{width:52px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Mon temps</h1>
+  <div class="top">
+    <div class="who"><label for="who">Je suis</label><select id="who" aria-label="Choisir mon nom"></select></div>
+    <div class="week">
+      <button class="nav" id="prev" aria-label="Semaine précédente" title="Semaine précédente">◀</button>
+      <span class="lbl" id="lbl" aria-live="polite"></span>
+      <button class="nav" id="next" aria-label="Semaine suivante" title="Semaine suivante">▶</button>
+      <button id="now" class="s">Cette semaine</button>
+    </div>
+    <span class="sp"></span>
+    <button id="copy" class="btn" title="Recopie les jours de la semaine précédente dans les cases vides">Recopier la semaine précédente</button>
+  </div>
+  <div class="sum" id="sum"></div>
+  <div class="card" id="grid"></div>
+  <div class="add" id="add"></div>
+  <div class="note" id="note"></div>
+</div>
+<div id="st" role="status"></div>
+
+<script>
+const DAY = 86400, $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ids = v => Array.isArray(v) ? v.filter(x => typeof x === 'number') : [];
+const v = (t, c, i) => t[c] ? t[c][i] : undefined;
+const g = async n => { try { return await grist.docApi.fetchTable(n); } catch (e) { return {id: []}; } };
+const act = a => grist.docApi.applyUserActions(a);
+const fmt = n => (Math.round(n * 100) / 100).toLocaleString('fr-FR');
+const parseN = s => { const x = parseFloat(String(s).replace(',', '.').trim()); return isNaN(x) ? null : x; };
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set: (k, x) => { try { localStorage.setItem(k, x); } catch (e) {} }
+};
+
+function todaySec() { const n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 1000; }
+function mondayOf(t) { const d = new Date(t * 1000).getUTCDay(); return t - ((d + 6) % 7) * DAY; }
+const dLong = t => new Date(t * 1000).toLocaleDateString('fr-FR', {timeZone: 'UTC', day: 'numeric', month: 'long'});
+const dShort = t => new Date(t * 1000).toLocaleDateString('fr-FR', {timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit'});
+const isoWeek = t => { const d = new Date(t * 1000); d.setUTCDate(d.getUTCDate() + 3); const y = d.getUTCFullYear(), j = new Date(Date.UTC(y, 0, 4));
+  return 1 + Math.round(((d - j) / 864e5 - 3 + ((j.getUTCDay() + 6) % 7)) / 7); };
+
+let S = {agents: [], projets: [], temps: [], agentId: null, ws: mondayOf(todaySec()), extra: new Set(), sig: ''};
+let queue = Promise.resolve(), toastT;
+
+function flash(t, bad) {
+  const e = $('#st'); e.textContent = t; e.style.color = bad ? 'var(--bad)' : 'var(--ok)'; e.style.opacity = 1;
+  clearTimeout(toastT); toastT = setTimeout(() => e.style.opacity = 0, 2600);
+}
+
+async function load() {
+  const [A, P, T] = await Promise.all([g('Agents'), g('Projets'), g('Temps')]);
+  S.agents = A.id.map((id, i) => ({id, n: v(A, 'Nom_complet', i) || ((v(A, 'Prenom', i) || '') + ' ' + (v(A, 'Nom', i) || '')).trim() || ('Agent ' + id),
+    actif: v(A, 'Actif', i) !== false, ya: +v(A, 'Charge_reelle_annee', i) || 0, cap: +v(A, 'Capacite_annuelle', i) || 0}));
+  S.projets = P.id.map((id, i) => ({id, t: (v(P, 'Titre', i) || '').trim() || '(Sans titre)', ref: (v(P, 'Reference', i) || '').trim(),
+    st: v(P, 'Statut', i) || '', ag: ids(v(P, 'Agent', i))}));
+  S.temps = T.id.map((id, i) => ({id, d: v(T, 'Date', i), p: v(T, 'Projet', i), a: v(T, 'Agent', i), j: +v(T, 'Jours', i) || 0}));
+}
+
+const recs = (p, d) => S.temps.filter(t => t.a === S.agentId && t.p === p && t.d === d);
+const cellVal = (p, d) => recs(p, d).reduce((s, t) => s + t.j, 0);
+const days = () => [0, 1, 2, 3, 4].map(i => S.ws + i * DAY);
+
+function rowsFor() {
+  const lo = S.ws, hi = S.ws + 6 * DAY;
+  const set = new Set(S.projets.filter(p => (p.st === 'En cours' || p.st === 'À cadrer') && p.ag.includes(S.agentId)).map(p => p.id));
+  S.temps.filter(t => t.a === S.agentId && t.d >= lo && t.d <= hi).forEach(t => set.add(t.p));
+  S.extra.forEach(x => set.add(x));
+  return S.projets.filter(p => set.has(p.id)).sort((a, b) => (a.st === 'En cours' ? 0 : 1) - (b.st === 'En cours' ? 0 : 1) || a.t.localeCompare(b.t, 'fr'));
+}
+
+/* ---------- Rendu ---------- */
+function renderTop() {
+  const list = S.agents.filter(a => a.actif || a.id === S.agentId);
+  $('#who').innerHTML = `<option value="">— Choisissez votre nom —</option>` +
+    list.map(a => `<option value="${a.id}" ${a.id === S.agentId ? 'selected' : ''}>${esc(a.n)}</option>`).join('');
+  const end = S.ws + 4 * DAY;
+  $('#lbl').textContent = `Semaine ${isoWeek(S.ws)} · du ${dLong(S.ws)} au ${dLong(end)} ${new Date(end * 1000).getUTCFullYear()}`;
+  $('#now').disabled = S.ws === mondayOf(todaySec());
+  $('#copy').disabled = !S.agentId;
+}
+
+function render() {
+  renderTop();
+  const grid = $('#grid');
+  if (!S.agentId) {
+    grid.innerHTML = '<div class="empty"><b>Bienvenue 👋</b>Choisissez votre nom en haut pour saisir votre temps. Il sera mémorisé sur cet ordinateur.</div>';
+    $('#sum').innerHTML = ''; $('#add').innerHTML = ''; $('#note').textContent = ''; S.sig = ''; return;
+  }
+  const rows = rowsFor(), ds = days(), today = todaySec();
+  S.sig = [S.agentId, S.ws, rows.map(r => r.id).join(',')].join('|');
+  const head = ds.map(d => `<th class="${d === today ? 'today' : ''}">${esc(dShort(d))}</th>`).join('');
+  const body = rows.map(r => `<tr data-p="${r.id}"><td class="p"><b>${esc(r.t)}</b><small>${esc(r.ref)}${r.ref && r.st ? ' · ' : ''}${esc(r.st)}</small></td>` +
+    ds.map(d => `<td class="${d === today ? 'today' : ''}"><input class="c" inputmode="decimal" autocomplete="off" data-p="${r.id}" data-d="${d}" placeholder="·" aria-label="${esc(r.t)} – ${esc(dShort(d))} (jours)"></td>`).join('') +
+    `<td class="q"><button class="s fill" data-p="${r.id}" title="Met 1 j dans les jours vides de la semaine">5 × 1 j</button></td></tr>`).join('');
+  grid.innerHTML = rows.length ? `<table><thead><tr><th class="p">Projet</th>${head}<th></th></tr></thead><tbody>${body}</tbody>
+    <tfoot><tr><td class="p">Total du jour</td>${ds.map(d => `<td data-tot="${d}"></td>`).join('')}<td class="q" id="wt"></td></tr></tfoot></table>`
+    : '<div class="empty"><b>Aucun projet en cours qui vous soit affecté</b>Ajoutez un projet avec la liste ci-dessous, ou demandez à votre cheffe de bureau de vous affecter.</div>';
+
+  const shown = new Set(rows.map(r => r.id));
+  const others = S.projets.filter(p => !shown.has(p.id) && p.st !== 'Terminé' && p.st !== 'Archivé');
+  $('#add').innerHTML = others.length ? `<select id="addp" aria-label="Ajouter un autre projet"><option value="">+ Ajouter un autre projet…</option>` +
+    others.map(p => `<option value="${p.id}">${esc(p.t)}${p.ref ? ' (' + esc(p.ref) + ')' : ''}</option>`).join('') + '</select>' : '';
+  patch();
+}
+
+/* Met à jour les valeurs sans reconstruire (garde le focus pendant la saisie) */
+function patch() {
+  if (!S.agentId) return;
+  document.querySelectorAll('input.c').forEach(el => {
+    if (el === document.activeElement) return;
+    const val = cellVal(+el.dataset.p, +el.dataset.d), n = recs(+el.dataset.p, +el.dataset.d).length;
+    el.value = val ? fmt(val) : '';
+    el.classList.toggle('has', val > 0);
+    el.title = n > 1 ? `${n} saisies cumulées (elles seront regroupées si vous modifiez cette case)` : '';
+  });
+  totals();
+  const me = S.agents.find(a => a.id === S.agentId);
+  const wk = S.temps.filter(t => t.a === S.agentId && t.d >= S.ws && t.d <= S.ws + 4 * DAY).reduce((s, t) => s + t.j, 0);
+  const we = S.temps.filter(t => t.a === S.agentId && t.d > S.ws + 4 * DAY && t.d <= S.ws + 6 * DAY).reduce((s, t) => s + t.j, 0);
+  const pct = me && me.cap ? Math.round(me.ya / me.cap * 100) : null;
+  $('#sum').innerHTML = `<span class="chip">Cette semaine : <b>${fmt(wk)} j</b></span>` +
+    (me ? `<span class="chip">Depuis le 1ᵉʳ janvier : <b>${fmt(me.ya)} j</b>${me.cap ? ` sur ${fmt(me.cap)} j` : ''}${pct != null ? ` (${pct} %)` : ''}</span>` : '');
+  $('#note').textContent = we > 0 ? `Attention : ${fmt(we)} j sont saisis sur le week-end de cette semaine (non affichés ici).` : '';
+}
+
+function totals() {
+  let all = 0;
+  document.querySelectorAll('[data-tot]').forEach(td => {
+    const d = td.dataset.tot;
+    const s = [...document.querySelectorAll(`input.c[data-d="${d}"]`)].reduce((a, el) => a + (parseN(el.value) || 0), 0);
+    all += s;
+    td.textContent = s ? fmt(s) + (s === 1 ? ' ✓' : '') : '';
+    td.className = (td.className.includes('today') ? 'today ' : '') + (s === 1 ? 'ok' : s > 1 ? 'over' : '');
+    td.title = s > 1 ? 'Plus d’une journée saisie ce jour-là' : '';
+  });
+  const wt = $('#wt'); if (wt) wt.textContent = all ? fmt(all) + ' j' : '';
+}
+
+/* ---------- Écriture ---------- */
+function buildCellActions(p, d, val) {
+  const rs = recs(p, d), a = [];
+  if (!rs.length) { if (val > 0) a.push(['AddRecord', 'Temps', null, {Projet: p, Agent: S.agentId, Date: d, Jours: val}]); }
+  else if (val > 0) { a.push(['UpdateRecord', 'Temps', rs[0].id, {Jours: val}]); rs.slice(1).forEach(r => a.push(['RemoveRecord', 'Temps', r.id])); }
+  else rs.forEach(r => a.push(['RemoveRecord', 'Temps', r.id]));
+  return a;
+}
+function run(actions, okMsg) {
+  if (!actions.length) return Promise.resolve();
+  queue = queue.then(async () => {
+    try { await act(actions); flash(okMsg || '✓ Enregistré'); }
+    catch (e) { flash('Enregistrement refusé : ' + (e.message || e), 1); }
+    await load(); renderOrPatch();
+  });
+  return queue;
+}
+function renderOrPatch() {
+  const sig = [S.agentId, S.ws, rowsFor().map(r => r.id).join(',')].join('|');
+  if (sig !== S.sig) { const f = document.activeElement; render(); if (f && f.classList && f.classList.contains('c')) { const n = document.querySelector(`input.c[data-p="${f.dataset.p}"][data-d="${f.dataset.d}"]`); n && n.focus(); } }
+  else patch();
+}
+
+/* ---------- Événements ---------- */
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.id === 'who') { S.agentId = +el.value || null; S.extra = new Set(); store.set('mon-temps-agent', S.agentId || ''); return render(); }
+  if (el.id === 'addp') { if (el.value) { S.extra.add(+el.value); render(); } return; }
+  if (el.classList.contains('c')) {
+    const raw = el.value.trim(), val = raw === '' ? 0 : parseN(raw);
+    if (val === null || val < 0 || val > 31) { el.classList.add('bad'); flash('Saisissez un nombre de jours, par exemple 0,5 ou 1.', 1); return; }
+    el.classList.remove('bad'); el.value = val ? fmt(val) : ''; totals();
+    run(buildCellActions(+el.dataset.p, +el.dataset.d, val));
+  }
+});
+document.addEventListener('focusin', e => { if (e.target.classList && e.target.classList.contains('c')) e.target.select(); });
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if (!t) return;
+  if (t.id === 'prev') { S.ws -= 7 * DAY; return render(); }
+  if (t.id === 'next') { S.ws += 7 * DAY; return render(); }
+  if (t.id === 'now') { S.ws = mondayOf(todaySec()); return render(); }
+  if (t.classList.contains('fill')) {
+    const p = +t.dataset.p, a = [];
+    days().forEach(d => { if (!cellVal(p, d)) a.push(...buildCellActions(p, d, 1)); });
+    return a.length ? run(a, `✓ ${a.length} jour${a.length > 1 ? 's' : ''} ajouté${a.length > 1 ? 's' : ''}`) : flash('Les cinq jours sont déjà renseignés.');
+  }
+  if (t.id === 'copy') {
+    const prev = S.temps.filter(x => x.a === S.agentId && x.d >= S.ws - 7 * DAY && x.d <= S.ws - 3 * DAY && x.j > 0), a = [];
+    const done = new Set();
+    prev.forEach(x => { const d = x.d + 7 * DAY, k = x.p + '|' + d; if (done.has(k) || cellVal(x.p, d)) return; done.add(k);
+      const j = prev.filter(y => y.p === x.p && y.d === x.d).reduce((s, y) => s + y.j, 0);
+      a.push(['AddRecord', 'Temps', null, {Projet: x.p, Agent: S.agentId, Date: d, Jours: j}]); });
+    if (!prev.length) return flash('Rien à recopier : la semaine précédente est vide.', 1);
+    if (!a.length) return flash('Les cases correspondantes sont déjà remplies.');
+    return run(a, `✓ ${a.length} case${a.length > 1 ? 's' : ''} recopiée${a.length > 1 ? 's' : ''}`);
+  }
+});
+
+/* ---------- Démarrage ---------- */
+let reloadT;
+grist.ready({requiredAccess: 'full'});
+grist.onRecords(() => { clearTimeout(reloadT); reloadT = setTimeout(async () => { await queue; await load(); renderOrPatch(); }, 250); });
+(async () => {
+  await load();
+  const saved = +store.get('mon-temps-agent');
+  if (saved && S.agents.some(a => a.id === saved)) S.agentId = saved;
+  render();
+})();
+</script>
+</body>
+</html>
