@@ -61,11 +61,13 @@ const cur=()=>rows.find(r=>r.id===sel);
 const visible=()=>{const c=CFG[T];return rows.filter(r=>(showOld||!c.old(r))&&(c.title(r)+' '+c.sub(r)).toLowerCase().includes(q)).slice().reverse()};
 function flash(t,bad){const e=$('#st');e.textContent=t;e.style.color=bad?'var(--ko)':'var(--ok)';e.style.opacity=1;clearTimeout(tm);tm=setTimeout(()=>e.style.opacity=0,2800)}
 async function save(tbl,id,f){try{await act([['UpdateRecord',tbl,id,f]]);flash('✓ Enregistré')}catch(e){flash('Enregistrement refusé : '+(e.message||e),1)}}
-async function choices(){if(CH)return CH;CH={};try{const Tb=await grist.docApi.fetchTable('_grist_Tables'),C=await grist.docApi.fetchTable('_grist_Tables_column');const t=Tb.id[Tb.tableId.indexOf('Projets')];for(const k of['Statut','Niveau_commanditaire']){const i=C.id.findIndex((_,n)=>C.parentId[n]===t&&C.colId[n]===k);const o=JSON.parse(C.widgetOptions[i]||'{}');if(o.choices)CH[k]=o.choices}}catch(e){}
+async function choices(){if(CH)return CH;CH={};try{const Tb=await grist.docApi.fetchTable('_grist_Tables'),C=await grist.docApi.fetchTable('_grist_Tables_column');const t=Tb.id[Tb.tableId.indexOf('Projets')];for(const k of['Statut','Niveau_commanditaire']){const i=C.id.findIndex((_,n)=>C.parentId[n]===t&&C.colId[n]===k);const o=JSON.parse(C.widgetOptions[i]||'{}');if(o.choices)CH[k]=o.choices}
+  const ti=C.id.findIndex((_,n)=>C.parentId[n]===t&&C.colId[n]==='Type');if(ti>=0&&/^Ref:/.test(C.type[ti]))CH.typeTable=C.type[ti].slice(4)}catch(e){}
   CH.Statut=CH.Statut||['À cadrer','En cours','En pause','Terminé','Archivé'];CH.Niveau_commanditaire=CH.Niveau_commanditaire||['MJ','Direction','Service','Bureau'];return CH}
 const g=async n=>{try{return await grist.docApi.fetchTable(n)}catch(e){return{id:[]}}};
 const v=(t,c,i)=>t[c]?t[c][i]:undefined;
-async function load(){const A=await g('Agents'),Ty=await g('Types');
+async function load(){const A=await g('Agents');await choices();
+  let Ty={id:[]};for(const n of[CH.typeTable,'Table1','Types'].filter(Boolean)){Ty=await g(n);if(Ty.id.length)break}
   const ag=A.id.map((id,i)=>({id,n:v(A,'Nom_complet',i)||v(A,'Nom',i)||('Agent '+id),a:v(A,'Actif',i),r:v(A,'Referent_suivi',i)}));
   L.names={};ag.forEach(x=>L.names[x.id]=x.n);L.agents=ag.filter(x=>x.a);L.refs=ag.filter(x=>x.a&&x.r);
   L.types=Ty.id.map((id,i)=>({id,n:v(Ty,'Libelle',i)||v(Ty,'Nom',i)||('Type '+id)}));Object.assign(L,await choices())}
