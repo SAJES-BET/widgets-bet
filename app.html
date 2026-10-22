@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Activité du bureau</title>
+<script src="https://grist.numerique.gouv.fr/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#11131b;--card:#181b25;--field:#232734;--line:#2c3140;--txt:#e8eaf0;--mut:#9aa0b4;--acc:#5b8cff;--acc2:#3b4f86;--ok:#3fb67a;--warn:#f0a43c;--bad:#f26b6b}
+@media (prefers-color-scheme:light){:root{--bg:#f6f7fb;--card:#fff;--field:#eef0f6;--line:#d9dce7;--txt:#1b1f2a;--mut:#626a80;--acc:#2f5fd8;--acc2:#9db4f5}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column}
+button,select,input,textarea{font:inherit;color:var(--txt)}
+button,select{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover,select:hover{border-color:var(--acc)}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+button:disabled{opacity:.4;cursor:default}
+.btn{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.btn:hover{filter:brightness(1.08)}
+.btn.s{background:var(--card);color:var(--txt);font-weight:400}
+.btn.warn{border-color:var(--bad);background:var(--bad);color:#fff}
+.muted{color:var(--mut)}
+a{color:var(--acc)}
+
+/* ----- navigation principale ----- */
+#nav{display:flex;align-items:center;gap:4px;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
+.brand{font:700 17px Georgia,"Times New Roman",serif;margin-right:12px}
+.tab{border:0;background:transparent;color:var(--mut);font-weight:600;padding:8px 14px;border-radius:8px}
+.tab:hover{color:var(--txt);background:var(--card)}
+.tab.on{background:var(--acc);color:#fff}
+#nav .sp{flex:1}
+.who{display:flex;gap:6px;align-items:center;color:var(--mut)}
+#view{flex:1;min-height:0;overflow:auto}
+#st{position:fixed;right:16px;bottom:12px;padding:5px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:50}
+
+/* ----- accueil ----- */
+.home{max-width:980px;margin:0 auto;padding:22px 18px 40px}
+.hello{font:700 30px/1.2 Georgia,"Times New Roman",serif;margin:0 0 4px}
+.bigs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin:18px 0}
+.big{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;padding:18px 20px;border-radius:14px;min-height:112px}
+.big b{font-size:17px}.big span{color:var(--mut);font-size:13px}
+.big.btn span{color:#e3ebff}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.nudge{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--warn);border-radius:12px;padding:12px 16px;margin-bottom:14px}
+.al{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;width:100%;text-align:left;border:0;border-top:1px solid var(--line);border-radius:0;background:none;padding:9px 4px}
+.al:first-of-type{border-top:0}.al:hover{background:var(--field)}
+.al b{display:block}.al small{color:var(--mut)}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:12px;margin:2px 4px 0 0}
+.tag.bad{border-color:var(--bad);color:var(--bad)}.tag.warn{border-color:var(--warn);color:var(--warn)}.tag.ok{border-color:var(--ok);color:var(--ok)}
+
+/* ----- liste + fiche ----- */
+.md{display:grid;grid-template-columns:300px 1fr;height:100%}
+.lp{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--card)}
+.lp .top{padding:10px;display:grid;gap:8px;border-bottom:1px solid var(--line)}
+.lp .list{overflow:auto;flex:1}
+.fi{width:100%;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+.fl{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{border-radius:99px;padding:3px 11px;font-size:13px}
+.fchip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.it{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);border-left:4px solid transparent;border-radius:0;padding:10px 12px}
+.it:hover{background:var(--field)}.it.sel{background:var(--field);border-left-color:var(--acc)}
+.it b{display:block;overflow-wrap:anywhere}.it small{color:var(--mut)}
+.dp{overflow:auto;padding:16px 22px 40px;min-height:0}
+.dw{max-width:860px;margin:0 auto}
+.dh{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:6px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:transparent;padding:5px 13px}
+.seg button.on{background:var(--acc);color:#fff}
+.empty{padding:44px 20px;text-align:center;color:var(--mut)}
+.empty b{display:block;color:var(--txt);font-size:16px;margin-bottom:6px}
+
+/* ----- fiche (consulter) ----- */
+.eyebrow{color:var(--mut);font-size:13px}
+h1{font:700 28px/1.2 Georgia,"Times New Roman",serif;margin:2px 0 8px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 12px;font-size:13px}
+.chip.ok{border-color:var(--ok);color:var(--ok)}.chip.bad{border-color:var(--bad);color:var(--bad)}.chip.warn{border-color:var(--warn);color:var(--warn)}
+.head{display:flex;gap:16px;align-items:center;padding-bottom:14px;border-bottom:3px solid var(--acc);margin-bottom:16px}
+.avatar{flex:none;width:64px;height:64px;border-radius:50%;background:var(--acc);color:#fff;display:grid;place-items:center;font:700 28px Georgia,serif}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card h2{margin:0 0 12px;font-size:16px}
+.bar{height:12px;border-radius:99px;background:var(--field);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--ok)}
+.bar>i.warn{background:var(--warn)}.bar>i.bad{background:var(--bad)}.bar>i.acc{background:var(--acc)}
+.row{display:flex;gap:10px;margin:6px 0}.row .k{flex:0 0 120px;color:var(--mut)}.row .v{font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi b{display:block;font:700 26px Georgia,serif}.kpi span{color:var(--mut);font-size:12px}
+.ms{display:flex;align-items:center;gap:10px;padding:5px 0}
+.dot{flex:none;width:12px;height:12px;border-radius:50%;border:2px solid var(--mut)}
+.dot.ok{background:var(--ok);border-color:var(--ok)}.dot.bad{background:var(--bad);border-color:var(--bad)}.dot.acc{background:var(--acc);border-color:var(--acc)}.dot.fin{border-color:var(--acc)}
+.ms .d{margin-left:auto;color:var(--mut)}
+.pj{padding:8px 0;border-top:1px solid var(--line)}.pj:first-of-type{border-top:0}
+.pj .t{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.desc{white-space:pre-wrap}
+.cal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.cal-h h2{margin:0}
+.cal-sum{margin:0 0 12px;font-size:13px;color:var(--mut)}.cal-sum.bad{color:var(--bad);font-weight:600}
+.cvt{display:none;font-weight:700;margin:10px 0 6px}
+.cal[data-view="frise"] .cv-retro,.cal[data-view="retro"] .cv-frise{display:none}
+.cv svg{display:block;width:100%;height:auto}
+.lg{display:flex;flex-wrap:wrap;gap:6px 16px;color:var(--mut);font-size:12px;margin-top:8px}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.lgd{width:11px;height:11px;border-radius:50%;display:inline-block;border:2px solid var(--mut)}
+.lgd.deb{background:var(--acc);border-color:var(--acc)}.lgd.fin{border-color:var(--acc)}
+.lgd.ok{background:var(--ok);border-color:var(--ok)}.lgd.bad{background:var(--bad);border-color:var(--bad)}
+.lgl{width:2px;height:12px;background:var(--bad);display:inline-block}
+.sv-t{fill:var(--txt);font-size:14px;paint-order:stroke;stroke:var(--card);stroke-width:4px;stroke-linejoin:round}
+.sv-b{font-weight:700}.sv-d{fill:var(--mut)}
+.sv-track{fill:var(--field)}.sv-prog{fill:var(--acc)}.sv-prog.ok{fill:var(--ok)}.sv-prog.bad{fill:var(--bad)}
+.sv-lead{stroke:var(--line);stroke-width:1.5}
+.sv-m{stroke:var(--card);stroke-width:2.5}
+.sv-m.deb{fill:var(--acc)}.sv-m.fin{fill:var(--card);stroke:var(--acc);stroke-width:3.5}
+.sv-m.ok{fill:var(--ok)}.sv-m.bad{fill:var(--bad)}.sv-m.todo{fill:var(--card);stroke:var(--mut);stroke-width:3}
+.sv-todayl{stroke:var(--bad);stroke-width:2}.sv-today{fill:var(--bad);font-weight:700}
+.rp-h,.rp-r{display:grid;grid-template-columns:minmax(140px,240px) 1fr 84px;gap:12px;align-items:center}
+.rp-h{color:var(--mut);font-size:12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.rp-h span:last-child,.rp-j{text-align:right}
+.rp-r{padding:8px 0;border-bottom:1px solid var(--line)}.rp-r:last-of-type{border-bottom:0}
+.rp-l{display:flex;gap:8px;align-items:center;min-width:0}
+.rp-l b{display:block;overflow-wrap:anywhere}.rp-l small{color:var(--mut)}
+.rp-t{position:relative;height:22px;margin:0 8px}
+.rp-t:before{content:"";position:absolute;left:-8px;right:-8px;top:50%;height:2px;margin-top:-1px;background:var(--field)}
+.rp-bar{position:absolute;top:50%;height:10px;margin-top:-5px;border-radius:99px;background:var(--acc)}
+.rp-bar.ok{background:var(--ok)}.rp-bar.bad{background:var(--bad)}
+.rp-mk{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--acc);border:2px solid var(--card)}
+.rp-mk.ok{background:var(--ok)}.rp-mk.bad{background:var(--bad)}
+.rp-mk.fin{background:var(--card);border-color:var(--acc);border-width:3px}
+.rp-td{position:absolute;top:-8px;bottom:-8px;width:2px;margin-left:-1px;background:var(--bad)}
+.rp-j{font-variant-numeric:tabular-nums;font-weight:700}.rp-j small{display:block;font-weight:400;color:var(--mut)}
+
+/* ----- formulaires (modifier) ----- */
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:2px}
+label.cb{display:flex;gap:8px;align-items:center;color:var(--txt);font-size:14px;margin:0}
+label.cb.pad{padding-top:18px}
+label.cb input{width:auto}
+textarea.fi{resize:vertical}
+.bad.fi,.fi.bad{border-color:var(--bad)}
+.msg{color:var(--bad);font-size:12px;min-height:0}
+.chx{display:flex;flex-wrap:wrap;gap:6px}
+.chx>span{display:inline-flex;align-items:center;gap:4px;background:var(--field);border:1px solid var(--line);border-radius:99px;padding:2px 4px 2px 10px}
+.chx>span button{border:0;background:none;color:var(--mut);cursor:pointer;font-size:16px;padding:0 6px}
+.chx select{width:auto}
+.jr{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;margin-bottom:8px}
+.confirm{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--bad);border-radius:8px;padding:3px 6px 3px 10px}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--txt);padding:18px 20px;width:min(540px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog h2{font:600 20px/1.2 Georgia,"Times New Roman",serif;margin:0 0 14px}
+dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.ck{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 10px;max-height:150px;overflow:auto;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--field)}
+.ck label{display:flex;gap:6px;align-items:center;margin:0;color:var(--txt);font-size:13px}.ck input{width:auto}
+.dacts{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+
+/* ----- mon temps ----- */
+.mt{max-width:900px;margin:0 auto;padding:16px 18px 40px}
+.mt .top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-bottom:12px}
+.week{display:flex;align-items:center;gap:6px}
+.week .lbl{min-width:230px;text-align:center;font-weight:600}
+.week .nav{width:36px;padding:6px 0}
+.sp{flex:1}
+.sum{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.tbl{overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+.tbl table{border-collapse:collapse;width:100%;min-width:640px}
+.tbl th,.tbl td{padding:8px 6px;text-align:center;border-bottom:1px solid var(--line)}
+.tbl th{color:var(--mut);font-weight:500;font-size:13px;white-space:nowrap}
+.tbl th.today{color:var(--acc);font-weight:700}
+.tbl td.p,.tbl th.p{text-align:left;padding-left:14px;width:36%}
+.tbl td.p b{display:block;overflow-wrap:anywhere}.tbl td.p small{color:var(--mut)}
+.tbl td.q{width:1%;padding-right:12px;white-space:nowrap}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tfoot td{border-top:2px solid var(--line);border-bottom:0;font-weight:700;font-variant-numeric:tabular-nums}
+.tbl tfoot td.p{font-weight:600;color:var(--mut)}
+.c{width:64px;height:38px;text-align:center;background:var(--field);border:1px solid var(--line);border-radius:8px;font-variant-numeric:tabular-nums}
+.c::placeholder{color:var(--mut)}
+.c.has{border-color:var(--acc);font-weight:700}.c.bad{border-color:var(--bad)}
+.c.dirty{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn) inset}
+.tbl td.today .c{box-shadow:0 0 0 1px var(--acc) inset}
+.tbl td.ok{color:var(--ok)}.tbl td.over{color:var(--bad)}
+.unsaved{margin:0 0 12px;padding:8px 12px;border:1px solid var(--warn);border-radius:8px;color:var(--warn);font-size:13px;font-weight:600}
+.add{margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{color:var(--mut);font-size:13px;margin-top:10px}
+.foot{display:flex;justify-content:flex-end;margin-top:14px}
+.btn.save{min-width:150px}
+
+/* ----- synthèse ----- */
+.syn{max-width:1000px;margin:0 auto;padding:16px 18px 40px}
+.syn header{padding-bottom:12px;margin-bottom:14px;border-bottom:3px solid var(--acc)}
+.syn h1{margin:0 0 8px}
+.facts{display:flex;gap:28px;flex-wrap:wrap}
+.facts b{display:block;font:700 24px Georgia,serif}.facts span{color:var(--mut);font-size:12px}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.stack{display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--line);margin-bottom:8px}
+.stack i{display:block;height:100%;border-right:2px solid var(--card)}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+.bl{display:grid;grid-template-columns:130px 1fr 70px;gap:10px;align-items:center;padding:4px 0}
+.bl .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbar{height:8px;border-radius:4px;background:var(--acc);margin:1px 0}.sbar.b{background:var(--acc2)}
+.num{text-align:right;color:var(--mut);font-size:12px}
+.srow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line)}
+.srow:first-of-type{border-top:0}
+.ko{color:var(--bad)}.wn{color:var(--warn)}
+.hint{color:var(--mut);font-size:12px;margin-bottom:10px}
+.ag{display:grid;grid-template-columns:170px 1fr 150px;gap:12px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.ag:first-of-type{border-top:0}
+.nm{font-weight:600}
+.track{position:relative;height:16px;border-radius:5px;background:var(--line);overflow:hidden}
+.track .p{position:absolute;inset:0 auto 0 0;background:var(--acc2)}
+.track .r{position:absolute;left:0;top:5px;height:6px;border-radius:3px}
+.sb{display:grid;grid-template-columns:150px 1fr 50px;gap:10px;align-items:center;padding:4px 0}
+.sb .sbar{margin:0}
+.st2{width:100%;border-collapse:collapse}.st2 th,.st2 td{padding:6px 8px;text-align:right;border-top:1px solid var(--line)}
+.st2 th:first-child,.st2 td:first-child{text-align:left}.st2 th{color:var(--mut);font-weight:500;font-size:12px;border-top:0}
+
+@media (max-width:760px){
+ .md{grid-template-columns:1fr;grid-template-rows:auto 1fr}.lp{max-height:230px;border-right:0;border-bottom:1px solid var(--line)}
+ .kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}
+ .rp-h,.rp-r{grid-template-columns:1fr 70px}.rp-h span:nth-child(2){display:none}.rp-t{grid-column:1 / -1;grid-row:2}
+ .week .lbl{min-width:0;flex:1}.c{width:52px}.ag{grid-template-columns:1fr}.jr{grid-template-columns:1fr 1fr}
+}
+@page{margin:12mm}
+@media print{
+ :root{--bg:#fff;--card:#fff;--field:#e3e6ee;--line:#c9cdd8;--txt:#000;--mut:#444;--acc:#2f5fd8;--acc2:#9db4f5}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .noprint,#nav,.lp,.seg,#st{display:none!important}
+ html,body{height:auto;overflow:visible}body{display:block;background:#fff}
+ #view{overflow:visible}.md{display:block;height:auto}.dp{overflow:visible;padding:0}.mt,.syn,.home{padding:0}
+ .card{break-inside:avoid;box-shadow:none}
+ .cal .cv{display:block!important;break-inside:avoid}.cal .cv+.cv{margin-top:18px}.cvt{display:block}
+ .rp-r{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<nav id="nav" class="noprint" aria-label="Navigation principale"></nav>
+<main id="view"><div class="empty">Chargement…</div></main>
+<div id="st" role="status"></div>
+<dialog id="np"><form id="npf" novalidate>
+<h2>Nouveau projet</h2>
+<div class="f"><label for="np-t">Titre *</label><input class="fi" id="np-t" maxlength="200" autocomplete="off"><div class="msg" id="np-m"></div></div>
+<div class="f"><label for="np-ty">Type</label><select class="fi" id="np-ty"></select></div>
+<div class="f"><label>Agents BET en charge</label><div class="ck" id="np-ag"></div></div>
+<div class="g2"><div><label for="np-d">Début</label><input class="fi" type="date" id="np-d"></div><div><label for="np-f">Fin prévue</label><input class="fi" type="date" id="np-f"></div></div>
+<label class="cb"><input type="checkbox" id="np-j" checked>Créer les jalons types</label><div class="muted" id="np-jl" style="margin-top:4px;font-size:12px"></div>
+<div class="dacts"><button type="button" class="btn s" id="np-x">Annuler</button><button type="submit" class="btn" id="np-ok">Créer le projet</button></div>
+</form></dialog>
+<script>
+/* =====================================================================
+   Activité du bureau : application unique (Accueil, Projets, Mon temps, Équipe, Synthèse)
+   ===================================================================== */
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DAY = 86400;
+const num = v => Number(v) || 0;
+const fmtN = v => (Math.round(num(v) * 100) / 100).toLocaleString('fr-FR');
+const fmt1 = v => (Math.round(num(v) * 10) / 10).toLocaleString('fr-FR');
+const pct = v => Math.round(num(v) * 100);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const ids = v => Array.isArray(v) ? v.filter(x => typeof x === 'number') : [];
+const parse = s => { try { return JSON.parse(s || '[]'); } catch (e) { return []; } };
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const plural = (n, w) => n + ' ' + w + (n > 1 ? 's' : '');
+const toSec = v => {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return v;
+  const t = v instanceof Date ? v.getTime() : Date.parse(v);
+  return isNaN(t) ? null : t / 1000;
+};
+const fmtD = v => {
+  const s = toSec(v); if (s == null) return '';
+  return new Date(s * 1000).toLocaleDateString('fr-FR', {timeZone: 'UTC'});
+};
+const iso = v => typeof v === 'number' ? new Date(v * 1000).toISOString().slice(0, 10) : '';
+const secOf = s => s ? Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 1000 : null;
+const todaySec = () => { const n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 1000; };
+const mondayOf = t => { const d = new Date(t * 1000).getUTCDay(); return t - ((d + 6) % 7) * DAY; };
+const dLong = t => new Date(t * 1000).toLocaleDateString('fr-FR', {timeZone: 'UTC', day: 'numeric', month: 'long'});
+const dShort = t => new Date(t * 1000).toLocaleDateString('fr-FR', {timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit'});
+const isoWeek = t => { const d = new Date(t * 1000); d.setUTCDate(d.getUTCDate() + 3); const y = d.getUTCFullYear(), j = new Date(Date.UTC(y, 0, 4));
+  return 1 + Math.round(((d - j) / 864e5 - 3 + ((j.getUTCDay() + 6) % 7)) / 7); };
+const level = t => t > 1 ? 'bad' : t >= 0.8 ? 'warn' : '';
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set: (k, x) => { try { localStorage.setItem(k, x); } catch (e) {} }
+};
+let toastT;
+function flash(t, bad) {
+  const e = $('#st'); e.textContent = t; e.style.color = bad ? 'var(--bad)' : 'var(--ok)'; e.style.opacity = 1;
+  clearTimeout(toastT); toastT = setTimeout(() => e.style.opacity = 0, 2800);
+}
+
+/* ---------- Jalons types créés avec un nouveau projet ----------
+   [libellé, position en % de la durée du projet]. Mots-clés (cle) = reconnaissance du type par son libellé.
+   À adapter librement par le bureau. */
+const MODELES = {
+ ditp: {cle: ['ditp'], j: [['Lettre de saisine', 0], ['Réunion de cadrage', 10], ['Livrable intermédiaire', 50], ['Restitution', 90], ['Clôture et retour d’expérience', 100]]},
+ diag: {cle: ['diagnostic'], j: [['Lettre de mission et cadrage', 0], ['Entretiens et collecte', 30], ['Diagnostic provisoire', 60], ['Restitution du diagnostic', 85], ['Plan d’action validé', 100]]},
+ pp: {cle: ['politique'], j: [['Cadrage et commande', 0], ['Comité de pilotage de lancement', 15], ['Analyse et collecte', 45], ['Rapport provisoire', 75], ['Rapport final', 100]]},
+ def: {cle: [], j: [['Cadrage validé', 0], ['Point d’étape', 50], ['Livrable final', 100]]}};
+const modele = lab => { const n = norm(lab); return Object.values(MODELES).find(m => m.cle.some(k => n.includes(k))) || MODELES.def; };
+
+/* ---------- Données ---------- */
+const D = {agents: [], projets: [], jalons: [], temps: [], types: [], by: {}};
+let META = null, loaded = false;
+const g = async n => { try { return await grist.docApi.fetchTable(n); } catch (e) { return null; } };
+const rowsOf = t => t && t.id ? t.id.map((id, i) => { const o = {id}; for (const k in t) if (k !== 'id') o[k] = t[k][i]; return o; }) : [];
+
+async function meta() {
+  if (META) return META;
+  META = {types: null, Statut: null, Niveau_commanditaire: null};
+  try {
+    const Tb = await grist.docApi.fetchTable('_grist_Tables'), C = await grist.docApi.fetchTable('_grist_Tables_column');
+    const t = Tb.id[Tb.tableId.indexOf('Projets')];
+    const col = k => C.id.findIndex((_, n) => C.parentId[n] === t && C.colId[n] === k);
+    for (const k of ['Statut', 'Niveau_commanditaire']) { const i = col(k); if (i >= 0) { const o = JSON.parse(C.widgetOptions[i] || '{}'); if (o.choices) META[k] = o.choices; } }
+    const ti = col('Type'); if (ti >= 0 && /^Ref:/.test(C.type[ti])) META.types = C.type[ti].slice(4);
+  } catch (e) {}
+  META.Statut = META.Statut || ['À cadrer', 'En cours', 'En pause', 'Terminé', 'Archivé'];
+  META.Niveau_commanditaire = META.Niveau_commanditaire || ['DITP', 'GDS', 'Cab GDS', 'SG', 'SGA', 'Cab SG', 'Direction', 'Service', 'Bureau'];
+  return META;
+}
+
+async function loadAll() {
+  await meta();
+  const [A, P, J, T] = await Promise.all([g('Agents'), g('Projets'), g('Jalons'), g('Temps')]);
+  let Ty = null;
+  for (const n of [META.types, 'Types', 'Table1'].filter(Boolean)) { Ty = await g(n); if (Ty && Ty.id && Ty.id.length) break; }
+  D.agents = rowsOf(A); D.projets = rowsOf(P); D.jalons = rowsOf(J);
+  D.temps = rowsOf(T).map(t => ({id: t.id, d: t.Date, p: t.Projet, a: t.Agent, j: +t.Jours || 0}));
+  D.types = rowsOf(Ty).map(t => ({id: t.id, n: t.Libelle || t.Nom || ('Type ' + t.id)}));
+  D.by = {agent: new Map(D.agents.map(a => [a.id, a])), projet: new Map(D.projets.map(p => [p.id, p])), type: new Map(D.types.map(t => [t.id, t]))};
+  loaded = true;
+}
+const agentName = a => (a && (a.Nom_complet || ((a.Prenom || '') + ' ' + (a.Nom || '')).trim())) || 'Agent ' + (a ? a.id : '?');
+const activeAgents = () => D.agents.filter(a => a.Actif !== false);
+const projLabel = p => ((p.Titre || '').trim() || '(Sans titre)');
+const mine = p => S.agentId && (ids(p.Agent).includes(S.agentId) || ids(p.Suivi_par).includes(S.agentId));
+
+/* Écritures : une à la fois, puis rechargement des données */
+let wq = Promise.resolve();
+const write = (actions, msg) => {
+  const p = wq.then(async () => {
+    try {
+      const r = await grist.docApi.applyUserActions(actions);
+      if (msg !== null) flash(msg || '✓ Enregistré');
+      await loadAll();
+      return r;
+    } catch (e) { flash('Enregistrement refusé : ' + (e.message || e), 1); throw e; }
+  });
+  wq = p.catch(() => {});
+  return p;
+};
+
+/* ---------- État et navigation ---------- */
+const S = {
+  view: 'accueil', agentId: null,
+  pj: {sel: null, mode: 'consulter', q: '', filter: 'tous', old: false, cal: 'frise', arch: false},
+  eq: {sel: null, mode: 'consulter', q: '', inactive: false},
+  mt: {ws: mondayOf(todaySec()), extra: new Set(), pend: {}, saving: false, sig: ''},
+  sy: {tab: 'projets', pj: {hidden: new Set(['Archivé']), year: 'all', tab: 'ens'}, eq: {inactive: false, tab: 'ens'}},
+  ac: {scope: 'tous'}
+};
+const VIEWS = {
+  accueil: {label: 'Accueil', render: () => vHome()},
+  projets: {label: 'Projets', render: () => mdShow(MD_PJ), refresh: () => mdRefresh()},
+  temps: {label: 'Mon temps', render: () => vTemps(), refresh: () => mtRefresh()},
+  equipe: {label: 'Équipe', render: () => mdShow(MD_EQ), refresh: () => mdRefresh()},
+  synthese: {label: 'Synthèse', render: () => vSyn()}
+};
+function renderNav() {
+  const list = activeAgents();
+  $('#nav').innerHTML = `<span class="brand">Activité du bureau</span>` +
+    Object.entries(VIEWS).map(([k, v]) => `<button class="tab ${S.view === k ? 'on' : ''}" data-a="go" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${v.label}</button>`).join('') +
+    `<span class="sp"></span><span class="who"><label for="who" style="margin:0">Je suis</label><select id="who" data-ch="who" aria-label="Choisir mon nom"><option value="">— Choisir —</option>` +
+    list.map(a => `<option value="${a.id}" ${a.id === S.agentId ? 'selected' : ''}>${esc(agentName(a))}</option>`).join('') + `</select></span>`;
+}
+function go(view, opts) {
+  if (opts && opts.pj) Object.assign(S.pj, opts.pj);
+  if (opts && opts.eq) Object.assign(S.eq, opts.eq);
+  S.view = view; store.set('app-view', view);
+  renderNav(); renderView();
+}
+function renderView() { $('#view').scrollTop = 0; VIEWS[S.view].render(); }
+function refreshView() { renderNav(); const v = VIEWS[S.view]; (v.refresh || v.render)(); }
+
+/* ---------- Écouteurs globaux (délégation) ---------- */
+const ACT = {}, CH = {}, IN = {};
+document.addEventListener('click', e => { const el = e.target.closest('[data-a]'); if (el && ACT[el.dataset.a]) ACT[el.dataset.a](el, e); });
+document.addEventListener('change', e => { const el = e.target; if (el.dataset && el.dataset.ch && CH[el.dataset.ch]) CH[el.dataset.ch](el, e); });
+document.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.in && IN[el.dataset.in]) IN[el.dataset.in](el, e); });
+ACT.go = el => go(el.dataset.v);
+CH.who = el => { S.agentId = +el.value || null; S.mt.extra = new Set(); store.set('app-agent', S.agentId || ''); renderView(); };
+ACT.print = () => window.print();
+
+/* ---------- Accueil ---------- */
+function alertsFor(scope) {
+  const today = todaySec(), res = {watch: [], todo: [], next: []};
+  const jBy = {}; D.jalons.forEach(j => (jBy[j.Projet] = jBy[j.Projet] || []).push(j));
+  D.projets.filter(p => p.Statut === 'En cours' && (scope !== 'mes' || mine(p))).forEach(p => {
+    const w = [], t = [], js = jBy[p.id] || [];
+    if (p.Retard && typeof p.Date_fin_prevue === 'number') w.push({sev: 2, txt: `En retard de ${plural(Math.max(1, Math.round((today - p.Date_fin_prevue) / DAY)), 'jour')}`});
+    const tc = num(p.Taux_conso);
+    if (tc > 1) w.push({sev: 2, txt: `Charge dépassée (${pct(tc)} %)`}); else if (tc >= .8) w.push({sev: 1, txt: `Charge à ${pct(tc)} %`});
+    const late = js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date < today);
+    if (late.length) w.push({sev: 2, txt: late.length === 1 ? `Jalon « ${late[0].Libelle || 'sans libellé'} » dépassé` : `${late.length} jalons dépassés`});
+    if (!ids(p.Agent).length) t.push('Aucun agent affecté');
+    if (!p.Date_fin_prevue) t.push('Date de fin à renseigner');
+    if (!js.some(j => j.Libelle || j.Date)) t.push('Aucun jalon');
+    if (!num(p.Charge_prevue)) t.push('Charge prévue à renseigner');
+    if (w.length) res.watch.push({p, w, sev: Math.max(...w.map(x => x.sev))});
+    if (t.length) res.todo.push({p, t});
+    js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date >= today && j.Date <= today + 14 * DAY).forEach(j => res.next.push({p, j}));
+  });
+  res.watch.sort((a, b) => b.sev - a.sev); res.next.sort((a, b) => a.j.Date - b.j.Date);
+  return res;
+}
+const weekSum = (agent, ws) => D.temps.filter(t => t.a === agent && typeof t.d === 'number' && t.d >= ws && t.d <= ws + 4 * DAY).reduce((s, t) => s + t.j, 0);
+
+function vHome() {
+  const me = D.by.agent.get(S.agentId), now = new Date(), al = alertsFor(S.ac.scope);
+  const ws = mondayOf(todaySec()), wk = me ? weekSum(me.id, ws) : 0;
+  const myActive = D.projets.filter(p => p.Statut === 'En cours' && mine(p)).length;
+  const nudge = me && now.getDay() >= 3 && now.getDay() <= 5 && wk === 0;
+  const lim = 6, more = (n) => n > lim ? `<div class="muted" style="padding:6px 4px">+ ${n - lim} autre${n - lim > 1 ? 's' : ''} dans l’onglet Projets</div>` : '';
+  $('#view').innerHTML = `<div class="home">
+    <h1 class="hello">${now.getHours() < 18 ? 'Bonjour' : 'Bonsoir'}${me ? ' ' + esc(me.Prenom || agentName(me)) : ''}</h1>
+    <div class="muted">${me ? 'Que souhaitez-vous faire ?' : 'Choisissez votre nom en haut à droite pour personnaliser l’accueil et saisir votre temps.'}</div>
+    <div class="bigs">
+      <button class="big btn" data-a="go" data-v="temps"><b>⏱ Saisir mon temps</b><span>${me ? `Semaine ${isoWeek(ws)} : ${fmtN(wk)} j saisis` : 'Quelques secondes par semaine'}</span></button>
+      <button class="big" data-a="home-mine"><b>📁 Mes projets</b><span>${me ? plural(myActive, 'projet') + ' en cours' : 'Projets qui me sont affectés'}</span></button>
+      <button class="big" data-a="new-project"><b>➕ Nouveau projet</b><span>Titre, type, agents et jalons types</span></button>
+    </div>
+    ${nudge ? `<div class="nudge"><span>⏱ Vous n’avez pas encore saisi de temps cette semaine.</span><button class="btn" data-a="go" data-v="temps">Saisir maintenant</button></div>` : ''}
+    <div class="card"><div class="cal-h"><h2>À surveiller</h2>
+      <div class="seg" role="group" aria-label="Périmètre"><button class="${S.ac.scope === 'tous' ? 'on' : ''}" data-a="ac-scope" data-v="tous">Tous les projets</button><button class="${S.ac.scope === 'mes' ? 'on' : ''}" data-a="ac-scope" data-v="mes">Mes projets</button></div></div>
+      ${al.watch.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="consulter"><span><b>${esc(projLabel(x.p))}</b><small>${esc(x.p.Agent_nom || 'Sans agent')}</small></span><span>${x.w.map(i => `<span class="tag ${i.sev > 1 ? 'bad' : 'warn'}">${esc(i.txt)}</span>`).join('')}</span></button>`).join('') || '<div class="muted">✓ Rien à signaler : aucun retard ni dépassement.</div>'}${more(al.watch.length)}</div>
+    <div class="two">
+      <div class="card"><h2>Prochains jalons (14 jours)</h2>
+        ${al.next.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="consulter"><span><b>${esc(x.j.Libelle || 'Jalon sans libellé')}</b><small>${esc(projLabel(x.p))}</small></span><span class="muted">${fmtD(x.j.Date)}</span></button>`).join('') || '<div class="muted">Aucun jalon dans les 14 prochains jours.</div>'}${more(al.next.length)}</div>
+      <div class="card"><h2>À compléter</h2>
+        ${al.todo.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="modifier"><span><b>${esc(projLabel(x.p))}</b><small>${x.t.map(esc).join(' · ')}</small></span><span class="muted">Modifier ›</span></button>`).join('') || '<div class="muted">✓ Les projets en cours sont complets.</div>'}${more(al.todo.length)}</div>
+    </div></div>`;
+}
+ACT['ac-scope'] = el => { S.ac.scope = el.dataset.v; vHome(); };
+ACT['home-mine'] = () => go('projets', {pj: {filter: S.agentId ? 'mes' : 'tous', q: '', old: false}});
+ACT['open-p'] = el => go('projets', {pj: {sel: +el.dataset.id, mode: el.dataset.m || 'consulter', filter: 'tous', q: '', arch: false}});
+
+/* =====================================================================
+   Projets et Équipe : liste à gauche, fiche à droite (Consulter / Modifier)
+   ===================================================================== */
+let MDC = null;
+const JST = ['À venir', 'Atteint', 'En retard'];
+const ST_ORDER = ['En cours', 'À cadrer', 'En pause', 'Terminé', 'Archivé'];
+
+const MD_PJ = {
+  key: 'pj', tbl: 'Projets', newLabel: 'Nouveau projet', emptyTitle: 'Aucun projet à afficher', emptyHint: 'Créez-en un avec « + Nouveau projet ».',
+  get st() { return S.pj; },
+  byId: id => D.by.projet.get(id),
+  items() {
+    const q = norm(S.pj.q);
+    return D.projets.filter(p => {
+      if (!S.pj.old && p.Statut === 'Archivé') return false;
+      if (S.pj.filter === 'mes' && !mine(p)) return false;
+      return !q || norm([p.Titre, p.Reference, p.Agent_nom, p.Type_nom, p.Statut].join(' ')).includes(q);
+    }).sort((a, b) => ST_ORDER.indexOf(a.Statut) - ST_ORDER.indexOf(b.Statut) || projLabel(a).localeCompare(projLabel(b), 'fr'));
+  },
+  label: projLabel,
+  sub: p => [(p.Reference || '').trim(), p.Statut].filter(Boolean).join(' · ') + (p.Retard ? ' · ⚠ retard' : ''),
+  top: () => `<div class="fl" role="group" aria-label="Filtre"><button class="fchip ${S.pj.filter === 'tous' ? 'on' : ''}" data-a="md-filter" data-v="tous">Tous</button><button class="fchip ${S.pj.filter === 'mes' ? 'on' : ''}" data-a="md-filter" data-v="mes">Mes projets</button></div>
+    <label class="cb"><input type="checkbox" data-ch="md-old" ${S.pj.old ? 'checked' : ''}>Afficher les archivés</label>`,
+  consult: r => consultProjet(r), modify: r => formProjet(r),
+  modActions: r => S.pj.arch
+    ? `<span class="confirm">Archiver ce projet ?<button class="btn warn" data-a="arch-yes">Oui</button><button data-a="arch-no">Non</button></span>`
+    : (r.Statut !== 'Archivé' ? `<button data-a="arch">Archiver</button>` : ''),
+  sig: r => D.jalons.filter(j => j.Projet === r.id).map(j => j.id).sort().join(',') + '|' + JSON.stringify(r.Agent) + JSON.stringify(r.Suivi_par),
+  csv: r => csvProjet(r),
+  onNew: () => openNewProject()
+};
+const MD_EQ = {
+  key: 'eq', tbl: 'Agents', newLabel: 'Nouvel agent', emptyTitle: 'Aucun agent à afficher', emptyHint: 'Ajoutez-en avec « + Nouvel agent ».',
+  get st() { return S.eq; },
+  byId: id => D.by.agent.get(id),
+  items() {
+    const q = norm(S.eq.q);
+    return D.agents.filter(a => (S.eq.inactive || a.Actif !== false) && (!q || norm([agentName(a), a.Fonction].join(' ')).includes(q)))
+      .sort((a, b) => agentName(a).localeCompare(agentName(b), 'fr'));
+  },
+  label: a => agentName(a),
+  sub: a => String(a.Fonction || '').split(/\n+/)[0] + (a.Actif === false ? ' (inactif)' : ''),
+  top: () => `<label class="cb"><input type="checkbox" data-ch="eq-inactive" ${S.eq.inactive ? 'checked' : ''}>Afficher les agents inactifs</label>`,
+  consult: r => consultAgent(r), modify: r => formAgent(r),
+  modActions: () => '',
+  csv: r => csvAgent(r),
+  onNew: async () => {
+    try { const r = await write([['AddRecord', 'Agents', null, {Actif: true, Capacite_annuelle: 200}]]); S.eq.sel = r.retValues[0]; S.eq.mode = 'modifier'; S.eq.q = ''; mdShow(MD_EQ); }
+    catch (e) {}
+  }
+};
+
+function mdShow(c) {
+  MDC = c;
+  $('#view').innerHTML = `<div class="md"><aside class="lp noprint"><div class="top"><button class="btn" data-a="md-new">+ ${c.newLabel}</button>
+    <input class="fi" id="md-q" data-in="md-q" placeholder="Rechercher…" value="${esc(c.st.q)}" aria-label="Rechercher">${c.top()}</div><div class="list" id="md-l"></div></aside><section class="dp" id="md-d"></section></div>`;
+  mdList(); mdDetail();
+}
+function mdList() {
+  const c = MDC, items = c.items();
+  if (!items.some(x => x.id === c.st.sel)) c.st.sel = items.length ? items[0].id : null;
+  $('#md-l').innerHTML = items.map(x => `<button class="it ${x.id === c.st.sel ? 'sel' : ''}" data-a="md-sel" data-id="${x.id}"><b>${esc(c.label(x))}</b><small>${esc(c.sub(x))}</small></button>`).join('') || '<div class="empty">Aucun résultat</div>';
+}
+function mdDetail() {
+  const c = MDC, r = c.byId(c.st.sel), box = $('#md-d');
+  if (!r) { box.innerHTML = `<div class="empty"><b>${c.emptyTitle}</b>${c.emptyHint}</div>`; return; }
+  const m = c.st.mode;
+  box.innerHTML = `<div class="dw"><div class="dh noprint"><div class="seg" role="group" aria-label="Mode">
+    <button class="${m === 'consulter' ? 'on' : ''}" data-a="md-mode" data-v="consulter">Consulter</button><button class="${m === 'modifier' ? 'on' : ''}" data-a="md-mode" data-v="modifier">Modifier</button></div>
+    <div class="acts">${m === 'consulter' ? '<button data-a="print">Imprimer / PDF</button><button data-a="md-csv">Exporter en CSV</button>' : c.modActions(r)}</div></div>
+    ${m === 'consulter' ? c.consult(r) : c.modify(r)}</div>`;
+  if (m === 'modifier') S.fsig = c.sig ? c.sig(r) : '';
+}
+function mdRefresh() {
+  const c = MDC; if (!c) return;
+  mdList();
+  const r = c.byId(c.st.sel); if (!r) return mdDetail();
+  if (c.st.mode === 'consulter') return mdDetail();
+  const f = document.activeElement, inForm = f && $('#md-d') && $('#md-d').contains(f) && /^(INPUT|TEXTAREA|SELECT)$/.test(f.tagName);
+  if (c.sig && c.sig(r) !== S.fsig && !inForm) return mdDetail();
+  formPatch();
+}
+ACT['md-sel'] = el => { MDC.st.sel = +el.dataset.id; S.pj.arch = false; mdList(); mdDetail(); $('#md-d').scrollTop = 0; };
+ACT['md-mode'] = el => { MDC.st.mode = el.dataset.v; mdDetail(); };
+ACT['md-new'] = () => MDC.onNew();
+ACT['md-csv'] = () => { const r = MDC.byId(MDC.st.sel); if (r) MDC.csv(r); };
+ACT['md-filter'] = el => { S.pj.filter = el.dataset.v; mdShow(MD_PJ); };
+IN['md-q'] = el => { MDC.st.q = el.value; mdList(); };
+CH['md-old'] = el => { S.pj.old = el.checked; mdList(); mdDetail(); };
+CH['eq-inactive'] = el => { S.eq.inactive = el.checked; mdList(); mdDetail(); };
+
+/* ---------- Téléchargement CSV ---------- */
+function downloadCsv(name, rows) {
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const csv = '﻿' + rows.map(l => l.map(q).join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv;charset=utf-8'}));
+  a.download = name + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+const slug = s => norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'fiche';
+
+/* ---------- Calendrier d'un projet : frise chronologique + rétroplanning ---------- */
+const jLabel = (fin, t) => { const d = Math.round((fin - t) / DAY); return d > 0 ? 'J-' + d : d === 0 ? 'J' : 'J+' + (-d); };
+function projJalons(r) { return D.jalons.filter(j => j.Projet === r.id && (j.Libelle || j.Date)); }
+function calData(r) {
+  const c = {deb: toSec(r.Date_debut), fin: toSec(r.Date_fin_prevue), reel: toSec(r.Date_fin_reelle), now: todaySec(),
+    jal: projJalons(r).map(j => ({l: j.Libelle || '(Sans libellé)', t: toSec(j.Date), s: j.Statut}))};
+  c.jal.forEach(j => { j.late = j.s === 'En retard' || (j.t != null && j.t < c.now && j.s !== 'Atteint'); });
+  c.overdue = c.fin != null && c.reel == null && c.now > c.fin;
+  return c;
+}
+function frise(c) {
+  const items = [];
+  if (c.deb != null) items.push({t: c.deb, l: 'Début', k: 'deb'});
+  c.jal.forEach(j => { if (j.t != null) items.push({t: j.t, l: j.l, k: j.s === 'Atteint' ? 'ok' : j.late ? 'bad' : 'todo'}); });
+  if (c.fin != null) items.push({t: c.fin, l: 'Fin prévue', k: 'fin'});
+  if (c.reel != null) items.push({t: c.reel, l: 'Fin réelle', k: 'ok'});
+  if (!items.length) return '<div class="muted">Aucune date renseignée.</div>';
+  let mn = Math.min(...items.map(i => i.t)), mx = Math.max(...items.map(i => i.t));
+  if (c.overdue) mx = Math.max(mx, c.now);
+  if (mx - mn < DAY) mx = mn + DAY * 30;
+  const W = 860, x0 = 50, x1 = W - 50, X = t => x0 + (t - mn) / (mx - mn) * (x1 - x0);
+  items.sort((a, b) => a.t - b.t);
+  const ends = [];
+  items.forEach(it => {
+    it.txt = it.l.length > 28 ? it.l.slice(0, 27) + '…' : it.l;
+    it.ds = fmtD(it.t);
+    it.w = Math.max(it.txt.length * 8.6, it.ds.length * 7.8) + 14;
+    it.x = X(it.t); it.tx = clamp(it.x, it.w / 2, W - it.w / 2);
+    let k = 0; while (ends[k] !== undefined && ends[k] > it.tx - it.w / 2 - 6) k++;
+    ends[k] = it.tx + it.w / 2; it.lane = k;
+  });
+  const laneH = 46, axisY = 24 + ends.length * laneH + 16, H = axisY + 58, ly = it => axisY - 16 - it.lane * laneH;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Frise chronologique du projet"><title>Frise chronologique</title>`;
+  s += `<rect class="sv-track" x="${x0}" y="${axisY - 4}" width="${x1 - x0}" height="8" rx="4"/>`;
+  if (c.deb != null) {
+    const end = c.reel != null ? c.reel : Math.min(c.now, mx);
+    if (end > c.deb) s += `<rect class="sv-prog ${c.reel != null ? 'ok' : c.overdue ? 'bad' : ''}" x="${X(c.deb)}" y="${axisY - 4}" width="${X(end) - X(c.deb)}" height="8" rx="4"/>`;
+  }
+  items.forEach(it => { s += `<line class="sv-lead" x1="${it.x}" y1="${axisY - 7}" x2="${it.x}" y2="${ly(it) + 4}"/>`; });
+  if (c.now >= mn && c.now <= mx) {
+    const nx = X(c.now);
+    s += `<line class="sv-todayl" x1="${nx}" y1="${axisY - 12}" x2="${nx}" y2="${axisY + 26}"/>`;
+    s += `<text class="sv-t sv-today" x="${clamp(nx, 80, W - 80)}" y="${axisY + 42}" text-anchor="middle">Aujourd’hui · ${fmtD(c.now)}</text>`;
+  }
+  items.forEach(it => {
+    s += `<circle class="sv-m ${it.k}" cx="${it.x}" cy="${axisY}" r="7"/>`;
+    s += `<text class="sv-t sv-b" x="${it.tx}" y="${ly(it) - 17}" text-anchor="middle">${esc(it.txt)}</text>`;
+    s += `<text class="sv-t sv-d" x="${it.tx}" y="${ly(it)}" text-anchor="middle">${it.ds}</text>`;
+  });
+  s += '</svg>';
+  s += `<div class="lg"><span><i class="lgd deb"></i>Début</span><span><i class="lgd fin"></i>Fin prévue</span><span><i class="lgd ok"></i>Atteint / fin réelle</span><span><i class="lgd bad"></i>En retard</span><span><i class="lgd"></i>À venir</span><span><i class="lgl"></i>Aujourd’hui</span></div>`;
+  return s;
+}
+function retro(c) {
+  if (c.fin == null) return '<div class="muted">Renseignez la date de fin prévue pour afficher le rétroplanning.</div>';
+  const steps = [{l: 'Échéance (fin prévue)', t: c.fin, k: 'fin', sub: 'Échéance'}];
+  c.jal.filter(j => j.t != null).sort((a, b) => b.t - a.t).forEach(j => steps.push({l: j.l, t: j.t, k: j.s === 'Atteint' ? 'ok' : j.late ? 'bad' : '', sub: j.s === 'Atteint' ? 'Atteint' : j.late ? 'En retard' : 'À venir'}));
+  if (c.deb != null) steps.push({l: 'Début du projet', t: c.deb, k: 'deb', sub: 'Début'});
+  const sansDate = c.jal.filter(j => j.t == null).map(j => j.l);
+  let mn = Math.min(...steps.map(x => x.t)), mx = Math.max(...steps.map(x => x.t));
+  if (c.overdue) mx = Math.max(mx, c.now);
+  if (mx - mn < DAY) mx = mn + DAY * 30;
+  const P = t => ((t - mn) / (mx - mn) * 100).toFixed(2), showToday = c.now >= mn && c.now <= mx;
+  const rowsHtml = steps.map(st => {
+    const dot = st.k === 'ok' ? 'ok' : st.k === 'bad' ? 'bad' : st.k === 'deb' ? 'acc' : st.k === 'fin' ? 'fin' : '';
+    let bar = '';
+    if (st.k !== 'fin') { const a = Math.min(st.t, c.fin), b = Math.max(st.t, c.fin); bar = `<i class="rp-bar ${st.k}" style="left:${P(a)}%;width:${(P(b) - P(a)).toFixed(2)}%"></i>`; }
+    return `<div class="rp-r"><div class="rp-l"><span class="dot ${dot}"></span><span><b>${esc(st.l)}</b><small>${fmtD(st.t)}</small></span></div>
+      <div class="rp-t">${showToday ? `<i class="rp-td" style="left:${P(c.now)}%"></i>` : ''}${bar}<i class="rp-mk ${st.k}" style="left:${P(st.t)}%"></i></div>
+      <div class="rp-j">${st.k === 'fin' ? 'J' : jLabel(c.fin, st.t)}<small>${st.sub}</small></div></div>`;
+  }).join('');
+  return `<div class="rp"><div class="rp-h"><span>Étape (de l’échéance vers le début)</span><span>Temps avant l’échéance</span><span>Échéance</span></div>${rowsHtml}</div>
+    ${sansDate.length ? `<div class="muted" style="margin-top:8px">Jalons sans date : ${esc(sansDate.join(', '))}</div>` : ''}
+    <div class="lg"><span><i class="lgd fin"></i>Échéance</span><span><i class="lgd ok"></i>Atteint</span><span><i class="lgd bad"></i>En retard</span><span><i class="lgd deb"></i>À venir / début</span><span><i class="lgl"></i>Aujourd’hui</span></div>`;
+}
+function calendrier(r) {
+  const c = calData(r), v = S.pj.cal;
+  let etat = '';
+  if (c.reel != null) etat = `Terminé le ${fmtD(c.reel)}`;
+  else if (c.fin != null) { const d = Math.round((c.fin - c.now) / DAY); etat = d > 0 ? `Échéance dans ${plural(d, 'jour')}` : d === 0 ? 'Échéance aujourd’hui' : `Échéance dépassée de ${plural(-d, 'jour')}`; }
+  const sumTxt = [c.deb != null && c.fin != null ? `Du ${fmtD(c.deb)} au ${fmtD(c.fin)}` : '', etat].filter(Boolean).join(' · ');
+  const on = x => v === x ? 'on' : '';
+  return `<div class="card cal" data-view="${v}" style="margin-top:14px"><div class="cal-h"><h2>Calendrier</h2>
+    <div class="seg" role="group" aria-label="Type de vue"><button type="button" data-a="cal-view" data-v="frise" class="${on('frise')}">Frise chronologique</button><button type="button" data-a="cal-view" data-v="retro" class="${on('retro')}">Rétroplanning</button></div></div>
+    ${sumTxt ? `<div class="cal-sum ${c.overdue ? 'bad' : ''}">${sumTxt}</div>` : ''}
+    <div class="cv cv-frise"><div class="cvt">Frise chronologique</div>${frise(c)}</div>
+    <div class="cv cv-retro"><div class="cvt">Rétroplanning</div>${retro(c)}</div></div>`;
+}
+ACT['cal-view'] = el => {
+  S.pj.cal = el.dataset.v; const card = el.closest('.cal'); card.dataset.view = S.pj.cal;
+  $$('.seg button', card).forEach(b => b.classList.toggle('on', b.dataset.v === S.pj.cal));
+};
+
+/* ---------- Projet : consulter ---------- */
+function consultProjet(r) {
+  const prev = num(r.Charge_prevue), reel = num(r.Charge_reelle), taux = prev ? reel / prev : 0, lv = level(taux);
+  const etat = !prev ? '' : taux > 1 ? 'Dépassement' : taux >= 0.8 ? '> 80 %' : 'OK';
+  const jal = projJalons(r), done = jal.filter(j => j.Statut === 'Atteint').length;
+  const jalHtml = jal.length ? [...jal].sort((a, b) => (a.Date || 1e12) - (b.Date || 1e12)).map(j => `<div class="ms"><span class="dot ${j.Statut === 'Atteint' ? 'ok' : j.Statut === 'En retard' ? 'bad' : ''}"></span>
+      <span>${esc(j.Libelle) || '—'}</span><span class="d">${fmtD(j.Date) || '—'}</span></div>`).join('') : '<span class="muted">Aucun jalon renseigné</span>';
+  const comm = [r.Niveau_commanditaire, r.Commanditaire].filter(Boolean).join(' – ');
+  const line = (k, v) => `<div class="row"><span class="k">${k}</span><span class="v">${esc(v) || '—'}</span></div>`;
+  const byA = {}; D.temps.filter(t => t.p === r.id).forEach(t => { byA[t.a] = (byA[t.a] || 0) + t.j; });
+  const tpa = Object.entries(byA).sort((a, b) => b[1] - a[1]).map(([a, j]) => `<div class="row"><span class="k" style="flex-basis:220px">${esc(agentName(D.by.agent.get(+a)))}</span><span class="v">${fmtN(j)} j</span></div>`).join('');
+  return `<div class="eyebrow">${esc((r.Reference || '').trim())}</div><h1 id="md-title">${esc(projLabel(r))}</h1>
+  <div class="chips">${r.Type_nom ? `<span class="chip">${esc(r.Type_nom)}</span>` : ''}${r.Statut ? `<span class="chip">${esc(r.Statut)}</span>` : ''}${r.Retard ? '<span class="chip bad">En retard</span>' : ''}</div>
+  ${calendrier(r)}
+  <div class="card"><h2>Charge de travail</h2>
+    ${prev ? `<div style="margin-bottom:10px">${fmtN(reel)} j réalisés sur ${fmtN(prev)} j prévus (${pct(taux)} %)
+      <span class="chip ${lv === 'bad' ? 'bad' : lv === '' ? 'ok' : 'warn'}" style="margin-left:8px">${etat}</span></div><div class="bar"><i class="${lv}" style="width:${clamp(taux) * 100}%"></i></div>`
+      : `<span class="muted">Charge prévue non renseignée (${fmtN(reel)} j réalisés)</span>`}
+    ${tpa ? `<div style="margin-top:12px" class="muted">Temps saisi par agent</div>${tpa}` : ''}</div>
+  <div class="card"><h2>Intervenants</h2>${line('Commanditaire', comm)}${line('Bénéficiaire', r.Beneficiaire)}${line('Agents BET', r.Agent_nom)}${line('Suivi', r.Suivi_nom)}</div>
+  <div class="card"><h2>Jalons (${jal.length ? Math.round(done / jal.length * 100) : 0} % atteints)</h2>${jalHtml}</div>
+  <div class="card"><h2>Description</h2>${r.Description ? `<div class="desc">${esc(r.Description)}</div>` : '<span class="muted">Aucune description</span>'}</div>`;
+}
+function csvProjet(r) {
+  const c = calData(r);
+  const data = [['Champ', 'Valeur'], ['Référence', (r.Reference || '').trim()], ['Titre', r.Titre], ['Type', r.Type_nom], ['Statut', r.Statut],
+    ['Niveau commanditaire', r.Niveau_commanditaire], ['Commanditaire', r.Commanditaire], ['Bénéficiaire', r.Beneficiaire],
+    ['Agents', r.Agent_nom], ['Suivi', r.Suivi_nom], ['Date de début', fmtD(r.Date_debut)], ['Date de fin prévue', fmtD(r.Date_fin_prevue)],
+    ['Date de fin réelle', fmtD(r.Date_fin_reelle)], ['Charge prévue (j)', r.Charge_prevue], ['Charge réelle (j)', r.Charge_reelle],
+    ['Taux de consommation', pct(r.Taux_conso) + ' %'], ['Description', r.Description]];
+  if (c.fin != null && c.reel == null) data.push(['Jours avant l’échéance', Math.round((c.fin - c.now) / DAY)]);
+  c.jal.forEach((j, i) => data.push([`Jalon ${i + 1}`, `${j.l} | ${j.t != null ? fmtD(j.t) : ''} | ${j.late && j.s !== 'En retard' ? 'En retard' : j.s} | ${j.t != null && c.fin != null ? jLabel(c.fin, j.t) : ''}`]));
+  downloadCsv('projet-' + slug(r.Reference || r.Titre), data);
+}
+
+/* ---------- Agent : consulter ---------- */
+function consultAgent(r) {
+  const cap = num(r.Capacite_annuelle), prev = num(r.Charge_prevue), tx = num(r.Taux_occupation);
+  const fonction = String(r.Fonction || '').split(/\n+/).map(s => s.trim()).filter(Boolean).join(' · ');
+  const subHtml = [esc(fonction), r.Email ? `<a href="mailto:${esc(r.Email)}">${esc(r.Email)}</a>` : ''].filter(Boolean).join(' · ');
+  const projets = parse(r.Projets_json);
+  const pj = projets.length ? projets.map(p => { const t = p.p ? p.r / p.p : 0;
+    return `<div class="pj"><div class="t"><b>${esc(p.t) || '(Sans titre)'}</b><span class="chip">${esc(p.s)}</span></div>
+      <div class="muted" style="margin-bottom:6px">${fmtN(p.r)} j réalisés sur ${fmtN(p.p)} j prévus</div><div class="bar"><i class="${level(t)}" style="width:${clamp(t) * 100}%"></i></div></div>`; }).join('')
+    : '<span class="muted">Aucun projet pour le moment.</span>';
+  const kpi = (v, l) => `<div class="kpi"><b>${v}</b><span>${l}</span></div>`;
+  return `<div class="head"><div class="avatar" aria-hidden="true">${esc((r.Prenom || agentName(r) || '?').trim().charAt(0).toUpperCase())}</div>
+    <div><h1 id="md-title" style="margin:0">${esc(agentName(r))}</h1><div class="muted">${subHtml}</div>
+    <div class="chips" style="margin:8px 0 0">${r.Referent_suivi ? '<span class="chip">Référent·e de suivi</span>' : ''}${r.Actif === false ? '<span class="chip bad">Inactif</span>' : ''}</div></div></div>
+  <div class="card"><div class="kpis">${kpi(num(r.Nb_projets_actifs), 'projets en cours')}${kpi(num(r.Nb_projets_suivis), 'projets suivis')}${kpi(fmtN(r.Charge_reelle_annee) + ' j', 'réalisés cette année')}${kpi(fmtN(cap) + ' j', 'capacité annuelle')}</div></div>
+  <div class="card"><h2>Occupation sur l’année : ${pct(tx)} %</h2><div class="bar" style="margin-bottom:18px"><i class="${level(tx)}" style="width:${clamp(tx) * 100}%"></i></div>
+    <h2>Charge prévue par projet (${fmtN(prev)} j sur ${fmtN(cap)} j)</h2><div class="bar"><i class="acc" style="width:${cap ? clamp(prev / cap) * 100 : 0}%"></i></div></div>
+  <div class="card"><h2>Projets portés</h2>${pj}</div>`;
+}
+function csvAgent(r) {
+  const data = [['Champ', 'Valeur'], ['Nom', agentName(r)], ['Fonction', String(r.Fonction || '').replace(/\n+/g, ' · ')], ['Email', r.Email],
+    ['Référent·e de suivi', r.Referent_suivi ? 'Oui' : 'Non'], ['Actif', r.Actif === false ? 'Non' : 'Oui'], ['Capacité annuelle (j)', r.Capacite_annuelle],
+    ['Réalisés cette année (j)', r.Charge_reelle_annee], ['Charge prévue (j)', r.Charge_prevue], ['Taux d’occupation', pct(r.Taux_occupation) + ' %'],
+    ['Projets en cours', r.Nb_projets_actifs], ['Projets suivis', r.Nb_projets_suivis]];
+  parse(r.Projets_json).forEach((p, i) => data.push([`Projet ${i + 1}`, `${p.t} | ${p.s} | ${fmtN(p.p)} j prévus | ${fmtN(p.r)} j réalisés`]));
+  downloadCsv('agent-' + slug(agentName(r)), data);
+}
+
+/* ---------- Formulaires (modifier) ---------- */
+const FORMS = {
+  pj: [['Identité', [['Reference', 'Référence', 'text'], ['Titre', 'Titre', 'text'], ['Type', 'Type', 'ref'], ['Statut', 'Statut', 'choice']]],
+    ['Acteurs', [['Niveau_commanditaire', 'Niveau du commanditaire', 'choice'], ['Commanditaire', 'Commanditaire', 'text'], ['Beneficiaire', 'Bénéficiaire', 'text'], ['Agent', 'Agents BET en charge', 'multi', 'agents'], ['Suivi_par', 'Suivi par', 'multi', 'refs']]],
+    ['Calendrier et charge', [['Date_debut', 'Début', 'date'], ['Date_fin_prevue', 'Fin prévue', 'date'], ['Date_fin_reelle', 'Fin réelle', 'date'], ['Charge_prevue', 'Charge prévue (jours)', 'num']]],
+    ['Description', [['Description', '', 'area']]]],
+  eq: [['Identité', [['Prenom', 'Prénom', 'text'], ['Nom', 'Nom', 'text'], ['Fonction', 'Fonction', 'area2'], ['Email', 'Email', 'text']]],
+    ['Statut et capacité', [['Capacite_annuelle', 'Capacité annuelle (jours)', 'num'], ['Referent_suivi', 'Référent·e de suivi', 'bool'], ['Actif', 'Actif·ve', 'bool']]]]
+};
+function inp([k, lab, t, src], r) {
+  const v = r[k], at = `data-ch="field" data-k="${k}"`; let h;
+  if (t === 'text') h = `<input class="fi" ${at} value="${esc(v)}">`;
+  else if (t === 'num') h = `<input class="fi" ${at} type="number" step="0.5" min="0" value="${v ?? ''}">`;
+  else if (t === 'date') h = `<input class="fi" ${at} type="date" value="${iso(v)}">`;
+  else if (t === 'area') h = `<textarea class="fi" ${at} rows="4">${esc(v)}</textarea>`;
+  else if (t === 'area2') h = `<textarea class="fi" ${at} rows="3">${esc(v)}</textarea>`;
+  else if (t === 'bool') return `<label class="cb pad"><input ${at} type="checkbox" ${v ? 'checked' : ''}>${lab}</label>`;
+  else if (t === 'choice') h = `<select class="fi" ${at}><option value=""></option>${[...new Set([...(META[k] || []), v].filter(Boolean))].map(x => `<option ${x === v ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>`;
+  else if (t === 'ref') h = `<select class="fi" ${at} data-t="ref"><option value="0"></option>${D.types.map(x => `<option value="${x.id}" ${x.id === v ? 'selected' : ''}>${esc(x.n)}</option>`).join('')}</select>`;
+  else {
+    const c = ids(v), pool = src === 'refs' ? activeAgents().filter(a => a.Referent_suivi) : activeAgents();
+    h = `<div class="chx" data-k="${k}">${c.map(i => `<span>${esc(agentName(D.by.agent.get(i)))}<button type="button" data-a="rm-multi" data-k="${k}" data-i="${i}" title="Retirer">×</button></span>`).join('')}
+      <select data-ch="add-multi" data-k="${k}"><option value="">+ Ajouter…</option>${pool.filter(a => !c.includes(a.id)).map(a => `<option value="${a.id}">${esc(agentName(a))}</option>`).join('')}</select></div>`;
+  }
+  return `<div><label>${lab}</label>${h}<div class="msg" data-m="${k}"></div></div>`;
+}
+function formCards(key, r) {
+  return FORMS[key].map(([t, fs]) => `<div class="card"><h2>${t}</h2><div class="g">${fs.map(f => inp(f, r)).join('')}</div></div>`).join('');
+}
+function kpiProj(r) {
+  const tc = num(r.Taux_conso), prev = num(r.Charge_prevue);
+  return `<b>${fmtN(r.Charge_reelle)} j</b> réalisés sur <b>${fmtN(prev)} j</b> prévus (${pct(tc)} %) ${esc(r.Alerte_charge || '')} ${r.Retard ? '· <b class="ko">⚠ En retard</b>' : ''}
+    <div class="bar" style="margin:8px 0 4px"><i class="${level(tc)}" style="width:${clamp(tc) * 100}%"></i></div><div class="muted">Jalons atteints : ${pct(r.Avancement_jalons)} %</div>`;
+}
+function formProjet(r) {
+  const js = D.jalons.filter(j => j.Projet === r.id).sort((a, b) => (a.Date || 1e12) - (b.Date || 1e12));
+  return `<h1 id="md-title">${esc(projLabel(r))}</h1><div class="card" id="kpi">${kpiProj(r)}</div>${formCards('pj', r)}
+  <div class="card"><h2>Jalons</h2>${js.map(j => `<div class="jr"><input class="fi" data-ch="jalon" data-j="${j.id}" data-jk="Libelle" value="${esc(j.Libelle)}" placeholder="Libellé du jalon" aria-label="Libellé du jalon">
+    <input class="fi" type="date" data-ch="jalon" data-j="${j.id}" data-jk="Date" value="${iso(j.Date)}" aria-label="Date du jalon">
+    <select class="fi" data-ch="jalon" data-j="${j.id}" data-jk="Statut" aria-label="Statut du jalon">${JST.map(s => `<option ${s === j.Statut ? 'selected' : ''}>${s}</option>`).join('')}</select>
+    <button class="btn s" data-a="del-j" data-id="${j.id}" title="Supprimer ce jalon" aria-label="Supprimer ce jalon">×</button></div>`).join('')}
+    <button class="btn s" data-a="add-j">+ Ajouter un jalon</button></div>
+  <div class="muted">Le temps passé se saisit dans l’onglet « Mon temps ».</div>`;
+}
+function formAgent(r) { return `<h1 id="md-title">${esc(agentName(r))}</h1>${formCards('eq', r)}`; }
+function formPatch() {
+  const c = MDC, r = c.byId(c.st.sel); if (!r) return;
+  $$('#md-d [data-k]').forEach(el => {
+    if (el === document.activeElement || el.classList.contains('chx') || el.dataset.ch === 'add-multi') return;
+    const v = r[el.dataset.k];
+    if (el.type === 'checkbox') el.checked = !!v; else if (el.type === 'date') el.value = iso(v);
+    else if (el.dataset.t === 'ref') el.value = String(v || 0); else el.value = v ?? '';
+  });
+  const t = $('#md-title'); if (t) t.textContent = c.label(r);
+  const k = $('#kpi'); if (k && c.key === 'pj') k.innerHTML = kpiProj(r);
+}
+function checkField(key, k, v, r) {
+  if (key === 'pj') {
+    if (k === 'Titre' && !v) return 'Le titre est obligatoire.';
+    if (k === 'Reference' && v && D.projets.some(x => x.id !== r.id && String(x.Reference || '').trim() === v)) return 'Cette référence existe déjà.';
+    if (k === 'Charge_prevue' && v < 0) return 'Valeur négative impossible.';
+    if (k === 'Date_fin_prevue' && v && r.Date_debut && v < r.Date_debut) return 'La fin ne peut pas précéder le début.';
+    if (k === 'Date_debut' && v && r.Date_fin_prevue && v > r.Date_fin_prevue) return 'Le début ne peut pas suivre la fin.';
+  } else if (k === 'Capacite_annuelle' && v < 0) return 'Valeur négative impossible.';
+  return '';
+}
+const fieldVal = el => el.type === 'checkbox' ? el.checked : el.type === 'number' ? (el.value === '' ? null : +el.value) : el.type === 'date' ? secOf(el.value) : el.dataset.t === 'ref' ? (+el.value || 0) : el.value;
+CH.field = async el => {
+  const c = MDC, r = c.byId(c.st.sel), k = el.dataset.k; let v = fieldVal(el);
+  if (typeof v === 'string' && (k === 'Reference' || k === 'Titre')) v = v.trim();
+  const err = checkField(c.key, k, v, r), m = $(`[data-m="${k}"]`);
+  el.classList.toggle('bad', !!err); if (m) m.textContent = err; if (err) return flash(err, 1);
+  const f = {[k]: v};
+  if (c.key === 'pj' && k === 'Statut' && v === 'Terminé' && !r.Date_fin_reelle) f.Date_fin_reelle = todaySec();
+  try { await write([['UpdateRecord', c.tbl, r.id, f]]); } catch (e) { return; }
+  mdList(); formPatch();
+};
+CH['add-multi'] = el => { if (!el.value) return; const r = MDC.byId(MDC.st.sel); setMulti(el.dataset.k, [...ids(r[el.dataset.k]), +el.value]); };
+ACT['rm-multi'] = el => { const r = MDC.byId(MDC.st.sel); setMulti(el.dataset.k, ids(r[el.dataset.k]).filter(i => i !== +el.dataset.i)); };
+async function setMulti(k, list) {
+  try { await write([['UpdateRecord', MDC.tbl, MDC.st.sel, {[k]: ['L', ...list]}]]); } catch (e) { return; }
+  mdList(); mdDetail();
+}
+CH.jalon = async el => {
+  const jk = el.dataset.jk, v = jk === 'Date' ? secOf(el.value) : el.value;
+  try { await write([['UpdateRecord', 'Jalons', +el.dataset.j, {[jk]: v}]]); } catch (e) { return; }
+  formPatch();
+};
+ACT['add-j'] = async () => {
+  try { await write([['AddRecord', 'Jalons', null, {Projet: S.pj.sel, Statut: 'À venir'}]]); } catch (e) { return; }
+  mdDetail(); const ins = $$('#md-d [data-jk="Libelle"]'); if (ins.length) ins[ins.length - 1].focus();
+};
+ACT['del-j'] = async el => {
+  try { await write([['RemoveRecord', 'Jalons', +el.dataset.id]]); } catch (e) { return; }
+  mdDetail();
+};
+ACT.arch = () => { S.pj.arch = true; mdDetail(); };
+ACT['arch-no'] = () => { S.pj.arch = false; mdDetail(); };
+ACT['arch-yes'] = async () => {
+  try { await write([['UpdateRecord', 'Projets', S.pj.sel, {Statut: 'Archivé'}]]); } catch (e) { return; }
+  S.pj.arch = false; mdList(); mdDetail();
+};
+
+/* ---------- Nouveau projet : mini-formulaire, référence automatique, jalons types ---------- */
+function nextRef() {
+  const y = new Date().getFullYear(); let m = 0;
+  D.projets.forEach(r => { const x = /^(\d{4})-(\d+)$/.exec(String(r.Reference || '').trim()); if (x && +x[1] === y) m = Math.max(m, +x[2]); });
+  return y + '-' + String(m + 1).padStart(3, '0');
+}
+function npPrev() {
+  const ty = D.by.type.get(+$('#np-ty').value), m = modele(ty && ty.n), dated = $('#np-d').value && $('#np-f').value;
+  $('#np-jl').textContent = 'Jalons : ' + m.j.map(x => x[0]).join(' · ') + (dated ? ' (dates réparties entre le début et la fin)' : ' (sans date : renseignez le début et la fin pour les placer automatiquement)');
+}
+async function openNewProject() {
+  if (!loaded) await loadAll();
+  $('#np-t').value = ''; $('#np-m').textContent = '';
+  $('#np-ty').innerHTML = '<option value="0">— Non précisé —</option>' + D.types.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join('');
+  $('#np-ag').innerHTML = activeAgents().map(a => `<label><input type="checkbox" value="${a.id}" ${a.id === S.agentId ? 'checked' : ''}>${esc(agentName(a))}</label>`).join('') || '<span class="muted">Aucun agent actif</span>';
+  $('#np-d').value = new Date().toISOString().slice(0, 10); $('#np-f').value = ''; $('#np-j').checked = true;
+  npPrev(); $('#np').showModal(); $('#np-t').focus();
+}
+ACT['new-project'] = () => openNewProject();
+async function createProject(ev) {
+  ev.preventDefault();
+  const t = $('#np-t').value.trim(), d = secOf($('#np-d').value), f = secOf($('#np-f').value), m = $('#np-m');
+  if (!t) { m.textContent = 'Le titre est obligatoire.'; $('#np-t').focus(); return; }
+  if (d && f && f < d) { m.textContent = 'La fin ne peut pas précéder le début.'; return; }
+  const ty = +$('#np-ty').value || 0, ag = $$('#np-ag input:checked').map(x => +x.value);
+  $('#np-ok').disabled = true;
+  try {
+    const rec = {Reference: nextRef(), Titre: t, Type: ty, Statut: 'À cadrer', Date_debut: d, Date_fin_prevue: f};
+    if (ag.length) rec.Agent = ['L', ...ag];
+    const r = await write([['AddRecord', 'Projets', null, rec]], null), id = r.retValues[0];
+    if ($('#np-j').checked) {
+      const mo = modele((D.by.type.get(ty) || {}).n);
+      await write(mo.j.map(([l, p]) => ['AddRecord', 'Jalons', null, {Projet: id, Libelle: l, Statut: 'À venir', Date: d && f ? d + Math.round(p / 100 * (f - d) / DAY) * DAY : null}]), null);
+    }
+    $('#np').close(); flash('✓ Projet créé');
+    go('projets', {pj: {sel: id, mode: 'modifier', filter: 'tous', q: '', arch: false}});
+  } catch (x) { /* message déjà affiché par write() */ }
+  $('#np-ok').disabled = false;
+}
+$('#npf').addEventListener('submit', createProject);
+$('#np-x').addEventListener('click', () => $('#np').close());
+['#np-ty', '#np-d', '#np-f'].forEach(s => $(s).addEventListener('change', () => { $('#np-m').textContent = ''; npPrev(); }));
+$('#np-t').addEventListener('input', () => $('#np-m').textContent = '');
+
+/* =====================================================================
+   Mon temps : saisie hebdomadaire avec bouton Enregistrer
+   ===================================================================== */
+const MT = S.mt;
+const mtPend = () => MT.pend[S.agentId] || (MT.pend[S.agentId] = new Map());
+const pk = (p, d) => p + '|' + d;
+const mtRecs = (p, d) => D.temps.filter(t => t.a === S.agentId && t.p === p && t.d === d);
+const mtStored = (p, d) => mtRecs(p, d).reduce((s, t) => s + t.j, 0);
+const cellVal = (p, d) => { const m = mtPend(), k = pk(p, d); return m.has(k) ? m.get(k) : mtStored(p, d); };
+function setPending(p, d, val) { const m = mtPend(), k = pk(p, d); if (Math.abs(val - mtStored(p, d)) < 1e-9) m.delete(k); else m.set(k, val); }
+const mtDays = () => [0, 1, 2, 3, 4].map(i => MT.ws + i * DAY);
+const parseN = s => { const x = parseFloat(String(s).replace(',', '.').trim()); return isNaN(x) ? null : x; };
+
+function mtRows() {
+  const lo = MT.ws, hi = MT.ws + 6 * DAY;
+  const set = new Set(D.projets.filter(p => (p.Statut === 'En cours' || p.Statut === 'À cadrer') && ids(p.Agent).includes(S.agentId)).map(p => p.id));
+  D.temps.filter(t => t.a === S.agentId && t.d >= lo && t.d <= hi).forEach(t => set.add(t.p));
+  mtPend().forEach((val, k) => { const [p, d] = k.split('|').map(Number); if (d >= lo && d <= hi) set.add(p); });
+  MT.extra.forEach(x => set.add(x));
+  return D.projets.filter(p => set.has(p.id)).sort((a, b) => (a.Statut === 'En cours' ? 0 : 1) - (b.Statut === 'En cours' ? 0 : 1) || projLabel(a).localeCompare(projLabel(b), 'fr'));
+}
+function vTemps() {
+  $('#view').innerHTML = `<div class="mt"><h1 style="font-size:24px;margin-bottom:12px">Mon temps</h1>
+    <div class="top"><div class="week"><button class="nav" data-a="mt-prev" aria-label="Semaine précédente" title="Semaine précédente">◀</button><span class="lbl" id="mt-lbl" aria-live="polite"></span>
+      <button class="nav" data-a="mt-next" aria-label="Semaine suivante" title="Semaine suivante">▶</button><button id="mt-now" data-a="mt-now">Cette semaine</button></div>
+      <span class="sp"></span><button id="mt-copy" data-a="mt-copy" title="Recopie les jours de la semaine précédente dans les cases vides">Recopier la semaine précédente</button>
+      <button class="btn save" data-a="mt-save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button></div>
+    <div class="unsaved" id="mt-un" hidden></div><div class="sum" id="mt-sum"></div><div class="tbl" id="mt-grid"></div><div class="add" id="mt-add"></div><div class="note" id="mt-note"></div>
+    <div class="foot"><button class="btn save" data-a="mt-save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button></div></div>`;
+  mtRender();
+}
+function mtRender() {
+  if (!$('#mt-grid')) return;
+  const end = MT.ws + 4 * DAY;
+  $('#mt-lbl').textContent = `Semaine ${isoWeek(MT.ws)} · du ${dLong(MT.ws)} au ${dLong(end)} ${new Date(end * 1000).getUTCFullYear()}`;
+  $('#mt-now').disabled = MT.ws === mondayOf(todaySec());
+  $('#mt-copy').disabled = !S.agentId;
+  const grid = $('#mt-grid');
+  if (!S.agentId) {
+    grid.innerHTML = '<div class="empty"><b>Bienvenue 👋</b>Choisissez votre nom en haut à droite pour saisir votre temps. Il sera mémorisé sur cet ordinateur.</div>';
+    $('#mt-sum').innerHTML = ''; $('#mt-add').innerHTML = ''; $('#mt-note').textContent = ''; MT.sig = ''; mtUpdateSave(); return;
+  }
+  const rows = mtRows(), ds = mtDays(), today = todaySec();
+  MT.sig = [S.agentId, MT.ws, rows.map(r => r.id).join(',')].join('|');
+  const head = ds.map(d => `<th class="${d === today ? 'today' : ''}">${esc(dShort(d))}</th>`).join('');
+  const body = rows.map(r => `<tr><td class="p"><b>${esc(projLabel(r))}</b><small>${esc((r.Reference || '').trim())}${r.Reference && r.Statut ? ' · ' : ''}${esc(r.Statut)}</small></td>` +
+    ds.map(d => `<td class="${d === today ? 'today' : ''}"><input class="c" inputmode="decimal" autocomplete="off" data-ch="mt-cell" data-p="${r.id}" data-d="${d}" placeholder="·" aria-label="${esc(projLabel(r))} – ${esc(dShort(d))} (jours)"></td>`).join('') +
+    `<td class="q"><button data-a="mt-fill" data-p="${r.id}" title="Met 1 j dans les jours vides de la semaine">5 × 1 j</button></td></tr>`).join('');
+  grid.innerHTML = rows.length ? `<table><thead><tr><th class="p">Projet</th>${head}<th></th></tr></thead><tbody>${body}</tbody>
+    <tfoot><tr><td class="p">Total du jour</td>${ds.map(d => `<td data-tot="${d}"></td>`).join('')}<td class="q" id="mt-wt"></td></tr></tfoot></table>`
+    : '<div class="empty"><b>Aucun projet en cours qui vous soit affecté</b>Ajoutez un projet avec la liste ci-dessous, ou demandez à votre cheffe de bureau de vous affecter.</div>';
+  const shown = new Set(rows.map(r => r.id));
+  const others = D.projets.filter(p => !shown.has(p.id) && p.Statut !== 'Terminé' && p.Statut !== 'Archivé');
+  $('#mt-add').innerHTML = others.length ? `<select data-ch="mt-addp" aria-label="Ajouter un autre projet"><option value="">+ Ajouter un autre projet…</option>` +
+    others.map(p => `<option value="${p.id}">${esc(projLabel(p))}${p.Reference ? ' (' + esc(String(p.Reference).trim()) + ')' : ''}</option>`).join('') + '</select>' : '';
+  mtPatch();
+}
+function mtPatch() {
+  if (!S.agentId || !$('#mt-grid')) return;
+  $$('input.c').forEach(el => {
+    if (el === document.activeElement) return;
+    const p = +el.dataset.p, d = +el.dataset.d, val = cellVal(p, d), n = mtRecs(p, d).length;
+    el.value = val ? fmtN(val) : '';
+    el.classList.toggle('has', val > 0); el.classList.toggle('dirty', mtPend().has(pk(p, d)));
+    el.title = n > 1 ? `${n} saisies cumulées (elles seront regroupées si vous modifiez cette case)` : '';
+  });
+  mtSummary();
+}
+function mtSummary() {
+  const wk = mtTotals();
+  mtUpdateSave();
+  const me = D.by.agent.get(S.agentId);
+  const we = D.temps.filter(t => t.a === S.agentId && t.d > MT.ws + 4 * DAY && t.d <= MT.ws + 6 * DAY).reduce((s, t) => s + t.j, 0);
+  const ya = me ? num(me.Charge_reelle_annee) : 0, cap = me ? num(me.Capacite_annuelle) : 0;
+  $('#mt-sum').innerHTML = `<span class="chip">Cette semaine : <b>${fmtN(wk)} j</b></span>` +
+    (me ? `<span class="chip">Depuis le 1ᵉʳ janvier : <b>${fmtN(ya)} j</b>${cap ? ` sur ${fmtN(cap)} j (${Math.round(ya / cap * 100)} %)` : ''}</span>` : '');
+  $('#mt-note').textContent = we > 0 ? `Attention : ${fmtN(we)} j sont saisis sur le week-end de cette semaine (non affichés ici).` : '';
+}
+function mtTotals() {
+  let all = 0;
+  $$('[data-tot]').forEach(td => {
+    const d = td.dataset.tot;
+    const s = $$(`input.c[data-d="${d}"]`).reduce((a, el) => a + (parseN(el.value) || 0), 0);
+    all += s;
+    td.textContent = s ? fmtN(s) + (s === 1 ? ' ✓' : '') : '';
+    td.className = s === 1 ? 'ok' : s > 1 ? 'over' : '';
+    td.title = s > 1 ? 'Plus d’une journée saisie ce jour-là' : '';
+  });
+  const wt = $('#mt-wt'); if (wt) wt.textContent = all ? fmtN(all) + ' j' : '';
+  return all;
+}
+function mtUpdateSave() {
+  const n = S.agentId ? mtPend().size : 0;
+  $$('.save').forEach(b => { b.disabled = !n || MT.saving; b.textContent = MT.saving ? 'Enregistrement…' : 'Enregistrer' + (n ? ` (${n})` : ''); });
+  const u = $('#mt-un'); if (!u) return;
+  u.hidden = !n;
+  u.textContent = n ? `⚠ ${n} modification${n > 1 ? 's' : ''} non enregistrée${n > 1 ? 's' : ''} : cliquez sur « Enregistrer » avant de quitter la page.` : '';
+}
+function buildCellActions(p, d, val) {
+  const rs = mtRecs(p, d), a = [];
+  if (!rs.length) { if (val > 0) a.push(['AddRecord', 'Temps', null, {Projet: p, Agent: S.agentId, Date: d, Jours: val}]); }
+  else if (val > 0) { a.push(['UpdateRecord', 'Temps', rs[0].id, {Jours: val}]); rs.slice(1).forEach(r => a.push(['RemoveRecord', 'Temps', r.id])); }
+  else rs.forEach(r => a.push(['RemoveRecord', 'Temps', r.id]));
+  return a;
+}
+async function mtSave() {
+  if (!S.agentId || MT.saving) return;
+  const m = mtPend(); if (!m.size) return;
+  const entries = [...m.entries()], a = [];
+  entries.forEach(([k, val]) => { const [p, d] = k.split('|').map(Number); a.push(...buildCellActions(p, d, val)); });
+  MT.saving = true; mtUpdateSave();
+  try {
+    if (a.length) await write(a, null);
+    entries.forEach(([k, val]) => { if (m.get(k) === val) m.delete(k); });
+    const n = entries.length; flash(`✓ ${n} modification${n > 1 ? 's' : ''} enregistrée${n > 1 ? 's' : ''}`);
+  } catch (e) { /* write() a déjà affiché l'erreur : les modifications restent en attente */ }
+  MT.saving = false; mtRefresh();
+}
+function mtRefresh() {
+  if (S.view !== 'temps' || !$('#mt-grid')) return;
+  const sig = S.agentId ? [S.agentId, MT.ws, mtRows().map(r => r.id).join(',')].join('|') : '';
+  if (sig !== MT.sig) {
+    const f = document.activeElement; mtRender();
+    if (f && f.classList && f.classList.contains('c')) { const n = $(`input.c[data-p="${f.dataset.p}"][data-d="${f.dataset.d}"]`); if (n) n.focus(); }
+  } else mtPatch();
+}
+ACT['mt-prev'] = () => { MT.ws -= 7 * DAY; mtRender(); };
+ACT['mt-next'] = () => { MT.ws += 7 * DAY; mtRender(); };
+ACT['mt-now'] = () => { MT.ws = mondayOf(todaySec()); mtRender(); };
+ACT['mt-save'] = () => mtSave();
+ACT['mt-fill'] = el => {
+  const p = +el.dataset.p; let n = 0;
+  mtDays().forEach(d => { if (!cellVal(p, d)) { setPending(p, d, 1); n++; } });
+  if (!n) return flash('Les cinq jours sont déjà renseignés.');
+  mtPatch(); flash(`${n} jour${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} : pensez à enregistrer`);
+};
+ACT['mt-copy'] = () => {
+  const prev = D.temps.filter(x => x.a === S.agentId && x.d >= MT.ws - 7 * DAY && x.d <= MT.ws - 3 * DAY && x.j > 0);
+  if (!prev.length) return flash('Rien à recopier : la semaine précédente est vide.', 1);
+  const seen = new Set(); let n = 0;
+  prev.forEach(x => { const d = x.d + 7 * DAY, k = pk(x.p, d); if (seen.has(k) || cellVal(x.p, d)) return; seen.add(k);
+    setPending(x.p, d, prev.filter(y => y.p === x.p && y.d === x.d).reduce((s, y) => s + y.j, 0)); n++; });
+  if (!n) return flash('Les cases correspondantes sont déjà remplies.');
+  mtRefresh(); flash(`${n} case${n > 1 ? 's' : ''} recopiée${n > 1 ? 's' : ''} : pensez à enregistrer`);
+};
+CH['mt-addp'] = el => { if (el.value) { MT.extra.add(+el.value); mtRender(); } };
+CH['mt-cell'] = el => {
+  const raw = el.value.trim(), val = raw === '' ? 0 : parseN(raw);
+  if (val === null || val < 0 || val > 31) { el.classList.add('bad'); flash('Saisissez un nombre de jours, par exemple 0,5 ou 1.', 1); return; }
+  const p = +el.dataset.p, d = +el.dataset.d;
+  el.classList.remove('bad'); el.value = val ? fmtN(val) : ''; setPending(p, d, val);
+  el.classList.toggle('has', val > 0); el.classList.toggle('dirty', mtPend().has(pk(p, d)));
+  mtSummary();
+};
+document.addEventListener('focusin', e => { if (e.target.classList && e.target.classList.contains('c')) e.target.select(); });
+document.addEventListener('keydown', e => {
+  if (S.view === 'temps' && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    const f = document.activeElement; if (f && f.classList && f.classList.contains('c')) f.blur();
+    mtSave();
+  }
+});
+window.addEventListener('beforeunload', e => { if (S.agentId && mtPend().size) { e.preventDefault(); e.returnValue = ''; } });
+
+/* =====================================================================
+   Synthèse : projets et équipe
+   ===================================================================== */
+const SY_STAT = ['À cadrer', 'En cours', 'En pause', 'Terminé', 'Archivé'];
+const SY_COL = {'À cadrer': '#9db4f5', 'En cours': '#5b8cff', 'En pause': '#f0a43c', 'Terminé': '#3fb67a', 'Archivé': '#8b93a7'};
+const sum = (a, k) => a.reduce((s, x) => s + (+x[k] || 0), 0);
+const grp = (a, k) => { const m = {}; a.forEach(x => { const g = x[k] || 'Non renseigné'; (m[g] = m[g] || []).push(x); }); return Object.entries(m).sort((p, q) => q[1].length - p[1].length); };
+const csvRows = rows => rows.map(r => r.map(c => typeof c === 'number' ? String(c).replace('.', ',') : c));
+
+function vSyn() {
+  $('#view').innerHTML = `<div class="syn"><div class="seg noprint" style="margin-bottom:14px" role="group" aria-label="Synthèse">
+    <button class="${S.sy.tab === 'projets' ? 'on' : ''}" data-a="sy-tab" data-v="projets">Projets</button><button class="${S.sy.tab === 'equipe' ? 'on' : ''}" data-a="sy-tab" data-v="equipe">Équipe</button></div><div id="sy-b"></div></div>`;
+  S.sy.tab === 'projets' ? synProjets() : synEquipe();
+}
+ACT['sy-tab'] = el => { S.sy.tab = el.dataset.v; vSyn(); };
+
+function synProjets() {
+  const st = S.sy.pj, recs = D.projets;
+  const years = [...new Set(recs.map(r => r.Annee).filter(Boolean))].sort();
+  const f = recs.filter(r => !st.hidden.has(r.Statut) && (st.year === 'all' || r.Annee == st.year));
+  const prev = sum(f, 'Charge_prevue'), reel = sum(f, 'Charge_reelle');
+  const late = f.filter(r => r.Retard), over = f.filter(r => num(r.Taux_conso) > 1);
+  const watch = f.filter(r => r.Statut === 'En cours' && (r.Retard || num(r.Taux_conso) >= 0.8)).sort((a, b) => num(b.Taux_conso) - num(a.Taux_conso));
+  const today = todaySec();
+  const jal = f.filter(r => r.Statut === 'En cours' && toSec(r.Date_prochain_jalon) != null).sort((a, b) => toSec(a.Date_prochain_jalon) - toSec(b.Date_prochain_jalon)).slice(0, 6);
+  const byStat = SY_STAT.map(s => [s, f.filter(r => r.Statut === s).length]).filter(x => x[1]);
+  const byType = grp(f, 'Type_nom'), byNiv = grp(f, 'Niveau_commanditaire');
+  const mx = Math.max(1, ...byType.map(([, a]) => Math.max(sum(a, 'Charge_prevue'), sum(a, 'Charge_reelle'))));
+  const mn = Math.max(1, ...byNiv.map(([, a]) => a.length));
+  $('#sy-b').innerHTML = `<header><h1>Activité du bureau : projets</h1>
+    <div class="acts noprint" style="margin-bottom:8px"><button class="fchip ${st.tab === 'ens' ? 'on' : ''}" data-a="syp-t" data-v="ens">Vue d’ensemble</button><button class="fchip ${st.tab === 'an' ? 'on' : ''}" data-a="syp-t" data-v="an">Par année</button><button class="fchip" data-a="syp-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div>
+    <div class="fl noprint">${SY_STAT.map(s => `<button class="fchip ${st.hidden.has(s) ? '' : 'on'}" data-a="syp-s" data-v="${s}">${s}</button>`).join('')}
+      <select data-ch="syp-yr" style="${st.tab === 'an' ? 'display:none' : ''}" aria-label="Année"><option value="all">Toutes les années</option>${years.map(y => `<option ${y == st.year ? 'selected' : ''}>${y}</option>`).join('')}</select></div></header>
+  ${st.tab === 'an' ? synYear(recs.filter(r => !st.hidden.has(r.Statut))) : `<div class="card"><div class="facts">
+    <div><b>${f.length}</b><span>projets affichés</span></div><div><b>${fmt1(prev)} j</b><span>charge prévue</span></div>
+    <div><b>${fmt1(reel)} j</b><span>charge réelle (${prev ? Math.round(reel / prev * 100) : 0} %)</span></div>
+    <div><b class="${late.length ? 'ko' : ''}">${late.length}</b><span>en retard</span></div><div><b class="${over.length ? 'ko' : ''}">${over.length}</b><span>en dépassement de charge</span></div></div></div>
+  <div class="sgrid">
+  <div class="card"><h2>Répartition par statut</h2><div class="stack">${byStat.map(([s, n]) => `<i style="width:${n / f.length * 100}%;background:${SY_COL[s]}" title="${s} : ${n}"></i>`).join('')}</div>
+    <div class="lg">${byStat.map(([s, n]) => `<span><i class="sw" style="background:${SY_COL[s]}"></i>${s} (${n})</span>`).join('') || 'Aucun projet'}</div></div>
+  <div class="card"><h2>Charge par type (prévue en clair, réelle en foncé)</h2>${byType.map(([t, a]) => `<div class="bl"><span class="t" title="${esc(t)}">${esc(t)}</span><div><div class="sbar b" style="width:${sum(a, 'Charge_prevue') / mx * 100}%"></div><div class="sbar" style="width:${sum(a, 'Charge_reelle') / mx * 100}%"></div></div><span class="num">${a.length} proj.</span></div>`).join('') || '<div class="muted">Aucune donnée</div>'}</div>
+  <div class="card"><h2>Projets par niveau de commanditaire</h2>${byNiv.map(([t, a]) => `<div class="bl"><span class="t">${esc(t)}</span><div class="sbar" style="width:${a.length / mn * 100}%"></div><span class="num">${a.length}</span></div>`).join('') || '<div class="muted">Aucune donnée</div>'}</div></div>
+  <div class="sgrid">
+  <div class="card"><h2>À surveiller</h2>${watch.map(r => `<div class="srow"><span>${esc(projLabel(r))} <span class="muted">${esc(r.Agent_nom)}</span></span><span class="${r.Retard || num(r.Taux_conso) > 1 ? 'ko' : 'wn'}">${r.Retard ? 'Retard · ' : ''}${pct(r.Taux_conso)} %</span></div>`).join('') || '<div class="muted">Rien à signaler.</div>'}</div>
+  <div class="card"><h2>Prochains jalons</h2>${jal.map(r => { const d = toSec(r.Date_prochain_jalon); return `<div class="srow"><span>${esc(r.Prochain_jalon)} <span class="muted">${esc(projLabel(r))}</span></span><span class="${d < today ? 'ko' : ''}">${fmtD(d)}</span></div>`; }).join('') || '<div class="muted">Aucun jalon à venir.</div>'}</div></div>`}`;
+}
+function synYear(a) {
+  const m = grp(a, 'Annee').sort((p, q) => String(p[0]).localeCompare(String(q[0])));
+  const mx = Math.max(1, ...m.map(([, x]) => Math.max(sum(x, 'Charge_prevue'), sum(x, 'Charge_reelle'))));
+  if (!m.length) return '<div class="card muted">Aucun projet pour ces statuts.</div>';
+  return `<div class="card"><h2>Bilan par année</h2><div class="hint">Un projet est rattaché à l’année de sa date de début.</div>
+  <table class="st2"><tr><th>Année</th><th>Projets</th><th>Terminés</th><th>Prévu (j)</th><th>Réel (j)</th><th>Conso</th><th>En retard</th></tr>
+  ${m.map(([y, x]) => { const p = sum(x, 'Charge_prevue'), r = sum(x, 'Charge_reelle'), l = x.filter(z => z.Retard).length;
+    return `<tr><td>${y}</td><td>${x.length}</td><td>${x.filter(z => z.Statut === 'Terminé').length}</td><td>${fmt1(p)}</td><td>${fmt1(r)}</td><td>${p ? Math.round(r / p * 100) + ' %' : '—'}</td><td class="${l ? 'ko' : ''}">${l}</td></tr>`; }).join('')}</table></div>
+  <div class="card"><h2>Charge prévue (clair) et réelle (foncé)</h2>${m.map(([y, x]) => `<div class="bl"><span class="t">${y}</span><div><div class="sbar b" style="width:${sum(x, 'Charge_prevue') / mx * 100}%"></div><div class="sbar" style="width:${sum(x, 'Charge_reelle') / mx * 100}%"></div></div><span class="num">${x.length} proj.</span></div>`).join('')}</div>`;
+}
+ACT['syp-t'] = el => { S.sy.pj.tab = el.dataset.v; synProjets(); };
+ACT['syp-s'] = el => { const h = S.sy.pj.hidden, s = el.dataset.v; h.has(s) ? h.delete(s) : h.add(s); synProjets(); };
+CH['syp-yr'] = el => { S.sy.pj.year = el.value; synProjets(); };
+ACT['syp-csv'] = () => {
+  const st = S.sy.pj, a = D.projets.filter(r => !st.hidden.has(r.Statut) && (st.tab === 'an' || st.year === 'all' || r.Annee == st.year));
+  downloadCsv('synthese-projets', csvRows([['Référence', 'Titre', 'Type', 'Statut', 'Niveau commanditaire', 'Commanditaire', 'Bénéficiaire', 'Agents', 'Suivi', 'Année', 'Début', 'Fin prévue', 'Charge prévue', 'Charge réelle', 'Taux de consommation', 'En retard']]
+    .concat(a.map(r => [String(r.Reference || '').trim(), r.Titre, r.Type_nom, r.Statut, r.Niveau_commanditaire, r.Commanditaire, r.Beneficiaire, r.Agent_nom, r.Suivi_nom, r.Annee, fmtD(r.Date_debut), fmtD(r.Date_fin_prevue), r.Charge_prevue, r.Charge_reelle, pct(r.Taux_conso) + ' %', r.Retard ? 'Oui' : 'Non']))));
+};
+
+const syCol = p => p > 1 ? 'var(--bad)' : p >= .85 ? 'var(--warn)' : 'var(--ok)';
+function synMatrix() {
+  const M = {}, ys = new Set();
+  D.temps.forEach(t => { if (typeof t.d !== 'number') return; const y = new Date(t.d * 1000).getUTCFullYear(); ys.add(y); const k = t.a + '|' + y; M[k] = (M[k] || 0) + t.j; });
+  return {Y: [...ys].sort(), get: (a, y) => M[a + '|' + y] || 0};
+}
+function synEquipe() {
+  const st = S.sy.eq;
+  const f = D.agents.filter(r => st.inactive || r.Actif !== false).sort((a, b) => num(b.Taux_occupation) - num(a.Taux_occupation));
+  const cap = sum(f, 'Capacite_annuelle'), reel = sum(f, 'Charge_reelle_annee'), prev = sum(f, 'Charge_prevue');
+  const refs = f.filter(r => r.Referent_suivi), mxS = Math.max(1, ...refs.map(r => num(r.Nb_projets_suivis)));
+  $('#sy-b').innerHTML = `<header><h1>Activité du bureau : équipe</h1><div class="acts noprint">
+    <button class="fchip ${st.tab === 'ens' ? 'on' : ''}" data-a="syq-t" data-v="ens">Vue d’ensemble</button><button class="fchip ${st.tab === 'an' ? 'on' : ''}" data-a="syq-t" data-v="an">Par année</button>
+    <button class="fchip ${st.inactive ? 'on' : ''}" data-a="syq-ina">Inclure les agents inactifs</button><button class="fchip" data-a="syq-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
+  ${st.tab === 'an' ? synEqYear(f) : `<div class="card"><div class="facts"><div><b>${f.length}</b><span>agents</span></div><div><b>${fmt1(cap)} j</b><span>capacité annuelle cumulée</span></div>
+    <div><b>${fmt1(reel)} j</b><span>réalisés cette année (${cap ? Math.round(reel / cap * 100) : 0} %)</span></div><div><b>${fmt1(prev)} j</b><span>prévus sur les projets en cours</span></div></div></div>
+  <div class="card"><h2>Charge par agent</h2><div class="hint">Barre claire : charge prévue sur les projets en cours. Trait plein : jours réalisés cette année. Les deux sont comparés à la capacité annuelle.</div>
+    ${f.map(r => { const c = num(r.Capacite_annuelle) || 1, t = num(r.Taux_occupation), p = num(r.Charge_prevue) / c;
+      return `<div class="ag"><div><div class="nm">${esc(agentName(r))}</div><div class="muted" style="font-size:12px">${esc(String(r.Fonction || '').split(/\n+/)[0])}</div></div>
+      <div class="track" title="Prévu ${fmt1(r.Charge_prevue)} j · réalisé ${fmt1(r.Charge_reelle_annee)} j · capacité ${fmt1(r.Capacite_annuelle)} j"><div class="p" style="width:${Math.min(p * 100, 100)}%"></div><div class="r" style="width:${Math.min(t * 100, 100)}%;background:${syCol(t)}"></div></div>
+      <div class="num">${Math.round(t * 100)} % · ${num(r.Nb_projets_actifs)} projet(s)</div></div>`; }).join('') || '<div class="muted">Aucun agent.</div>'}</div>
+  <div class="card"><h2>Projets suivis par les référents</h2><div class="hint">Projets en cours dont la personne assure le suivi.</div>
+    ${refs.map(r => `<div class="sb"><span>${esc(agentName(r))}</span><div class="sbar" style="width:${num(r.Nb_projets_suivis) / mxS * 100}%"></div><span class="num">${num(r.Nb_projets_suivis)}</span></div>`).join('') || '<div class="muted">Cochez « Référent·e de suivi » pour les référents (onglet Équipe, Modifier).</div>'}</div>`}`;
+}
+function synEqYear(f) {
+  const m = synMatrix();
+  if (!m.Y.length) return '<div class="card muted">Aucune saisie de temps datée pour le moment.</div>';
+  return `<div class="card"><h2>Jours saisis par agent et par année</h2><div class="hint">Entre parenthèses : part de la capacité annuelle.</div><table class="st2"><tr><th>Agent</th>${m.Y.map(y => `<th>${y}</th>`).join('')}</tr>
+  ${f.map(r => `<tr><td>${esc(agentName(r))}</td>${m.Y.map(y => { const v = m.get(r.id, y); return `<td>${v ? fmt1(v) + ' j (' + Math.round(v / (num(r.Capacite_annuelle) || 1) * 100) + ' %)' : '—'}</td>`; }).join('')}</tr>`).join('')}
+  <tr><th>Total équipe</th>${m.Y.map(y => `<th>${fmt1(f.reduce((s, r) => s + m.get(r.id, y), 0))} j</th>`).join('')}</tr></table></div>`;
+}
+ACT['syq-t'] = el => { S.sy.eq.tab = el.dataset.v; synEquipe(); };
+ACT['syq-ina'] = () => { S.sy.eq.inactive = !S.sy.eq.inactive; synEquipe(); };
+ACT['syq-csv'] = () => {
+  const st = S.sy.eq, f = D.agents.filter(r => st.inactive || r.Actif !== false).sort((a, b) => num(b.Taux_occupation) - num(a.Taux_occupation));
+  if (st.tab === 'an') { const m = synMatrix(); return downloadCsv('equipe-par-annee', csvRows([['Agent', 'Capacité annuelle (j)', ...m.Y.map(y => 'Jours ' + y)]].concat(f.map(r => [agentName(r), r.Capacite_annuelle, ...m.Y.map(y => m.get(r.id, y))])))); }
+  downloadCsv('synthese-equipe', csvRows([['Agent', 'Fonction', 'Capacité annuelle (j)', 'Charge prévue (j)', 'Réalisé cette année (j)', 'Taux d’occupation', 'Projets en cours', 'Projets suivis']]
+    .concat(f.map(r => [agentName(r), String(r.Fonction || '').replace(/\n+/g, ' · '), r.Capacite_annuelle, r.Charge_prevue, r.Charge_reelle_annee, pct(r.Taux_occupation) + ' %', r.Nb_projets_actifs, r.Nb_projets_suivis]))));
+};
+
+/* =====================================================================
+   Démarrage
+   ===================================================================== */
+grist.ready({requiredAccess: 'full'});
+let reloadT;
+grist.onRecords(() => {
+  clearTimeout(reloadT);
+  reloadT = setTimeout(async () => { if (!loaded) return; await wq; try { await loadAll(); } catch (e) { return; } refreshView(); }, 350);
+});
+(async () => {
+  try { await loadAll(); } catch (e) { $('#view').innerHTML = `<div class="empty"><b>Impossible de lire les données</b>${esc(e.message || e)}<br>Vérifiez que le widget a l’accès complet au document.</div>`; return; }
+  const a = +store.get('app-agent'); if (a && D.by.agent.has(a)) S.agentId = a;
+  renderNav(); renderView();
+})();
+</script>
+</body>
+</html>
