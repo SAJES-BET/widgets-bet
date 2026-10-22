@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Outils de démonstration</title>
+<script src="https://grist.numerique.gouv.fr/grist-plugin-api.js"></script>
+<style>
+:root{--bg:#f5f6fa;--card:#fff;--line:#d9dce6;--txt:#1b1e29;--mut:#5d6479;--acc:#2f5fd8;--ok:#22915b;--warn:#c47a10;--bad:#d64545}
+@media (prefers-color-scheme:dark){:root{--bg:#11131b;--card:#181b25;--line:#2c3140;--txt:#e8eaf0;--mut:#9aa0b4;--acc:#5b8cff;--ok:#3fb67a;--warn:#f0a43c;--bad:#f26b6b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding:18px}
+main{max-width:760px;margin:0 auto}h1{font:700 24px Georgia,serif;margin:0 0 4px}.mut{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:14px 0}
+h2{font-size:16px;margin:0 0 6px}button{font:inherit;color:var(--txt);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:7px 14px;cursor:pointer}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}button.bad{background:var(--bad);border-color:var(--bad);color:#fff}button:disabled{opacity:.45;cursor:default}
+label.row{display:flex;gap:8px;align-items:flex-start;padding:4px 0}.tag{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:0 9px;font-size:12px;margin-left:6px;color:var(--mut)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}#log{white-space:pre-wrap;font-size:13px;color:var(--mut);margin-top:8px}
+.kp{display:flex;gap:22px;flex-wrap:wrap}.kp b{display:block;font:700 22px Georgia,serif}.kp span{font-size:12px;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Outils de démonstration</h1>
+<div class="mut">Page temporaire : nettoyer les données de test et préparer une démo. À supprimer de Grist une fois la démo terminée.</div>
+<div id="app"><div class="card">Chargement…</div></div>
+</main>
+<script>
+const $ = s => document.querySelector(s), DAY = 86400;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = (() => { const n = new Date(); return Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 1000; })();
+const isWd = t => { const d = new Date(t * 1000).getUTCDay(); return d !== 0 && d !== 6; };
+const rowsOf = t => t && t.id ? t.id.map((id, i) => { const o = {id}; for (const k in t) if (k !== 'id') o[k] = t[k][i]; return o; }) : [];
+const fetchT = async n => { try { return await grist.docApi.fetchTable(n); } catch (e) { return null; } };
+const act = a => grist.docApi.applyUserActions(a);
+let ST = {P: [], A: [], T: [], sel: new Set(), arm: '', busy: false, msg: ''};
+
+/* ---------- Jeu de démonstration (fictif ; dates relatives à aujourd'hui) ---------- */
+const PST = ['À venir', 'En cours', 'Terminée'];
+// agents : noms de famille ; ph = [libellé, début, fin, statut] ; j = [libellé, date, statut, n° de phase (1…) ou 0]
+const DEMO = [
+ {ref: 'DEMO-01', t: 'Cartographie des processus du bureau', ty: 'Diagnostic', st: 'En cours', niv: 'SG', co: 'Secrétariat général', be: 'Agents du bureau', ag: ['VAGNEUR', 'CHENIERE'], su: ['FRALEUX-MIGNON'], d: -75, f: 45, prev: 60, reel: 33,
+  desc: 'Décrire les principaux processus du bureau et repérer les points de friction.',
+  ph: [['Cadrage', -75, -55, 'Terminée'], ['Entretiens et collecte', -54, -10, 'Terminée'], ['Analyse et restitution', -9, 45, 'En cours']],
+  j: [['Lettre de mission signée', -75, 'Atteint', 1], ['Calendrier des entretiens validé', -55, 'Atteint', 1], ['Entretiens terminés', -10, 'Atteint', 2], ['Diagnostic provisoire', 14, 'À venir', 3], ['Restitution au comité', 40, 'À venir', 3]]},
+ {ref: 'DEMO-02', t: 'Évaluation d’une politique publique : indicateurs de suivi', ty: 'Politique', st: 'En cours', niv: 'Direction', co: 'Direction partenaire', be: 'Direction partenaire', ag: ['BARONI', 'MOUSSA'], su: ['DREVET'], d: -120, f: -6, prev: 80, reel: 71,
+  desc: 'Construire et fiabiliser les indicateurs d’évaluation d’un dispositif.',
+  ph: [['Cadrage', -120, -100, 'Terminée'], ['Collecte des données', -99, -40, 'Terminée'], ['Rapport d’évaluation', -39, -6, 'En cours']],
+  j: [['Cadrage validé', -100, 'Atteint', 1], ['Données consolidées', -40, 'Atteint', 2], ['Rapport provisoire', -12, 'En retard', 3], ['Rapport final', -6, 'À venir', 3]]},
+ {ref: 'DEMO-03', t: 'Appui DITP : amélioration du parcours usager', ty: 'DITP', st: 'En cours', niv: 'DITP', co: 'DITP', be: 'Usagers', ag: ['MARRET', 'EL SKAFF', 'VAN SPEYBROECK'], su: ['BAUCHARD'], d: -60, f: 30, prev: 40, reel: 52,
+  desc: 'Accompagnement d’un chantier interministériel de simplification du parcours.',
+  ph: [['Lancement', -60, -45, 'Terminée'], ['Co-construction', -44, 5, 'En cours'], ['Déploiement', 6, 30, 'À venir']],
+  j: [['Lettre de saisine', -60, 'Atteint', 1], ['Atelier 1', -30, 'Atteint', 2], ['Atelier 2', -3, 'Atteint', 2], ['Restitution intermédiaire', 10, 'À venir', 3], ['Retour d’expérience', 30, 'À venir', 3]]},
+ {ref: 'DEMO-04', t: 'Note de cadrage : nouvel outil de suivi', ty: 'Diagnostic', st: 'En cours', niv: 'Bureau', co: '', be: '', ag: [], su: [], d: -7, f: null, prev: 15, reel: 2, desc: 'Projet volontairement incomplet (sans agent, sans date de fin, sans jalon).', ph: [], j: []},
+ {ref: 'DEMO-05', t: 'Revue annuelle des conventions', ty: 'Politique', st: 'À cadrer', niv: 'Service', co: 'Service partenaire', be: '', ag: ['AUSSEIL', 'VAN SPEYBROECK'], su: ['FRALEUX-MIGNON'], d: 10, f: 90, prev: 25, reel: 0, desc: '',
+  ph: [], j: [['Cadrage', 10, 'À venir', 0], ['Livrable final', 90, 'À venir', 0]]},
+ {ref: 'DEMO-06', t: 'Bilan de la mission de transformation', ty: 'DITP', st: 'Terminé', niv: 'Cab GDS', co: 'Cabinet', be: 'Direction', ag: ['VAGNEUR', 'BAUCHARD'], su: ['FRALEUX-MIGNON'], d: -230, f: -40, fr: -35, prev: 45, reel: 48, desc: 'Bilan et capitalisation.',
+  ph: [['Préparation', -230, -170, 'Terminée'], ['Analyse', -169, -80, 'Terminée'], ['Rédaction du bilan', -79, -35, 'Terminée']],
+  j: [['Lancement', -230, 'Atteint', 1], ['Données reçues', -170, 'Atteint', 2], ['Bilan remis', -35, 'Atteint', 3]]},
+ {ref: 'DEMO-07', t: 'Guide pratique à destination des agents', ty: 'Diagnostic', st: 'Terminé', niv: 'Bureau', co: 'Cheffe de bureau', be: 'Agents', ag: ['CHENIERE'], su: ['DREVET'], d: -170, f: -100, fr: -104, prev: 20, reel: 17, desc: '',
+  ph: [], j: [['Plan validé', -150, 'Atteint', 0], ['Guide diffusé', -104, 'Atteint', 0]]},
+ {ref: 'DEMO-08', t: 'Étude d’opportunité (mise en pause)', ty: 'Politique', st: 'En pause', niv: 'SGA', co: 'Secrétariat général adjoint', be: '', ag: ['BARONI'], su: ['DREVET'], d: -90, f: 60, prev: 30, reel: 6, desc: 'En attente d’arbitrage.',
+  ph: [], j: [['Arbitrage attendu', 20, 'À venir', 0]]}
+];
+
+/* ---------- Données ---------- */
+async function reload() {
+  const [P, A, T] = await Promise.all([fetchT('Projets'), fetchT('Agents'), fetchT('Types')]);
+  ST.P = rowsOf(P); ST.A = rowsOf(A); ST.T = rowsOf(T);
+  const isTest = p => /^\s*test\b/i.test(p.Titre || '') || /^\s*projet\s*\d+\s*$/i.test(p.Reference || '') || (!(p.Titre || '').trim() && !(p.Reference || '').trim());
+  ST.tests = ST.P.filter(p => !isDemo(p) && isTest(p));
+  ST.demo = ST.P.filter(isDemo);
+  ST.sel = new Set(ST.tests.map(p => p.id));
+}
+const isDemo = p => /^DEMO-/.test(String(p.Reference || '').trim());
+const agentId = nom => { const a = ST.A.find(x => String(x.Nom || '').toUpperCase() === nom); return a ? a.id : null; };
+const typeId = k => { const t = ST.T.find(x => String(x.Libelle || '').toLowerCase().includes(k.toLowerCase())); return t ? t.id : 0; };
+const label = p => ((p.Titre || '').trim() || '(Sans titre)') + (p.Reference ? ' · ' + String(p.Reference).trim() : '');
+
+async function removeProjects(ids) {
+  const set = new Set(ids), acts = [];
+  const [J, Ph, T] = await Promise.all([fetchT('Jalons'), fetchT('Phases'), fetchT('Temps')]);
+  rowsOf(J).filter(r => set.has(r.Projet)).forEach(r => acts.push(['RemoveRecord', 'Jalons', r.id]));
+  rowsOf(Ph).filter(r => set.has(r.Projet)).forEach(r => acts.push(['RemoveRecord', 'Phases', r.id]));
+  rowsOf(T).filter(r => set.has(r.Projet)).forEach(r => acts.push(['RemoveRecord', 'Temps', r.id]));
+  ids.forEach(id => acts.push(['RemoveRecord', 'Projets', id]));
+  for (let i = 0; i < acts.length; i += 200) await act(acts.slice(i, i + 200));
+  return acts.length;
+}
+async function ensurePhases() {
+  const [Ph, J] = await Promise.all([fetchT('Phases'), fetchT('Jalons')]), acts = [];
+  if (!(Ph && Ph.id)) acts.push(['AddTable', 'Phases', [{id: 'Projet', type: 'Ref:Projets'}, {id: 'Libelle', type: 'Text'}, {id: 'Date_debut', type: 'Date'}, {id: 'Date_fin', type: 'Date'}, {id: 'Statut', type: 'Choice', widgetOptions: JSON.stringify({choices: PST})}]]);
+  if (!(J && 'Phase' in J)) acts.push(['AddColumn', 'Jalons', 'Phase', {type: 'Ref:Phases'}]);
+  if (acts.length) await act(acts);
+}
+function genTemps(pid, ags, start, end, R, occ) {
+  const days = []; for (let t = start; t <= end; t += DAY) if (isWd(t)) days.push(t);
+  const out = []; if (!days.length || !ags.length || !R) return out;
+  const n = Math.round(R / ags.length * 2);
+  ags.forEach((a, ai) => {
+    const acc = {};
+    for (let k = 0; k < n; k++) {
+      const i = Math.floor((k + 0.5) * days.length / n);
+      for (let tr = 0; tr < days.length; tr++) { const d = days[(i + tr + ai * 3) % days.length], key = a + '|' + d; if ((occ[key] || 0) < 1) { occ[key] = (occ[key] || 0) + 0.5; acc[d] = (acc[d] || 0) + 0.5; break; } }
+    }
+    Object.entries(acc).forEach(([d, j]) => out.push(['AddRecord', 'Temps', null, {Date: +d, Projet: pid, Agent: a, Jours: j}]));
+  });
+  return out;
+}
+async function loadDemo() {
+  await ensurePhases();
+  const missing = new Set(), occ = {};
+  const ids = n => n.map(x => { const i = agentId(x); if (!i) missing.add(x); return i; }).filter(Boolean);
+  const defs = DEMO.map(d => ({d, ag: ids(d.ag), su: ids(d.su)}));
+  const r = await act(defs.map(({d, ag, su}) => ['AddRecord', 'Projets', null, {Reference: d.ref, Titre: d.t, Type: typeId(d.ty), Statut: d.st, Niveau_commanditaire: d.niv, Commanditaire: d.co, Beneficiaire: d.be,
+    Agent: ['L', ...ag], Suivi_par: ['L', ...su], Date_debut: today + d.d * DAY, Date_fin_prevue: d.f == null ? null : today + d.f * DAY, Date_fin_reelle: d.fr == null ? null : today + d.fr * DAY, Charge_prevue: d.prev, Description: d.desc}]));
+  const pid = r.retValues;
+  const phActs = [], phIdx = [];
+  defs.forEach(({d}, i) => d.ph.forEach(p => { phIdx.push([i, p]); phActs.push(['AddRecord', 'Phases', null, {Projet: pid[i], Libelle: p[0], Date_debut: today + p[1] * DAY, Date_fin: today + p[2] * DAY, Statut: p[3]}]); }));
+  const pr = phActs.length ? (await act(phActs)).retValues : [], phId = {};
+  phIdx.forEach(([i, p], k) => { (phId[i] = phId[i] || [])[d1(i, p)] = pr[k]; });
+  function d1(i, p) { return DEMO[i].ph.indexOf(p) + 1; }
+  const acts = [];
+  defs.forEach(({d, ag}, i) => {
+    d.j.forEach(j => acts.push(['AddRecord', 'Jalons', null, {Projet: pid[i], Libelle: j[0], Date: today + j[1] * DAY, Statut: j[2], Phase: j[3] ? (phId[i] || [])[j[3]] || 0 : 0}]));
+    const end = d.fr != null ? today + d.fr * DAY : today - DAY;
+    genTemps(pid[i], ag, today + d.d * DAY, end, d.reel, occ).forEach(a => acts.push(a));
+  });
+  for (let i = 0; i < acts.length; i += 150) await act(acts.slice(i, i + 150));
+  return {n: defs.length, missing: [...missing]};
+}
+
+/* ---------- Interface ---------- */
+function render() {
+  const t = ST.tests, d = ST.demo, arm = ST.arm, dis = ST.busy ? 'disabled' : '';
+  $('#app').innerHTML = `
+  <div class="card"><div class="kp"><div><b>${ST.P.length}</b><span>projets dans le fichier</span></div><div><b>${t.length}</b><span>projets de test repérés</span></div><div><b>${d.length}</b><span>projets de démo chargés</span></div></div></div>
+  <div class="card"><h2>1. Supprimer les données de test</h2>
+    <div class="mut">Sont repérés comme tests : les projets dont le titre commence par « Test », les références « Projet 1 », « Projet 2 »… et les projets entièrement vides. Décochez ceux à conserver. Leurs jalons, phases et temps saisis sont supprimés avec eux.</div>
+    ${t.length ? t.map(p => `<label class="row"><input type="checkbox" data-id="${p.id}" ${ST.sel.has(p.id) ? 'checked' : ''}><span>${esc(label(p))}<span class="tag">${esc(p.Statut || '—')}</span></span></label>`).join('') : '<div style="margin-top:8px">✓ Aucun projet de test repéré.</div>'}
+    ${t.length ? `<div class="acts">${arm === 'del' ? `<span>Supprimer ${ST.sel.size} projet(s) ? Action définitive.</span><button class="bad" data-a="del-yes" ${dis}>Oui, supprimer</button><button data-a="cancel">Non</button>` : `<button data-a="del" ${ST.sel.size && !ST.busy ? '' : 'disabled'}>Supprimer la sélection (${ST.sel.size})</button>`}</div>` : ''}</div>
+  <div class="card"><h2>2. Démo pour la cheffe de bureau</h2>
+    <div class="mut">Charge ${DEMO.length} projets <b>fictifs</b> (références « DEMO-01 »…) avec phases, jalons et temps saisis sur les derniers mois : un projet en retard, un en dépassement de charge, un incomplet, deux terminés, un en pause, un à cadrer. Les agents sont ceux de votre fichier ; les dates sont calculées par rapport à aujourd’hui.</div>
+    <div class="acts">${arm === 'rel' ? `<span>Remplacer la démo existante ?</span><button class="pri" data-a="load-yes" ${dis}>Oui, recharger</button><button data-a="cancel">Non</button>` : `<button class="pri" data-a="${d.length ? 'rel' : 'load-yes'}" ${dis}>${d.length ? 'Recharger la démo' : 'Charger la démo'}</button>`}
+    ${d.length ? (arm === 'rm' ? `<span>Retirer ${d.length} projet(s) de démo ?</span><button class="bad" data-a="rm-yes" ${dis}>Oui, retirer</button><button data-a="cancel">Non</button>` : `<button data-a="rm" ${dis}>Retirer la démo</button>`) : ''}</div></div>
+  <div id="log">${esc(ST.msg)}</div>`;
+}
+async function run(fn, ok) {
+  ST.busy = true; ST.arm = ''; ST.msg = 'En cours…'; render();
+  try { ST.msg = await fn(); } catch (e) { ST.msg = 'Erreur : ' + (e.message || e); }
+  try { await reload(); } catch (e) {}
+  ST.busy = false; render();
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-a]'); if (!b || ST.busy) return; const a = b.dataset.a;
+  if (a === 'del' || a === 'rel' || a === 'rm') { ST.arm = a; render(); }
+  else if (a === 'cancel') { ST.arm = ''; render(); }
+  else if (a === 'del-yes') run(async () => { const n = await removeProjects([...ST.sel]); return `✓ ${ST.sel.size} projet(s) de test supprimé(s).`; });
+  else if (a === 'rm-yes') run(async () => { await removeProjects(ST.demo.map(p => p.id)); return '✓ Démo retirée.'; });
+  else if (a === 'load-yes') run(async () => { if (ST.demo.length) await removeProjects(ST.demo.map(p => p.id)); await reload(); const r = await loadDemo();
+    return `✓ ${r.n} projets de démo chargés. Ouvrez la page « Application » pour les voir.` + (r.missing.length ? `\nAgents introuvables (ignorés) : ${r.missing.join(', ')}` : ''); });
+});
+document.addEventListener('change', e => { const c = e.target; if (c.dataset && c.dataset.id) { const id = +c.dataset.id; c.checked ? ST.sel.add(id) : ST.sel.delete(id); render(); } });
+grist.ready({requiredAccess: 'full'});
+(async () => { try { await reload(); render(); } catch (e) { $('#app').innerHTML = '<div class="card">Impossible de lire les données. Vérifiez l’accès complet du widget.</div>'; } })();
+</script>
+</body>
+</html>
