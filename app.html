@@ -214,17 +214,28 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 .st2{width:100%;border-collapse:collapse}.st2 th,.st2 td{padding:6px 8px;text-align:right;border-top:1px solid var(--line)}
 .st2 th:first-child,.st2 td:first-child{text-align:left}.st2 th{color:var(--mut);font-weight:500;font-size:12px;border-top:0}
 
+.jr.p5{grid-template-columns:2fr 1fr 1fr 1.3fr auto}
+.phb{border-left:3px solid var(--acc);background:var(--field);border-radius:0 10px 10px 0;padding:10px 10px 6px 12px;margin-bottom:12px}
+.phb .jr{margin-left:10px}.phb>.btn{margin:0 0 6px 10px}
+.phr{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:8px}.phr .fi{font-weight:600}
+.subh{font-size:14px;color:var(--mut);margin:16px 0 8px}
+.phsetup{margin-top:14px;padding:12px;border:1px dashed var(--line);border-radius:10px}
+.phc{margin-bottom:8px}.ms.sub,.muted.sub{margin-left:22px}.muted.sub{font-size:12px}
+.sv-ph{fill:var(--acc2)}.sv-ph.cur{fill:var(--acc)}.sv-ph.ok{fill:var(--ok)}.sv-ph.bad{fill:var(--bad)}
+.sv-pt{fill:#fff;font-size:12px;font-weight:700}.sv-pt.dk{fill:var(--txt)}
+.lgb{display:inline-block;width:18px;height:8px;border-radius:3px;background:var(--acc2)}
+.rp-bar.ph{opacity:.45;height:14px;margin-top:-7px;border-radius:5px}.rp-bar.ph.cur{background:var(--acc)}.rp-bar.ph.ok{background:var(--ok)}.rp-bar.ph.bad{background:var(--bad)}
 .st2.l td,.st2.l th{text-align:left;vertical-align:top}
 .lkp{background:none;border:0;padding:0;font-weight:600;text-align:left;cursor:pointer}.lkp:hover{text-decoration:underline;color:var(--acc)}
 .heat td,.heat th{text-align:center!important}.heat td:first-child,.heat th:first-child{text-align:left!important}
-.heat td small{display:block;color:var(--mut);font-size:11px}.heat .hk{background:rgba(63,182,122,.14)}.heat .hw{background:rgba(240,164,60,.28)}.heat .hb{background:rgba(238,99,99,.32)}
+.heat td small{display:block;color:var(--mut);font-size:11px}.heat.jour td,.heat.jour th{min-width:58px;padding:6px 4px;font-size:13px}.heat.semaine td,.heat.semaine th{padding:6px 5px}.heat .hk{background:rgba(63,182,122,.14)}.heat .hw{background:rgba(240,164,60,.28)}.heat .hb{background:rgba(238,99,99,.32)}
 .ra-c{width:100%;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--field)}.ra-p{display:none;white-space:pre-wrap}
 
 @media (max-width:760px){
  .md{grid-template-columns:1fr;grid-template-rows:auto 1fr}.lp{max-height:230px;border-right:0;border-bottom:1px solid var(--line)}
  .kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}
  .rp-h,.rp-r{grid-template-columns:1fr 70px}.rp-h span:nth-child(2){display:none}.rp-t{grid-column:1 / -1;grid-row:2}
- .week .lbl{min-width:0;flex:1}.c{width:52px}.ag{grid-template-columns:1fr}.jr{grid-template-columns:1fr 1fr}
+ .week .lbl{min-width:0;flex:1}.c{width:52px}.ag{grid-template-columns:1fr}.jr,.jr.p5,.phr{grid-template-columns:1fr 1fr}
 }
 @page{margin:12mm}
 @media print{
@@ -236,6 +247,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .card{break-inside:avoid;box-shadow:none}
  .cal .cv{display:block!important;break-inside:avoid}.cal .cv+.cv{margin-top:18px}.cvt{display:block}
  .rp-r{break-inside:avoid}
+ .heat-w{overflow:visible!important}.heat td,.heat th{padding:3px 2px;font-size:9.5px;min-width:0!important}.heat td small{font-size:8px}
  .ra-p{display:block}.lkp{font-weight:600}.st2 tr{break-inside:avoid}
 }
 </style>
@@ -309,7 +321,7 @@ const MODELES = {
 const modele = lab => { const n = norm(lab); return Object.values(MODELES).find(m => m.cle.some(k => n.includes(k))) || MODELES.def; };
 
 /* ---------- Données ---------- */
-const D = {agents: [], projets: [], jalons: [], temps: [], types: [], by: {}};
+const D = {agents: [], projets: [], jalons: [], phases: [], temps: [], types: [], by: {}};
 let META = null, loaded = false;
 const g = async n => { try { return await grist.docApi.fetchTable(n); } catch (e) { return null; } };
 const rowsOf = t => t && t.id ? t.id.map((id, i) => { const o = {id}; for (const k in t) if (k !== 'id') o[k] = t[k][i]; return o; }) : [];
@@ -331,9 +343,10 @@ async function meta() {
 
 async function loadAll() {
   await meta();
-  const [A, P, J, T] = await Promise.all([g('Agents'), g('Projets'), g('Jalons'), g('Temps')]);
+  const [A, P, J, T, Ph] = await Promise.all([g('Agents'), g('Projets'), g('Jalons'), g('Temps'), g('Phases')]);
   let Ty = null;
   for (const n of [META.types, 'Types', 'Table1'].filter(Boolean)) { Ty = await g(n); if (Ty && Ty.id && Ty.id.length) break; }
+  D.phases = rowsOf(Ph); D.hasPhTbl = !!(Ph && Ph.id); D.hasJPh = !!(J && 'Phase' in J); D.hasPh = D.hasPhTbl && D.hasJPh;
   D.agents = rowsOf(A); D.projets = rowsOf(P); D.jalons = rowsOf(J);
   D.temps = rowsOf(T).map(t => ({id: t.id, d: t.Date, p: t.Projet, a: t.Agent, j: +t.Jours || 0}));
   D.types = rowsOf(Ty).map(t => ({id: t.id, n: t.Libelle || t.Nom || ('Type ' + t.id)}));
@@ -366,7 +379,7 @@ const S = {
   pj: {sel: null, mode: 'consulter', q: '', filter: 'tous', old: false, cal: 'frise', arch: false},
   eq: {sel: null, mode: 'consulter', q: '', inactive: false},
   mt: {ws: mondayOf(todaySec()), extra: new Set(), pend: {}, saving: false, sig: ''},
-  sy: {tab: 'hebdo', ra: {year: null}, pj: {hidden: new Set(['Archivé']), year: 'all', tab: 'ens'}, eq: {inactive: false, tab: 'ens'}},
+  sy: {tab: 'hebdo', ch: {g: 'mois'}, ra: {year: null}, pj: {hidden: new Set(['Archivé']), year: 'all', tab: 'ens'}, eq: {inactive: false, tab: 'ens'}},
   ac: {scope: 'tous'}
 };
 const VIEWS = {
@@ -410,6 +423,7 @@ function alertsFor(scope) {
     if (p.Retard && typeof p.Date_fin_prevue === 'number') w.push({sev: 2, txt: `En retard de ${plural(Math.max(1, Math.round((today - p.Date_fin_prevue) / DAY)), 'jour')}`});
     const tc = num(p.Taux_conso);
     if (tc > 1) w.push({sev: 2, txt: `Charge supérieure à 100 % (${pct(tc)} %)`}); else if (tc >= .8) w.push({sev: 1, txt: `Charge à ${pct(tc)} %`});
+    D.phases.filter(ph => ph.Projet === p.id && typeof ph.Date_fin === 'number' && ph.Date_fin < today && ph.Statut !== 'Terminée').forEach(ph => w.push({sev: 2, txt: `Phase « ${(ph.Libelle || '').trim() || 'sans nom'} » dépassée`}));
     const late = js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date < today);
     if (late.length) w.push({sev: 2, txt: late.length === 1 ? `Jalon « ${late[0].Libelle || 'sans libellé'} » dépassé` : `${late.length} jalons dépassés`});
     const real = w.length;
@@ -479,7 +493,7 @@ const MD_PJ = {
   modActions: r => S.pj.arch
     ? `<span class="confirm">Archiver ce projet ?<button class="btn warn" data-a="arch-yes">Oui</button><button data-a="arch-no">Non</button></span>`
     : (r.Statut !== 'Archivé' ? `<button data-a="arch">Archiver</button>` : ''),
-  sig: r => D.jalons.filter(j => j.Projet === r.id).map(j => j.id).sort().join(',') + '|' + JSON.stringify(r.Agent) + JSON.stringify(r.Suivi_par),
+  sig: r => D.jalons.filter(j => j.Projet === r.id).map(j => j.id + ':' + (j.Phase || 0)).sort().join(',') + '|' + D.phases.filter(x => x.Projet === r.id).map(x => x.id).sort().join(',') + D.hasPh + '|' + JSON.stringify(r.Agent) + JSON.stringify(r.Suivi_par),
   csv: r => csvProjet(r),
   onNew: () => openNewProject()
 };
@@ -557,8 +571,11 @@ const slug = s => norm(s).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slic
 const jLabel = (fin, t) => { const d = Math.round((fin - t) / DAY); return d > 0 ? 'J-' + d : d === 0 ? 'J' : 'J+' + (-d); };
 function projJalons(r) { return D.jalons.filter(j => j.Projet === r.id && (j.Libelle || j.Date)); }
 function calData(r) {
-  const c = {deb: toSec(r.Date_debut), fin: toSec(r.Date_fin_prevue), reel: toSec(r.Date_fin_reelle), now: todaySec(),
-    jal: projJalons(r).map(j => ({l: j.Libelle || '(Sans libellé)', t: toSec(j.Date), s: j.Statut}))};
+  const now = todaySec(), phs = D.phases.filter(x => x.Projet === r.id).map(x => ({id: x.id, l: (x.Libelle || '').trim() || '(Phase sans nom)', deb: toSec(x.Date_debut), fin: toSec(x.Date_fin), s: x.Statut || 'À venir'}))
+    .sort((a, b) => (a.deb ?? a.fin ?? 1e12) - (b.deb ?? b.fin ?? 1e12)), pn = new Map(phs.map(p => [p.id, p.l]));
+  phs.forEach(p => { p.late = p.fin != null && p.fin < now && p.s !== 'Terminée'; p.k = p.s === 'Terminée' ? 'ok' : p.late ? 'bad' : p.s === 'En cours' ? 'cur' : ''; });
+  const c = {deb: toSec(r.Date_debut), fin: toSec(r.Date_fin_prevue), reel: toSec(r.Date_fin_reelle), now, ph: phs,
+    jal: projJalons(r).map(j => ({l: j.Libelle || '(Sans libellé)', t: toSec(j.Date), s: j.Statut, ph: pn.get(j.Phase) || ''}))};
   c.jal.forEach(j => { j.late = j.s === 'En retard' || (j.t != null && j.t < c.now && j.s !== 'Atteint'); });
   c.overdue = c.fin != null && c.reel == null && c.now > c.fin;
   return c;
@@ -569,8 +586,9 @@ function frise(c) {
   c.jal.forEach(j => { if (j.t != null) items.push({t: j.t, l: j.l, k: j.s === 'Atteint' ? 'ok' : j.late ? 'bad' : 'todo'}); });
   if (c.fin != null) items.push({t: c.fin, l: 'Fin prévue', k: 'fin'});
   if (c.reel != null) items.push({t: c.reel, l: 'Fin réelle', k: 'ok'});
-  if (!items.length) return '<div class="muted">Aucune date renseignée.</div>';
-  let mn = Math.min(...items.map(i => i.t)), mx = Math.max(...items.map(i => i.t));
+  const phs = c.ph.filter(p => p.deb != null || p.fin != null), pts = items.map(i => i.t).concat(phs.flatMap(p => [p.deb, p.fin]).filter(x => x != null));
+  if (!pts.length) return '<div class="muted">Aucune date renseignée.</div>';
+  let mn = Math.min(...pts), mx = Math.max(...pts);
   if (c.overdue) mx = Math.max(mx, c.now);
   if (mx - mn < DAY) mx = mn + DAY * 30;
   const W = 860, x0 = 50, x1 = W - 50, X = t => x0 + (t - mn) / (mx - mn) * (x1 - x0);
@@ -584,13 +602,21 @@ function frise(c) {
     let k = 0; while (ends[k] !== undefined && ends[k] > it.tx - it.w / 2 - 6) k++;
     ends[k] = it.tx + it.w / 2; it.lane = k;
   });
-  const laneH = 46, axisY = 24 + ends.length * laneH + 16, H = axisY + 58, ly = it => axisY - 16 - it.lane * laneH;
+  const laneH = 46, axisY = 24 + ends.length * laneH + 16, ly = it => axisY - 16 - it.lane * laneH;
+  const pe = [], pl = phs.map(p => { const xa = X(p.deb ?? p.fin), xb = X(p.fin ?? p.deb), w = Math.max(xb - xa, 12); let k = 0; while (pe[k] !== undefined && pe[k] > xa - 4) k++; pe[k] = xa + w; return {p, xa, w, k}; });
+  const H = axisY + 58 + (pl.length ? 16 + pe.length * 26 : 0);
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Frise chronologique du projet"><title>Frise chronologique</title>`;
   s += `<rect class="sv-track" x="${x0}" y="${axisY - 4}" width="${x1 - x0}" height="8" rx="4"/>`;
   if (c.deb != null) {
     const end = c.reel != null ? c.reel : Math.min(c.now, mx);
     if (end > c.deb) s += `<rect class="sv-prog ${c.reel != null ? 'ok' : c.overdue ? 'bad' : ''}" x="${X(c.deb)}" y="${axisY - 4}" width="${X(end) - X(c.deb)}" height="8" rx="4"/>`;
   }
+  pl.forEach(({p, xa, w, k}) => {
+    const y = axisY + 64 + k * 26, n = Math.floor((w - 12) / 7.4), inside = n >= 4, txt = inside ? (p.l.length > n ? p.l.slice(0, n - 1) + '…' : p.l) : p.l;
+    s += `<rect class="sv-ph ${p.k}" x="${xa}" y="${y}" width="${w}" height="20" rx="5"><title>${esc(p.l)} : ${p.deb != null ? fmtD(p.deb) : '?'} → ${p.fin != null ? fmtD(p.fin) : '?'}</title></rect>`;
+    s += inside ? `<text class="sv-pt ${p.k ? '' : 'dk'}" x="${xa + 7}" y="${y + 14}">${esc(txt)}</text>`
+      : `<text class="sv-pt dk" x="${xa + w + 6 > W - 120 ? xa - 6 : xa + w + 6}" y="${y + 14}" text-anchor="${xa + w + 6 > W - 120 ? 'end' : 'start'}">${esc(txt)}</text>`;
+  });
   items.forEach(it => { s += `<line class="sv-lead" x1="${it.x}" y1="${axisY - 7}" x2="${it.x}" y2="${ly(it) + 4}"/>`; });
   if (c.now >= mn && c.now <= mx) {
     const nx = X(c.now);
@@ -603,25 +629,29 @@ function frise(c) {
     s += `<text class="sv-t sv-d" x="${it.tx}" y="${ly(it)}" text-anchor="middle">${it.ds}</text>`;
   });
   s += '</svg>';
-  s += `<div class="lg"><span><i class="lgd deb"></i>Début</span><span><i class="lgd fin"></i>Fin prévue</span><span><i class="lgd ok"></i>Atteint / fin réelle</span><span><i class="lgd bad"></i>En retard</span><span><i class="lgd"></i>À venir</span><span><i class="lgl"></i>Aujourd’hui</span></div>`;
+  s += `<div class="lg"><span><i class="lgd deb"></i>Début</span><span><i class="lgd fin"></i>Fin prévue</span><span><i class="lgd ok"></i>Atteint / fin réelle</span><span><i class="lgd bad"></i>En retard</span><span><i class="lgd"></i>À venir</span><span><i class="lgl"></i>Aujourd’hui</span>${pl.length ? '<span><i class="lgb"></i>Phase (barres sous la frise)</span>' : ''}</div>`;
   return s;
 }
 function retro(c) {
   if (c.fin == null) return '<div class="muted">Renseignez la date de fin prévue pour afficher le rétroplanning.</div>';
   const steps = [{l: 'Échéance (fin prévue)', t: c.fin, k: 'fin', sub: 'Échéance'}];
-  c.jal.filter(j => j.t != null).sort((a, b) => b.t - a.t).forEach(j => steps.push({l: j.l, t: j.t, k: j.s === 'Atteint' ? 'ok' : j.late ? 'bad' : '', sub: j.s === 'Atteint' ? 'Atteint' : j.late ? 'En retard' : 'À venir'}));
+  const mid = c.jal.filter(j => j.t != null).map(j => ({l: j.l, t: j.t, k: j.s === 'Atteint' ? 'ok' : j.late ? 'bad' : '', sub: j.s === 'Atteint' ? 'Atteint' : j.late ? 'En retard' : 'À venir', ph: j.ph}))
+    .concat(c.ph.filter(p => p.deb != null || p.fin != null).map(p => ({l: 'Phase : ' + p.l, t: p.fin ?? p.deb, a: p.deb ?? p.fin, k: 'ph', pk: p.k, sub: p.s === 'Terminée' ? 'Terminée' : p.late ? 'En retard' : p.s})));
+  mid.sort((a, b) => b.t - a.t).forEach(x => steps.push(x));
   if (c.deb != null) steps.push({l: 'Début du projet', t: c.deb, k: 'deb', sub: 'Début'});
-  const sansDate = c.jal.filter(j => j.t == null).map(j => j.l);
-  let mn = Math.min(...steps.map(x => x.t)), mx = Math.max(...steps.map(x => x.t));
+  const sansDate = c.jal.filter(j => j.t == null).map(j => j.l).concat(c.ph.filter(p => p.deb == null && p.fin == null).map(p => 'phase ' + p.l));
+  const allT = steps.flatMap(x => [x.t, x.a]).filter(x => x != null);
+  let mn = Math.min(...allT), mx = Math.max(...allT);
   if (c.overdue) mx = Math.max(mx, c.now);
   if (mx - mn < DAY) mx = mn + DAY * 30;
   const P = t => ((t - mn) / (mx - mn) * 100).toFixed(2), showToday = c.now >= mn && c.now <= mx;
   const rowsHtml = steps.map(st => {
-    const dot = st.k === 'ok' ? 'ok' : st.k === 'bad' ? 'bad' : st.k === 'deb' ? 'acc' : st.k === 'fin' ? 'fin' : '';
+    const kk = st.k === 'ph' ? st.pk : st.k, dot = kk === 'ok' ? 'ok' : kk === 'bad' ? 'bad' : kk === 'deb' || kk === 'cur' ? 'acc' : kk === 'fin' ? 'fin' : '';
     let bar = '';
-    if (st.k !== 'fin') { const a = Math.min(st.t, c.fin), b = Math.max(st.t, c.fin); bar = `<i class="rp-bar ${st.k}" style="left:${P(a)}%;width:${(P(b) - P(a)).toFixed(2)}%"></i>`; }
-    return `<div class="rp-r"><div class="rp-l"><span class="dot ${dot}"></span><span><b>${esc(st.l)}</b><small>${fmtD(st.t)}</small></span></div>
-      <div class="rp-t">${showToday ? `<i class="rp-td" style="left:${P(c.now)}%"></i>` : ''}${bar}<i class="rp-mk ${st.k}" style="left:${P(st.t)}%"></i></div>
+    if (st.k === 'ph') bar = `<i class="rp-bar ph ${st.pk}" style="left:${P(st.a)}%;width:${Math.max(P(st.t) - P(st.a), 0.8).toFixed(2)}%"></i>`;
+    else if (st.k !== 'fin') { const a = Math.min(st.t, c.fin), b = Math.max(st.t, c.fin); bar = `<i class="rp-bar ${st.k}" style="left:${P(a)}%;width:${(P(b) - P(a)).toFixed(2)}%"></i>`; }
+    return `<div class="rp-r"><div class="rp-l"><span class="dot ${dot}"></span><span><b>${esc(st.l)}</b><small>${st.k === 'ph' ? (st.a !== st.t ? fmtD(st.a) + ' → ' : '') + fmtD(st.t) : fmtD(st.t) + (st.ph ? ' · ' + esc(st.ph) : '')}</small></span></div>
+      <div class="rp-t">${showToday ? `<i class="rp-td" style="left:${P(c.now)}%"></i>` : ''}${bar}<i class="rp-mk ${kk === 'cur' ? 'deb' : kk}" style="left:${P(st.t)}%"></i></div>
       <div class="rp-j">${st.k === 'fin' ? 'J' : jLabel(c.fin, st.t)}<small>${st.sub}</small></div></div>`;
   }).join('');
   return `<div class="rp"><div class="rp-h"><span>Étape (de l’échéance vers le début)</span><span>Temps avant l’échéance</span><span>Échéance</span></div>${rowsHtml}</div>
@@ -651,8 +681,15 @@ function consultProjet(r) {
   const prev = num(r.Charge_prevue), reel = num(r.Charge_reelle), taux = prev ? reel / prev : 0, lv = level(taux);
   const etat = !prev ? '' : taux > 1 ? 'Dépassement' : taux >= 0.8 ? '> 80 %' : 'OK';
   const jal = projJalons(r), done = jal.filter(j => j.Statut === 'Atteint').length;
-  const jalHtml = jal.length ? [...jal].sort((a, b) => (a.Date || 1e12) - (b.Date || 1e12)).map(j => `<div class="ms"><span class="dot ${j.Statut === 'Atteint' ? 'ok' : j.Statut === 'En retard' ? 'bad' : ''}"></span>
-      <span>${esc(j.Libelle) || '—'}</span><span class="d">${fmtD(j.Date) || '—'}</span></div>`).join('') : '<span class="muted">Aucun jalon renseigné</span>';
+  const jLine = (j, sub) => `<div class="ms ${sub ? 'sub' : ''}"><span class="dot ${j.Statut === 'Atteint' ? 'ok' : j.Statut === 'En retard' || (j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date < todaySec()) ? 'bad' : ''}"></span>
+      <span>${esc(j.Libelle) || '—'}</span><span class="d">${fmtD(j.Date) || '—'}</span></div>`;
+  const byDate = (a, b) => (a.Date || 1e12) - (b.Date || 1e12), phs = calData(r).ph, jIn = id => jal.filter(j => (id ? j.Phase === id : !phs.some(p => p.id === j.Phase))).sort(byDate);
+  const jalHtml = !jal.length && !phs.length ? '<span class="muted">Aucun jalon renseigné</span>' : !phs.length ? jal.sort(byDate).map(j => jLine(j)).join('')
+    : phs.map(p => { const js = jIn(p.id), dn = js.filter(j => j.Statut === 'Atteint').length;
+      return `<div class="phc"><div class="ms"><span class="dot ${p.k === 'cur' ? 'acc' : p.k}"></span><span><b>${esc(p.l)}</b> <span class="chip ${p.k === 'ok' ? 'ok' : p.k === 'bad' ? 'bad' : ''}" style="margin-left:6px">${p.late ? 'En retard' : esc(p.s)}</span></span>
+        <span class="d">${p.deb != null ? fmtD(p.deb) : '?'} → ${p.fin != null ? fmtD(p.fin) : '?'}</span></div>
+        ${js.length ? js.map(j => jLine(j, 1)).join('') + `<div class="muted sub">${dn}/${js.length} jalon${js.length > 1 ? 's' : ''} atteint${dn > 1 ? 's' : ''}</div>` : '<div class="muted sub">Aucun jalon dans cette phase</div>'}</div>`; }).join('')
+      + (jIn(0).length ? `<div class="phc"><div class="ms"><span class="dot"></span><b>Jalons hors phase</b></div>${jIn(0).map(j => jLine(j, 1)).join('')}</div>` : '');
   const comm = [r.Niveau_commanditaire, r.Commanditaire].filter(Boolean).join(' – ');
   const line = (k, v) => `<div class="row"><span class="k">${k}</span><span class="v">${esc(v) || '—'}</span></div>`;
   const byA = {}; D.temps.filter(t => t.p === r.id).forEach(t => { byA[t.a] = (byA[t.a] || 0) + t.j; });
@@ -666,7 +703,7 @@ function consultProjet(r) {
       : `<span class="muted">Charge prévue non renseignée (${fmtN(reel)} j réalisés)</span>`}
     ${tpa ? `<div style="margin-top:12px" class="muted">Temps saisi par agent</div>${tpa}` : ''}</div>
   <div class="card"><h2>Intervenants</h2>${line('Commanditaire', comm)}${line('Bénéficiaire', r.Beneficiaire)}${line('Agents BET', r.Agent_nom)}${line('Suivi', r.Suivi_nom)}</div>
-  <div class="card"><h2>Jalons (${jal.length ? Math.round(done / jal.length * 100) : 0} % atteints)</h2>${jalHtml}</div>
+  <div class="card"><h2>${phs.length ? 'Phases et jalons' : 'Jalons'} (${jal.length ? Math.round(done / jal.length * 100) : 0} % de jalons atteints)</h2>${jalHtml}</div>
   <div class="card"><h2>Description</h2>${r.Description ? `<div class="desc">${esc(r.Description)}</div>` : '<span class="muted">Aucune description</span>'}</div>`;
 }
 function csvProjet(r) {
@@ -677,7 +714,8 @@ function csvProjet(r) {
     ['Date de fin réelle', fmtD(r.Date_fin_reelle)], ['Charge prévue (j)', r.Charge_prevue], ['Charge réelle (j)', r.Charge_reelle],
     ['Taux de consommation', pct(r.Taux_conso) + ' %'], ['Description', r.Description]];
   if (c.fin != null && c.reel == null) data.push(['Jours avant l’échéance', Math.round((c.fin - c.now) / DAY)]);
-  c.jal.forEach((j, i) => data.push([`Jalon ${i + 1}`, `${j.l} | ${j.t != null ? fmtD(j.t) : ''} | ${j.late && j.s !== 'En retard' ? 'En retard' : j.s} | ${j.t != null && c.fin != null ? jLabel(c.fin, j.t) : ''}`]));
+  c.ph.forEach((p, i) => data.push([`Phase ${i + 1}`, `${p.l} | ${p.deb != null ? fmtD(p.deb) : ''} | ${p.fin != null ? fmtD(p.fin) : ''} | ${p.late ? 'En retard' : p.s}`]));
+  c.jal.forEach((j, i) => data.push([`Jalon ${i + 1}`, `${j.l} | ${j.t != null ? fmtD(j.t) : ''} | ${j.late && j.s !== 'En retard' ? 'En retard' : j.s} | ${j.t != null && c.fin != null ? jLabel(c.fin, j.t) : ''}${j.ph ? ' | Phase : ' + j.ph : ''}`]));
   downloadCsv('projet-' + slug(r.Reference || r.Titre), data);
 }
 
@@ -743,14 +781,37 @@ function kpiProj(r) {
   return `<b>${fmtN(r.Charge_reelle)} j</b> réalisés sur <b>${fmtN(prev)} j</b> prévus (${pct(tc)} %) ${esc(r.Alerte_charge || '')} ${r.Retard ? '· <b class="ko">⚠ En retard</b>' : ''}
     <div class="bar" style="margin:8px 0 4px"><i class="${level(tc)}" style="width:${clamp(tc) * 100}%"></i></div><div class="muted">Jalons atteints : ${pct(r.Avancement_jalons)} %</div>`;
 }
+const PST = ['À venir', 'En cours', 'Terminée'];
+function jRow(j, phs) {
+  return `<div class="jr ${phs.length ? 'p5' : ''}"><input class="fi" data-ch="jalon" data-j="${j.id}" data-jk="Libelle" value="${esc(j.Libelle)}" placeholder="Libellé du jalon" aria-label="Libellé du jalon">
+    <input class="fi" type="date" data-ch="jalon" data-j="${j.id}" data-jk="Date" value="${iso(j.Date)}" aria-label="Date du jalon">
+    <select class="fi" data-ch="jalon" data-j="${j.id}" data-jk="Statut" aria-label="Statut du jalon">${JST.map(s => `<option ${s === j.Statut ? 'selected' : ''}>${s}</option>`).join('')}</select>
+    ${phs.length ? `<select class="fi" data-ch="jalon" data-j="${j.id}" data-jk="Phase" aria-label="Phase du jalon"><option value="0">Hors phase</option>${phs.map(p => `<option value="${p.id}" ${p.id === j.Phase ? 'selected' : ''}>${esc((p.Libelle || '').trim() || '(Phase sans nom)')}</option>`).join('')}</select>` : ''}
+    <button class="btn s" data-a="del-j" data-id="${j.id}" title="Supprimer ce jalon" aria-label="Supprimer ce jalon">×</button></div>`;
+}
+function phasesForm(r, js) {
+  if (!D.hasPh) return `<div class="card"><h2>Jalons</h2>${js.map(j => jRow(j, [])).join('')}<button class="btn s" data-a="add-j">+ Ajouter un jalon</button>
+    <div class="phsetup"><b>Découper le projet en phases ?</b><div class="muted">Une phase a ses propres dates et peut contenir des jalons. L’activation crée une table « Phases » et une colonne « Phase » dans « Jalons ». Aucune donnée existante n’est modifiée, et cela ne se fait qu’une fois pour tout le document.</div>
+    <button class="btn s" data-a="enable-ph" style="margin-top:8px">Activer les phases</button></div></div>`;
+  const phs = D.phases.filter(p => p.Projet === r.id).sort((a, b) => (a.Date_debut ?? a.Date_fin ?? 1e12) - (b.Date_debut ?? b.Date_fin ?? 1e12)), ps = new Set(phs.map(p => p.id));
+  const orph = js.filter(j => !ps.has(j.Phase));
+  return `<div class="card"><h2>Phases et jalons</h2>
+    ${phs.map(p => `<div class="phb"><div class="phr"><input class="fi" data-ch="phase" data-ph="${p.id}" data-pk="Libelle" value="${esc(p.Libelle)}" placeholder="Nom de la phase" aria-label="Nom de la phase">
+      <input class="fi" type="date" data-ch="phase" data-ph="${p.id}" data-pk="Date_debut" value="${iso(p.Date_debut)}" aria-label="Début de la phase" title="Début de la phase">
+      <input class="fi" type="date" data-ch="phase" data-ph="${p.id}" data-pk="Date_fin" value="${iso(p.Date_fin)}" aria-label="Fin de la phase" title="Fin de la phase">
+      <select class="fi" data-ch="phase" data-ph="${p.id}" data-pk="Statut" aria-label="Statut de la phase">${PST.map(s => `<option ${s === (p.Statut || 'À venir') ? 'selected' : ''}>${s}</option>`).join('')}</select>
+      <button class="btn s" data-a="del-ph" data-id="${p.id}" title="Supprimer la phase (ses jalons sont conservés, hors phase)" aria-label="Supprimer la phase">×</button></div>
+      <div class="msg" data-pm="${p.id}"></div>
+      ${js.filter(j => j.Phase === p.id).map(j => jRow(j, phs)).join('')}
+      <button class="btn s" data-a="add-j" data-ph="${p.id}">+ Ajouter un jalon à cette phase</button></div>`).join('')}
+    <button class="btn s" data-a="add-ph">+ Ajouter une phase</button>
+    <h3 class="subh">${phs.length ? 'Jalons hors phase' : 'Jalons du projet'}</h3>
+    ${orph.map(j => jRow(j, phs)).join('')}<button class="btn s" data-a="add-j" data-ph="0">+ Ajouter un jalon${phs.length ? ' hors phase' : ''}</button></div>`;
+}
 function formProjet(r) {
   const js = D.jalons.filter(j => j.Projet === r.id).sort((a, b) => (a.Date || 1e12) - (b.Date || 1e12));
   return `<h1 id="md-title">${esc(projLabel(r))}</h1><div class="card" id="kpi">${kpiProj(r)}</div>${formCards('pj', r)}
-  <div class="card"><h2>Jalons</h2>${js.map(j => `<div class="jr"><input class="fi" data-ch="jalon" data-j="${j.id}" data-jk="Libelle" value="${esc(j.Libelle)}" placeholder="Libellé du jalon" aria-label="Libellé du jalon">
-    <input class="fi" type="date" data-ch="jalon" data-j="${j.id}" data-jk="Date" value="${iso(j.Date)}" aria-label="Date du jalon">
-    <select class="fi" data-ch="jalon" data-j="${j.id}" data-jk="Statut" aria-label="Statut du jalon">${JST.map(s => `<option ${s === j.Statut ? 'selected' : ''}>${s}</option>`).join('')}</select>
-    <button class="btn s" data-a="del-j" data-id="${j.id}" title="Supprimer ce jalon" aria-label="Supprimer ce jalon">×</button></div>`).join('')}
-    <button class="btn s" data-a="add-j">+ Ajouter un jalon</button></div>
+  ${phasesForm(r, js)}
   <div class="muted">Le temps passé se saisit dans l’onglet « Mon temps ».</div>`;
 }
 function formAgent(r) { return `<h1 id="md-title">${esc(agentName(r))}</h1>${formCards('eq', r)}`; }
@@ -793,13 +854,40 @@ async function setMulti(k, list) {
   mdList(); mdDetail();
 }
 CH.jalon = async el => {
-  const jk = el.dataset.jk, v = jk === 'Date' ? secOf(el.value) : el.value;
+  const jk = el.dataset.jk, v = jk === 'Date' ? secOf(el.value) : jk === 'Phase' ? (+el.value || 0) : el.value;
   try { await write([['UpdateRecord', 'Jalons', +el.dataset.j, {[jk]: v}]]); } catch (e) { return; }
-  formPatch();
+  jk === 'Phase' ? mdDetail() : formPatch();
 };
-ACT['add-j'] = async () => {
-  try { await write([['AddRecord', 'Jalons', null, {Projet: S.pj.sel, Statut: 'À venir'}]]); } catch (e) { return; }
-  mdDetail(); const ins = $$('#md-d [data-jk="Libelle"]'); if (ins.length) ins[ins.length - 1].focus();
+ACT['add-j'] = async el => {
+  const rec = {Projet: S.pj.sel, Statut: 'À venir'}; if (D.hasJPh && el && +el.dataset.ph) rec.Phase = +el.dataset.ph;
+  try { await write([['AddRecord', 'Jalons', null, rec]]); } catch (e) { return; }
+  mdDetail(); const ins = $$('#md-d [data-jk="Libelle"]').filter(x => !x.value); if (ins.length) ins[ins.length - 1].focus();
+};
+CH.phase = async el => {
+  const id = +el.dataset.ph, k = el.dataset.pk, ph = D.phases.find(x => x.id === id); if (!ph) return;
+  let v = k === 'Date_debut' || k === 'Date_fin' ? secOf(el.value) : k === 'Libelle' ? el.value.trim() : el.value;
+  const d = k === 'Date_debut' ? v : toSec(ph.Date_debut), f = k === 'Date_fin' ? v : toSec(ph.Date_fin), m = $(`[data-pm="${id}"]`);
+  const err = d && f && f < d ? 'La fin de la phase ne peut pas précéder son début.' : '';
+  el.classList.toggle('bad', !!err); if (m) m.textContent = err; if (err) return flash(err, 1);
+  try { await write([['UpdateRecord', 'Phases', id, {[k]: v}]]); } catch (e) { return; }
+  mdDetail();
+};
+ACT['add-ph'] = async () => {
+  try { await write([['AddRecord', 'Phases', null, {Projet: S.pj.sel, Statut: 'À venir'}]]); } catch (e) { return; }
+  mdDetail(); const ins = $$('#md-d [data-pk="Libelle"]').filter(x => !x.value); if (ins.length) ins[ins.length - 1].focus();
+};
+ACT['del-ph'] = async el => {
+  const id = +el.dataset.id, acts = D.jalons.filter(j => j.Phase === id).map(j => ['UpdateRecord', 'Jalons', j.id, {Phase: 0}]); acts.push(['RemoveRecord', 'Phases', id]);
+  try { await write(acts, '✓ Phase supprimée (ses jalons sont conservés)'); } catch (e) { return; }
+  mdDetail();
+};
+ACT['enable-ph'] = async () => {
+  const acts = [];
+  if (!D.hasPhTbl) acts.push(['AddTable', 'Phases', [{id: 'Projet', type: 'Ref:Projets'}, {id: 'Libelle', type: 'Text'}, {id: 'Date_debut', type: 'Date'}, {id: 'Date_fin', type: 'Date'},
+    {id: 'Statut', type: 'Choice', widgetOptions: JSON.stringify({choices: PST})}]]);
+  if (!D.hasJPh) acts.push(['AddColumn', 'Jalons', 'Phase', {type: 'Ref:Phases'}]);
+  try { await write(acts, '✓ Phases activées'); } catch (e) { return; }
+  mdDetail();
 };
 ACT['del-j'] = async el => {
   try { await write([['RemoveRecord', 'Jalons', +el.dataset.id]]); } catch (e) { return; }
@@ -1133,6 +1221,7 @@ ACT['syq-csv'] = () => {
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const plan = p => p.Statut === 'En cours' || p.Statut === 'À cadrer';
 const lkp = p => `<button class="lkp" data-a="open-p" data-id="${p.id}" data-m="consulter">${esc(projLabel(p))}</button>`;
+const phName = j => { const p = j.Phase && D.phases.find(x => x.id === j.Phase); return p ? (p.Libelle || '').trim() : ''; };
 const nowStr = () => new Date().toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'});
 
 /* ---------- Point hebdo ---------- */
@@ -1157,7 +1246,7 @@ function synHebdo() {
     ${h.al.watch.length ? `<table class="st2 l"><tr><th>Projet</th><th>Agents</th><th>À surveiller</th></tr>${h.al.watch.map(x => `<tr><td>${lkp(x.p)}</td><td>${esc(x.p.Agent_nom || '—')}</td>
       <td>${x.w.map(i => `<span class="tag ${i.sev > 1 ? 'bad' : i.sev ? 'warn' : ''}">${esc(i.txt)}</span>`).join('')}</td></tr>`).join('')}</table>` : '<div class="muted">✓ Rien à signaler : aucun retard, dépassement ou projet incomplet.</div>'}</div>
   <div class="card"><h2>Jalons des 30 prochains jours</h2>
-    ${h.jal.length ? `<table class="st2 l"><tr><th>Date</th><th>Jalon</th><th>Projet</th><th>Agents</th></tr>${h.jal.map(({j, p}) => `<tr><td>${fmtD(j.Date)}</td><td>${esc(j.Libelle || '(sans libellé)')}</td><td>${lkp(p)}</td><td>${esc(p.Agent_nom || '—')}</td></tr>`).join('')}</table>` : '<div class="muted">Aucun jalon à venir.</div>'}</div>
+    ${h.jal.length ? `<table class="st2 l"><tr><th>Date</th><th>Jalon</th><th>Projet</th><th>Agents</th></tr>${h.jal.map(({j, p}) => `<tr><td>${fmtD(j.Date)}</td><td>${esc(j.Libelle || '(sans libellé)')}${phName(j) ? ` <span class="muted">(${esc(phName(j))})</span>` : ''}</td><td>${lkp(p)}</td><td>${esc(p.Agent_nom || '—')}</td></tr>`).join('')}</table>` : '<div class="muted">Aucun jalon à venir.</div>'}</div>
   <div class="card"><h2>Saisie du temps</h2><div class="hint">Jours saisis la semaine dernière (S${isoWeek(h.ws - 7 * DAY)}) et cette semaine (S${isoWeek(h.ws)}).</div>
     <table class="st2 l"><tr><th>Agent</th><th>Semaine dernière</th><th>Cette semaine</th></tr>${h.saisie.map(x => `<tr><td>${esc(agentName(x.a))}</td><td class="${x.prev ? '' : 'wn'}">${x.prev ? fmtN(x.prev) + ' j' : 'Rien saisi'}</td><td>${x.cur ? fmtN(x.cur) + ' j' : '—'}</td></tr>`).join('')}</table></div>`;
 }
@@ -1169,47 +1258,58 @@ ACT['hb-csv'] = () => {
   downloadCsv('point-hebdo-' + iso(h.today), csvRows(r));
 };
 
-/* ---------- Charge par agent : prévisionnel mensuel ---------- */
-const NM = 6;
-function chargeData() {
-  const today = todaySec(), n0 = new Date(today * 1000), y0 = n0.getUTCFullYear(), m0 = n0.getUTCMonth();
-  const ms = Array.from({length: NM}, (_, i) => Date.UTC(y0, m0 + i, 1) / 1000), wEnd = Date.UTC(y0, m0 + NM, 1) / 1000 - DAY;
-  const cell = {}, add = (k, i, p, v) => { const c = (cell[k] = cell[k] || Array.from({length: NM + 1}, () => ({v: 0, l: []})))[i]; c.v += v; c.l.push({p, v}); };
+/* ---------- Charge par agent : prévisionnel (mois, semaines ou jours) ---------- */
+const isWd = t => { const d = new Date(t * 1000).getUTCDay(); return d !== 0 && d !== 6; };
+const GRAN = {mois: 'Mensuel', semaine: 'Hebdomadaire', jour: 'Quotidien'};
+function chargePeriods(g) {
+  const today = todaySec(), n0 = new Date(today * 1000), P = [];
+  if (g === 'mois') for (let i = 0; i < 6; i++) { const a = Date.UTC(n0.getUTCFullYear(), n0.getUTCMonth() + i, 1) / 1000, b = Date.UTC(n0.getUTCFullYear(), n0.getUTCMonth() + i + 1, 1) / 1000 - DAY;
+    P.push({a, b, lab: new Date(a * 1000).toLocaleDateString('fr-FR', {month: 'short', year: '2-digit', timeZone: 'UTC'}), tip: ''}); }
+  else if (g === 'semaine') for (let i = 0; i < 12; i++) { const a = mondayOf(today) + i * 7 * DAY; P.push({a, b: a + 6 * DAY, lab: 'S' + isoWeek(a), tip: 'du ' + fmtD(a) + ' au ' + fmtD(a + 4 * DAY)}); }
+  else { let t = today; while (!isWd(t)) t += DAY; for (let i = 0; i < 20; i++) { P.push({a: t, b: t, lab: dShort(t), tip: ''}); t += DAY; while (!isWd(t)) t += DAY; } }
+  P.forEach(p => { p.wd = 0; for (let t = Math.max(p.a, today); t <= p.b; t += DAY) if (isWd(t)) p.wd++; });
+  return P;
+}
+function chargeData(g) {
+  const today = todaySec(), P = chargePeriods(g), n = P.length, wEnd = P[n - 1].b;
+  const cell = {}, add = (k, i, p, v) => { const c = (cell[k] = cell[k] || Array.from({length: n + 1}, () => ({v: 0, l: []})))[i]; c.v += v; const e = c.l.find(x => x.p === p); e ? e.v += v : c.l.push({p, v}); };
   const nofin = [];
   D.projets.filter(plan).forEach(p => {
     const rem = Math.max(0, num(p.Charge_prevue) - num(p.Charge_reelle)); if (!rem) return;
     const fin = toSec(p.Date_fin_prevue); if (fin == null) { nofin.push(p); return; }
-    const s = Math.max(today, toSec(p.Date_debut) ?? today), e = Math.max(fin, s), tot = (e - s) / DAY + 1;
-    const who = ids(p.Agent).length ? ids(p.Agent) : [0];
-    for (let i = 0; i <= NM; i++) {
-      const a = i < NM ? Math.max(s, ms[i]) : Math.max(s, wEnd + DAY), b = i < NM ? Math.min(e, (ms[i + 1] ?? wEnd + DAY) - DAY) : e;
-      if (b < a) continue;
-      const v = rem * ((b - a) / DAY + 1) / tot / who.length; who.forEach(ag => add(ag, i, p, v));
-    }
+    const s = Math.max(today, toSec(p.Date_debut) ?? today), e = Math.min(Math.max(fin, s), s + 3650 * DAY);
+    const days = []; for (let t = s; t <= e; t += DAY) if (isWd(t)) days.push(t);
+    if (!days.length) days.push(s);
+    const who = ids(p.Agent).length ? ids(p.Agent) : [0], per = rem / days.length / who.length;
+    days.forEach(t => { const i = t > wEnd ? n : P.findIndex(x => t >= x.a && t <= x.b); if (i >= 0) who.forEach(ag => add(ag, i, p, per)); });
   });
-  const rows = activeAgents().sort((a, b) => agentName(a).localeCompare(agentName(b), 'fr')).map(a => ({a, name: agentName(a), cap: (num(a.Capacite_annuelle) || 0) / 12, c: cell[a.id]}));
+  const rows = activeAgents().sort((a, b) => agentName(a).localeCompare(agentName(b), 'fr')).map(a => ({a, name: agentName(a), cap: num(a.Capacite_annuelle), c: cell[a.id]}));
   if (cell[0]) rows.push({a: null, name: 'Sans agent affecté', cap: 0, c: cell[0]});
-  return {ms, rows, nofin};
+  return {P, rows, nofin};
 }
+const capOf = (cap, p) => cap / 260 * p.wd;
 const hcls = (v, cap) => !cap ? (v ? 'hw' : '') : v / cap > 1 ? 'hb' : v / cap >= .8 ? 'hw' : v ? 'hk' : '';
+const fmtC = v => (Math.round(v * 10) / 10).toLocaleString('fr-FR');
 function synCharge() {
-  const d = chargeData(), zero = Array.from({length: NM + 1}, () => ({v: 0, l: []}));
-  const tot = Array.from({length: NM + 1}, (_, i) => d.rows.reduce((s, r) => s + (r.c ? r.c[i].v : 0), 0));
-  const capT = d.rows.reduce((s, r) => s + r.cap, 0);
-  const th = d.ms.map(m => `<th>${new Date(m * 1000).toLocaleDateString('fr-FR', {month: 'short', year: '2-digit', timeZone: 'UTC'})}</th>`).join('');
+  const g = S.sy.ch.g, d = chargeData(g), n = d.P.length, zero = Array.from({length: n + 1}, () => ({v: 0, l: []}));
+  const tot = Array.from({length: n + 1}, (_, i) => d.rows.reduce((s, r) => s + (r.c ? r.c[i].v : 0), 0));
+  const capAll = d.rows.reduce((s, r) => s + r.cap, 0), per = {mois: '6 prochains mois', semaine: '12 prochaines semaines', jour: '20 prochains jours ouvrés'}[g];
   $('#sy-b').innerHTML = `<header><h1>Charge par agent : prévisionnel</h1>
-    <div class="muted">Jours restant à réaliser sur les projets « À cadrer » et « En cours », sur les ${NM} prochains mois · édité le ${nowStr()}</div>
-    <div class="acts noprint" style="margin-top:8px"><button class="fchip" data-a="ch-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
-  <div class="card"><div class="hint">Pour chaque projet : charge prévue moins jours déjà saisis, répartie à parts égales entre ses agents et au prorata des jours calendaires jusqu’à la fin prévue. Référence = capacité annuelle ÷ 12 : <span class="tag ok">vert</span> sous 80 % · <span class="tag warn">orange</span> de 80 à 100 % · <span class="tag bad">rouge</span> au-delà. Passez la souris sur une case pour voir les projets concernés.</div>
-    <div style="overflow-x:auto"><table class="st2 heat"><tr><th>Agent</th><th>Cap./mois</th>${th}<th>Ensuite</th></tr>
-    ${d.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.a ? fmt1(r.cap) : '—'}</td>${(r.c || zero).map((c, i) => `<td class="${i < NM ? hcls(c.v, r.cap) : ''}" title="${esc(c.l.map(x => projLabel(x.p) + ' : ' + fmt1(x.v) + ' j').join('\n'))}">${c.v ? fmt1(c.v) + (i < NM && r.cap ? `<small>${Math.round(c.v / r.cap * 100)} %</small>` : '') : '·'}</td>`).join('')}</tr>`).join('')}
-    <tr><th>Équipe</th><th>${fmt1(capT)}</th>${tot.map((v, i) => `<th class="${i < NM ? hcls(v, capT) : ''}">${v ? fmt1(v) : '·'}</th>`).join('')}</tr></table></div></div>
+    <div class="muted">Jours restant à réaliser sur les projets « À cadrer » et « En cours », sur les ${per} · édité le ${nowStr()}</div>
+    <div class="acts noprint" style="margin-top:8px">${Object.entries(GRAN).map(([k, l]) => `<button class="fchip ${g === k ? 'on' : ''}" data-a="ch-g" data-v="${k}">${l}</button>`).join('')}
+      <button class="fchip" data-a="ch-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
+  <div class="card"><div class="hint">Pour chaque projet : charge prévue moins jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés (lundi à vendredi) jusqu’à la fin prévue. Référence : capacité annuelle ÷ 260 jours ouvrés, pour les jours restants de la période. <span class="tag ok">vert</span> sous 80 % · <span class="tag warn">orange</span> de 80 à 100 % · <span class="tag bad">rouge</span> au-delà. Passez la souris sur une case pour voir les projets concernés.</div>
+    <div class="heat-w" style="overflow-x:auto"><table class="st2 heat ${g}"><tr><th>Agent</th><th>Cap. annuelle</th>${d.P.map(p => `<th title="${esc(p.tip)}">${esc(p.lab)}</th>`).join('')}<th>Ensuite</th></tr>
+    ${d.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.a ? fmtC(r.cap) : '—'}</td>${(r.c || zero).map((c, i) => { const cap = i < n ? capOf(r.cap, d.P[i]) : 0;
+      return `<td class="${i < n ? hcls(c.v, cap) : ''}" title="${esc(c.l.map(x => projLabel(x.p) + ' : ' + fmtC(x.v) + ' j').join('\n'))}">${c.v ? fmtC(c.v) + (i < n && cap ? `<small>${Math.round(c.v / cap * 100)} %</small>` : '') : '·'}</td>`; }).join('')}</tr>`).join('')}
+    <tr><th>Équipe</th><th>${fmtC(capAll)}</th>${tot.map((v, i) => `<th class="${i < n ? hcls(v, capOf(capAll, d.P[i])) : ''}">${v ? fmtC(v) : '·'}</th>`).join('')}</tr></table></div></div>
   ${d.nofin.length ? `<div class="card"><h2>Non pris en compte : sans date de fin prévue</h2><div class="hint">Ces projets ont encore de la charge à réaliser mais ne peuvent pas être répartis dans le temps.</div>${d.nofin.map(p => `<span class="tag warn">${lkp(p)}</span>`).join('')}</div>` : ''}`;
 }
+ACT['ch-g'] = el => { S.sy.ch.g = el.dataset.v; synCharge(); };
 ACT['ch-csv'] = () => {
-  const d = chargeData();
-  downloadCsv('charge-par-agent', csvRows([['Agent', 'Capacité mensuelle (j)', ...d.ms.map(m => new Date(m * 1000).toLocaleDateString('fr-FR', {month: 'long', year: 'numeric', timeZone: 'UTC'})), 'Ensuite']]
-    .concat(d.rows.map(r => [r.name, r.a ? Math.round(r.cap * 10) / 10 : '', ...Array.from({length: NM + 1}, (_, i) => r.c ? Math.round(r.c[i].v * 10) / 10 : 0)]))));
+  const g = S.sy.ch.g, d = chargeData(g);
+  downloadCsv('charge-par-agent-' + g, csvRows([['Agent', 'Capacité annuelle (j)', ...d.P.map(p => p.lab + (p.tip ? ' (' + p.tip + ')' : '')), 'Ensuite']]
+    .concat(d.rows.map(r => [r.name, r.a ? r.cap : '', ...Array.from({length: d.P.length + 1}, (_, i) => r.c ? Math.round(r.c[i].v * 10) / 10 : 0)]))));
 };
 
 /* ---------- Rapport annuel pour la hiérarchie ---------- */
