@@ -237,6 +237,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 .abr{display:grid;grid-template-columns:1.2fr 1fr 1fr 1.2fr auto;gap:8px;margin-bottom:8px}
 .tbl td.off{background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(150,150,160,.18) 6px 12px)}.tbl th small{display:block;font-weight:400;font-size:11px;color:var(--mut)}
 .cal2 small.ab,.heat small.ab{color:var(--warn)}
+.refbox .bigs{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));margin:0 0 12px}.refbox{border:1px solid var(--acc);border-radius:14px;padding:12px 14px 4px;margin:0 0 16px;background:rgba(91,140,255,.07)}.reft{font-weight:700;color:var(--acc);font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
 .st2.l td,.st2.l th{text-align:left;vertical-align:top}
 .lkp{background:none;border:0;padding:0;font-weight:600;text-align:left;cursor:pointer}.lkp:hover{text-decoration:underline;color:var(--acc)}
 .heat td,.heat th{text-align:center!important}.heat td:first-child,.heat th:first-child{text-align:left!important}
@@ -387,6 +388,8 @@ async function loadAll() {
 const agentName = a => (a && (a.Nom_complet || ((a.Prenom || '') + ' ' + (a.Nom || '')).trim())) || 'Agent ' + (a ? a.id : '?');
 const activeAgents = () => D.agents.filter(a => a.Actif !== false);
 const projLabel = p => ((p.Titre || '').trim() || '(Sans titre)');
+const suivi = p => S.agentId && ids(p.Suivi_par).includes(S.agentId);
+const isRef = () => { const a = D.by.agent.get(S.agentId); return !!(a && a.Referent_suivi); };
 const mine = p => S.agentId && (ids(p.Agent).includes(S.agentId) || ids(p.Suivi_par).includes(S.agentId));
 
 /* Écritures : une à la fois, puis rechargement des données */
@@ -449,7 +452,7 @@ ACT.print = () => window.print();
 function alertsFor(scope) {
   const today = todaySec(), res = {watch: [], todo: [], next: []};
   const jBy = {}; D.jalons.forEach(j => (jBy[j.Projet] = jBy[j.Projet] || []).push(j));
-  D.projets.filter(p => p.Statut === 'En cours' && (scope !== 'mes' || mine(p))).forEach(p => {
+  D.projets.filter(p => p.Statut === 'En cours' && (scope === 'suivis' ? suivi(p) : (scope !== 'mes' || mine(p)))).forEach(p => {
     const w = [], js = jBy[p.id] || [];
     if (p.Retard && typeof p.Date_fin_prevue === 'number') w.push({sev: 2, txt: `En retard de ${plural(Math.max(1, Math.round((today - p.Date_fin_prevue) / DAY)), 'jour')}`});
     const tc = num(p.Taux_conso);
@@ -472,7 +475,8 @@ function alertsFor(scope) {
 const weekSum = (agent, ws) => D.temps.filter(t => t.a === agent && typeof t.d === 'number' && t.d >= ws && t.d <= ws + 4 * DAY).reduce((s, t) => s + t.j, 0);
 
 function vHome() {
-  const me = D.by.agent.get(S.agentId), now = new Date(), al = alertsFor(S.ac.scope);
+  const me = D.by.agent.get(S.agentId), now = new Date(), ref = isRef(), scope = S.ac.scope === 'suivis' && !ref ? 'tous' : S.ac.scope, al = alertsFor(scope);
+  const mySuivis = ref ? D.projets.filter(p => p.Statut === 'En cours' && suivi(p)) : [], suivisAl = ref ? alertsFor('suivis').watch.length : 0;
   const ws = mondayOf(todaySec()), wk = me ? weekSum(me.id, ws) : 0;
   const myActive = D.projets.filter(p => p.Statut === 'En cours' && mine(p)).length;
   const nudge = me && now.getDay() >= 3 && now.getDay() <= 5 && wk === 0;
@@ -485,13 +489,20 @@ function vHome() {
       <button class="big" data-a="home-mine"><b>📁 Mes projets</b><span>${me ? plural(myActive, 'projet') + ' en cours' : 'Projets qui me sont affectés'}</span></button>
       <button class="big" data-a="new-project"><b>➕ Nouveau projet</b><span>Titre, type, agents et jalons types</span></button>
     </div>
+    ${ref ? `<div class="refbox"><div class="reft">Espace référent·e de suivi</div><div class="bigs">
+      <button class="big" data-a="home-suivis"><b>👁 Projets que je suis</b><span>${plural(mySuivis.length, 'projet')} en cours${suivisAl ? ' · ' + suivisAl + ' à surveiller' : ''}</span></button>
+      <button class="big" data-a="go-sy" data-t="hebdo"><b>📋 Point hebdo</b><span>Alertes, jalons, absences</span></button>
+      <button class="big" data-a="go-sy" data-t="calendrier"><b>📅 Calendrier des projets</b><span>Qui est staffé sur quoi</span></button>
+      <button class="big" data-a="go-sy" data-t="charge"><b>👥 Charge de l’équipe</b><span>Réalisé, prévisionnel, absences</span></button></div></div>` : ''}
     ${nudge ? `<div class="nudge"><span>⏱ Vous n’avez pas encore saisi de temps cette semaine.</span><button class="btn" data-a="go" data-v="temps">Saisir maintenant</button></div>` : ''}
     <div class="card"><div class="cal-h"><h2>À surveiller</h2>
-      <div class="seg" role="group" aria-label="Périmètre"><button class="${S.ac.scope === 'tous' ? 'on' : ''}" data-a="ac-scope" data-v="tous">Tous les projets</button><button class="${S.ac.scope === 'mes' ? 'on' : ''}" data-a="ac-scope" data-v="mes">Mes projets</button></div></div>
+      <div class="seg" role="group" aria-label="Périmètre"><button class="${scope === 'tous' ? 'on' : ''}" data-a="ac-scope" data-v="tous">Tous les projets</button><button class="${scope === 'mes' ? 'on' : ''}" data-a="ac-scope" data-v="mes">Mes projets</button>${ref ? `<button class="${scope === 'suivis' ? 'on' : ''}" data-a="ac-scope" data-v="suivis">Projets que je suis</button>` : ''}</div></div>
       ${al.watch.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="${x.onlyTodo ? 'modifier' : 'consulter'}"><span><b>${esc(projLabel(x.p))}</b><small>${esc(x.p.Agent_nom || 'Sans agent')}</small></span><span style="text-align:right">${x.w.map(i => `<span class="tag ${i.sev > 1 ? 'bad' : i.sev ? 'warn' : ''}">${esc(i.txt)}</span>`).join('')}</span></button>`).join('') || '<div class="muted">✓ Rien à signaler : aucun retard, dépassement ou projet incomplet.</div>'}${more(al.watch.length)}</div>
     <div class="card"><h2>Prochains jalons (14 jours)</h2>
         ${al.next.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="consulter"><span><b>${esc(x.j.Libelle || 'Jalon sans libellé')}</b><small>${esc(projLabel(x.p))}</small></span><span class="muted">${fmtD(x.j.Date)}</span></button>`).join('') || '<div class="muted">Aucun jalon dans les 14 prochains jours.</div>'}${al.next.length > lim ? `<div class="muted" style="padding:6px 4px">+ ${al.next.length - lim} autre(s)</div>` : ''}</div></div>`;
 }
+ACT['home-suivis'] = () => go('projets', {pj: {filter: 'suivis', q: '', old: false}});
+ACT['go-sy'] = el => { S.sy.tab = el.dataset.t; go('synthese'); };
 ACT['go-hebdo'] = () => { S.sy.tab = 'hebdo'; go('synthese'); };
 ACT['ac-scope'] = el => { S.ac.scope = el.dataset.v; vHome(); };
 ACT['home-mine'] = () => go('projets', {pj: {filter: S.agentId ? 'mes' : 'tous', q: '', old: false}});
@@ -513,12 +524,13 @@ const MD_PJ = {
     return D.projets.filter(p => {
       if (!S.pj.old && p.Statut === 'Archivé') return false;
       if (S.pj.filter === 'mes' && !mine(p)) return false;
+      if (S.pj.filter === 'suivis' && isRef() && !suivi(p)) return false;
       return !q || norm([p.Titre, p.Reference, p.Agent_nom, p.Type_nom, p.Statut].join(' ')).includes(q);
     }).sort((a, b) => ST_ORDER.indexOf(a.Statut) - ST_ORDER.indexOf(b.Statut) || projLabel(a).localeCompare(projLabel(b), 'fr'));
   },
   label: projLabel,
   sub: p => [(p.Reference || '').trim(), p.Statut].filter(Boolean).join(' · ') + (p.Retard ? ' · ⚠ retard' : ''),
-  top: () => `<div class="fl" role="group" aria-label="Filtre"><button class="fchip ${S.pj.filter === 'tous' ? 'on' : ''}" data-a="md-filter" data-v="tous">Tous</button><button class="fchip ${S.pj.filter === 'mes' ? 'on' : ''}" data-a="md-filter" data-v="mes">Mes projets</button></div>
+  top: () => `<div class="fl" role="group" aria-label="Filtre"><button class="fchip ${S.pj.filter === 'tous' ? 'on' : ''}" data-a="md-filter" data-v="tous">Tous</button><button class="fchip ${S.pj.filter === 'mes' ? 'on' : ''}" data-a="md-filter" data-v="mes">Mes projets</button>${isRef() ? `<button class="fchip ${S.pj.filter === 'suivis' ? 'on' : ''}" data-a="md-filter" data-v="suivis">Que je suis</button>` : ''}</div>
     <label class="cb"><input type="checkbox" data-ch="md-old" ${S.pj.old ? 'checked' : ''}>Afficher les archivés</label>`,
   consult: r => consultProjet(r), modify: r => formProjet(r),
   modActions: r => S.pj.arch
