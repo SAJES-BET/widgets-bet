@@ -62,6 +62,10 @@ const DEMO = [
   ph: [], j: [['Arbitrage attendu', 20, 'À venir', 0]]}
 ];
 
+// absences de démonstration : [agent, type, premier jour, dernier jour (relatifs à aujourd'hui), quotité]
+const DEMO_ABS = [['VAGNEUR', 'Congés', 10, 14, 1], ['CHENIERE', 'Congés', 3, 4, 1], ['VAN SPEYBROECK', 'Formation', 1, 1, 1], ['VAN SPEYBROECK', 'Congés', 20, 31, 1], ['BARONI', 'Congés', 14, 25, 1],
+  ['EL SKAFF', 'Autre absence', 2, 2, 0.5], ['AUSSEIL', 'Congés', -10, -6, 1], ['MARRET', 'Formation', 5, 6, 1], ['BAUCHARD', 'Congés', 7, 9, 1]];
+
 /* ---------- Données ---------- */
 async function reload() {
   const [P, A, T] = await Promise.all([fetchT('Projets'), fetchT('Agents'), fetchT('Types')]);
@@ -86,8 +90,14 @@ async function removeProjects(ids) {
   for (let i = 0; i < acts.length; i += 200) await act(acts.slice(i, i + 200));
   return acts.length;
 }
+async function removeDemoAbs() {
+  const Ab = await fetchT('Absences'); if (!(Ab && Ab.id)) return 0;
+  const acts = rowsOf(Ab).filter(r => r.Origine === 'DEMO').map(r => ['RemoveRecord', 'Absences', r.id]);
+  if (acts.length) await act(acts); return acts.length;
+}
 async function ensurePhases() {
-  const [Ph, J] = await Promise.all([fetchT('Phases'), fetchT('Jalons')]), acts = [];
+  const [Ph, J, Ab] = await Promise.all([fetchT('Phases'), fetchT('Jalons'), fetchT('Absences')]), acts = [];
+  if (!(Ab && Ab.id)) acts.push(['AddTable', 'Absences', [{id: 'Agent', type: 'Ref:Agents'}, {id: 'Date_debut', type: 'Date'}, {id: 'Date_fin', type: 'Date'}, {id: 'Type', type: 'Choice', widgetOptions: JSON.stringify({choices: ['Congés', 'Formation', 'Autre absence']})}, {id: 'Quotite', type: 'Numeric'}, {id: 'Origine', type: 'Text'}]]);
   if (!(Ph && Ph.id)) acts.push(['AddTable', 'Phases', [{id: 'Projet', type: 'Ref:Projets'}, {id: 'Libelle', type: 'Text'}, {id: 'Date_debut', type: 'Date'}, {id: 'Date_fin', type: 'Date'}, {id: 'Statut', type: 'Choice', widgetOptions: JSON.stringify({choices: PST})}]]);
   if (!(J && 'Phase' in J)) acts.push(['AddColumn', 'Jalons', 'Phase', {type: 'Ref:Phases'}]);
   if (acts.length) await act(acts);
@@ -126,6 +136,8 @@ async function loadDemo() {
     genTemps(pid[i], ag, today + d.d * DAY, end, d.reel, occ).forEach(a => acts.push(a));
   });
   for (let i = 0; i < acts.length; i += 150) await act(acts.slice(i, i + 150));
+  const ab = DEMO_ABS.map(([nom, type, d1, d2, q]) => { const a = agentId(nom); if (!a) { missing.add(nom); return null; } return ['AddRecord', 'Absences', null, {Agent: a, Date_debut: today + d1 * DAY, Date_fin: today + d2 * DAY, Type: type, Quotite: q, Origine: 'DEMO'}]; }).filter(Boolean);
+  if (ab.length) await act(ab);
   return {n: defs.length, missing: [...missing]};
 }
 
@@ -139,7 +151,7 @@ function render() {
     ${t.length ? t.map(p => `<label class="row"><input type="checkbox" data-id="${p.id}" ${ST.sel.has(p.id) ? 'checked' : ''}><span>${esc(label(p))}<span class="tag">${esc(p.Statut || '—')}</span></span></label>`).join('') : '<div style="margin-top:8px">✓ Aucun projet de test repéré.</div>'}
     ${t.length ? `<div class="acts">${arm === 'del' ? `<span>Supprimer ${ST.sel.size} projet(s) ? Action définitive.</span><button class="bad" data-a="del-yes" ${dis}>Oui, supprimer</button><button data-a="cancel">Non</button>` : `<button data-a="del" ${ST.sel.size && !ST.busy ? '' : 'disabled'}>Supprimer la sélection (${ST.sel.size})</button>`}</div>` : ''}</div>
   <div class="card"><h2>2. Démo pour la cheffe de bureau</h2>
-    <div class="mut">Charge ${DEMO.length} projets <b>fictifs</b> (références « DEMO-01 »…) avec phases, jalons et temps saisis sur les derniers mois : un projet en retard, un en dépassement de charge (130 %), un incomplet, deux terminés, un en pause, un à cadrer. Les agents sont ceux de votre fichier ; les dates sont calculées par rapport à aujourd’hui.</div>
+    <div class="mut">Charge ${DEMO.length} projets <b>fictifs</b> (références « DEMO-01 »…) avec phases, jalons, temps saisis sur les derniers mois et quelques congés, formations et absences : un projet en retard, un en dépassement de charge (130 %), un incomplet, deux terminés, un en pause, un à cadrer. Les agents sont ceux de votre fichier ; les dates sont calculées par rapport à aujourd’hui.</div>
     <div class="acts">${arm === 'rel' ? `<span>Remplacer la démo existante ?</span><button class="pri" data-a="load-yes" ${dis}>Oui, recharger</button><button data-a="cancel">Non</button>` : `<button class="pri" data-a="${d.length ? 'rel' : 'load-yes'}" ${dis}>${d.length ? 'Recharger la démo' : 'Charger la démo'}</button>`}
     ${d.length ? (arm === 'rm' ? `<span>Retirer ${d.length} projet(s) de démo ?</span><button class="bad" data-a="rm-yes" ${dis}>Oui, retirer</button><button data-a="cancel">Non</button>` : `<button data-a="rm" ${dis}>Retirer la démo</button>`) : ''}</div></div>
   <div id="log">${esc(ST.msg)}</div>`;
@@ -155,8 +167,8 @@ document.addEventListener('click', e => {
   if (a === 'del' || a === 'rel' || a === 'rm') { ST.arm = a; render(); }
   else if (a === 'cancel') { ST.arm = ''; render(); }
   else if (a === 'del-yes') run(async () => { const n = await removeProjects([...ST.sel]); return `✓ ${ST.sel.size} projet(s) de test supprimé(s).`; });
-  else if (a === 'rm-yes') run(async () => { await removeProjects(ST.demo.map(p => p.id)); return '✓ Démo retirée.'; });
-  else if (a === 'load-yes') run(async () => { if (ST.demo.length) await removeProjects(ST.demo.map(p => p.id)); await reload(); const r = await loadDemo();
+  else if (a === 'rm-yes') run(async () => { await removeProjects(ST.demo.map(p => p.id)); await removeDemoAbs(); return '✓ Démo retirée (projets et absences).'; });
+  else if (a === 'load-yes') run(async () => { if (ST.demo.length) await removeProjects(ST.demo.map(p => p.id)); await removeDemoAbs(); await reload(); const r = await loadDemo();
     return `✓ ${r.n} projets de démo chargés. Ouvrez la page « Application » pour les voir.` + (r.missing.length ? `\nAgents introuvables (ignorés) : ${r.missing.join(', ')}` : ''); });
 });
 document.addEventListener('change', e => { const c = e.target; if (c.dataset && c.dataset.id) { const id = +c.dataset.id; c.checked ? ST.sel.add(id) : ST.sel.delete(id); render(); } });

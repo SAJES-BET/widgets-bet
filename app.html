@@ -234,6 +234,9 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 .heat.cal2 td.hk,.heat.cal2 th.hk{background:rgba(63,182,122,.14)}.heat.cal2 td.hw,.heat.cal2 th.hw{background:rgba(240,164,60,.28)}.heat.cal2 td.hb,.heat.cal2 th.hb{background:rgba(238,99,99,.32)}
 .jl{font-style:normal;color:var(--warn);font-size:11px;margin-left:3px}
 .lgb.re{background:rgba(91,140,255,.45)}.lgb.pl{background:repeating-linear-gradient(135deg,rgba(91,140,255,.45) 0 3px,rgba(91,140,255,.1) 3px 6px)}.lgb.mx{background:linear-gradient(90deg,rgba(91,140,255,.45) 50%,rgba(91,140,255,.15) 50%)}.lgb.sp{background:rgba(91,140,255,.14)}
+.abr{display:grid;grid-template-columns:1.2fr 1fr 1fr 1.2fr auto;gap:8px;margin-bottom:8px}
+.tbl td.off{background:repeating-linear-gradient(135deg,transparent 0 6px,rgba(150,150,160,.18) 6px 12px)}.tbl th small{display:block;font-weight:400;font-size:11px;color:var(--mut)}
+.cal2 small.ab,.heat small.ab{color:var(--warn)}
 .st2.l td,.st2.l th{text-align:left;vertical-align:top}
 .lkp{background:none;border:0;padding:0;font-weight:600;text-align:left;cursor:pointer}.lkp:hover{text-decoration:underline;color:var(--acc)}
 .heat td,.heat th{text-align:center!important}.heat td:first-child,.heat th:first-child{text-align:left!important}
@@ -244,7 +247,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .md{grid-template-columns:1fr;grid-template-rows:auto 1fr}.lp{max-height:230px;border-right:0;border-bottom:1px solid var(--line)}
  .kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}
  .rp-h,.rp-r{grid-template-columns:1fr 70px}.rp-h span:nth-child(2){display:none}.rp-t{grid-column:1 / -1;grid-row:2}
- .week .lbl{min-width:0;flex:1}.c{width:52px}.ag{grid-template-columns:1fr}.jr,.jr.p5,.phr{grid-template-columns:1fr 1fr}
+ .week .lbl{min-width:0;flex:1}.c{width:52px}.ag{grid-template-columns:1fr}.jr,.jr.p5,.phr,.abr{grid-template-columns:1fr 1fr}
 }
 @page{margin:12mm}
 @media print{
@@ -309,6 +312,20 @@ const dLong = t => new Date(t * 1000).toLocaleDateString('fr-FR', {timeZone: 'UT
 const dShort = t => new Date(t * 1000).toLocaleDateString('fr-FR', {timeZone: 'UTC', weekday: 'short', day: '2-digit', month: '2-digit'});
 const isoWeek = t => { const d = new Date(t * 1000); d.setUTCDate(d.getUTCDate() + 3); const y = d.getUTCFullYear(), j = new Date(Date.UTC(y, 0, 4));
   return 1 + Math.round(((d - j) / 864e5 - 3 + ((j.getUTCDay() + 6) % 7)) / 7); };
+/* Jours ouvrés (lundi à vendredi hors jours fériés français) */
+const _fer = {};
+function feries(y) {
+  if (_fer[y]) return _fer[y];
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+    i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451), mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1;
+  const p = Date.UTC(y, mo - 1, da) / 1000, u = (mm, dd) => Date.UTC(y, mm, dd) / 1000;
+  return _fer[y] = new Set([u(0, 1), p + DAY, u(4, 1), u(4, 8), p + 39 * DAY, p + 50 * DAY, u(6, 14), u(7, 15), u(10, 1), u(10, 11), u(11, 25)]);
+}
+const isWd = t => { const dt = new Date(t * 1000), d = dt.getUTCDay(); return d !== 0 && d !== 6 && !feries(dt.getUTCFullYear()).has(t); };
+const _wdy = {};
+const wdYear = y => _wdy[y] || (_wdy[y] = (() => { let n = 0; for (let t = Date.UTC(y, 0, 1) / 1000; t < Date.UTC(y + 1, 0, 1) / 1000; t += DAY) if (isWd(t)) n++; return n; })());
+const AB_T = ['Congés', 'Formation', 'Autre absence'];
+const absFrac = (a, t) => { const m = D.absMap.get(a); return m ? (m.get(t) || 0) : 0; };
 const level = t => t > 1 ? 'bad' : t >= 0.8 ? 'warn' : '';
 const store = {
   get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -331,7 +348,7 @@ const MODELES = {
 const modele = lab => { const n = norm(lab); return Object.values(MODELES).find(m => m.cle.some(k => n.includes(k))) || MODELES.def; };
 
 /* ---------- Données ---------- */
-const D = {agents: [], projets: [], jalons: [], phases: [], temps: [], types: [], by: {}};
+const D = {agents: [], projets: [], jalons: [], phases: [], absences: [], absMap: new Map(), hasAbs: false, temps: [], types: [], by: {}};
 let META = null, loaded = false;
 const g = async n => { try { return await grist.docApi.fetchTable(n); } catch (e) { return null; } };
 const rowsOf = t => t && t.id ? t.id.map((id, i) => { const o = {id}; for (const k in t) if (k !== 'id') o[k] = t[k][i]; return o; }) : [];
@@ -353,10 +370,14 @@ async function meta() {
 
 async function loadAll() {
   await meta();
-  const [A, P, J, T, Ph] = await Promise.all([g('Agents'), g('Projets'), g('Jalons'), g('Temps'), g('Phases')]);
+  const [A, P, J, T, Ph, Ab] = await Promise.all([g('Agents'), g('Projets'), g('Jalons'), g('Temps'), g('Phases'), g('Absences')]);
   let Ty = null;
   for (const n of [META.types, 'Types', 'Table1'].filter(Boolean)) { Ty = await g(n); if (Ty && Ty.id && Ty.id.length) break; }
   D.phases = rowsOf(Ph); D.hasPhTbl = !!(Ph && Ph.id); D.hasJPh = !!(J && 'Phase' in J); D.hasPh = D.hasPhTbl && D.hasJPh;
+  D.hasAbs = !!(Ab && Ab.id); D.absences = rowsOf(Ab).map(r => ({id: r.id, a: r.Agent, d1: toSec(r.Date_debut), d2: toSec(r.Date_fin) ?? toSec(r.Date_debut), type: r.Type || 'Congés', q: r.Quotite > 0 ? Math.min(+r.Quotite, 1) : 1}));
+  D.absMap = new Map();
+  D.absences.forEach(x => { if (!x.a || x.d1 == null) return; let m = D.absMap.get(x.a); if (!m) D.absMap.set(x.a, m = new Map());
+    for (let t = x.d1, n = 0; t <= x.d2 && n < 800; t += DAY, n++) if (isWd(t)) m.set(t, Math.min(1, (m.get(t) || 0) + x.q)); });
   D.agents = rowsOf(A); D.projets = rowsOf(P); D.jalons = rowsOf(J);
   D.temps = rowsOf(T).map(t => ({id: t.id, d: t.Date, p: t.Projet, a: t.Agent, j: +t.Jours || 0}));
   D.types = rowsOf(Ty).map(t => ({id: t.id, n: t.Libelle || t.Nom || ('Type ' + t.id)}));
@@ -746,7 +767,7 @@ function consultAgent(r) {
   <div class="card"><div class="kpis">${kpi(num(r.Nb_projets_actifs), 'projets en cours')}${kpi(num(r.Nb_projets_suivis), 'projets suivis')}${kpi(fmtN(r.Charge_reelle_annee) + ' j', 'réalisés cette année')}${kpi(fmtN(cap) + ' j', 'capacité annuelle')}</div></div>
   <div class="card"><h2>Occupation sur l’année : ${pct(tx)} %</h2><div class="bar" style="margin-bottom:18px"><i class="${level(tx)}" style="width:${clamp(tx) * 100}%"></i></div>
     <h2>Charge prévue par projet (${fmtN(prev)} j sur ${fmtN(cap)} j)</h2><div class="bar"><i class="acc" style="width:${cap ? clamp(prev / cap) * 100 : 0}%"></i></div></div>
-  <div class="card"><h2>Projets portés</h2>${pj}</div>`;
+  <div class="card"><h2>Projets portés</h2>${pj}</div>${absUpcoming(r.id)}`;
 }
 function csvAgent(r) {
   const data = [['Champ', 'Valeur'], ['Nom', agentName(r)], ['Fonction', String(r.Fonction || '').replace(/\n+/g, ' · ')], ['Email', r.Email],
@@ -755,6 +776,51 @@ function csvAgent(r) {
     ['Projets en cours', r.Nb_projets_actifs], ['Projets suivis', r.Nb_projets_suivis]];
   parse(r.Projets_json).forEach((p, i) => data.push([`Projet ${i + 1}`, `${p.t} | ${p.s} | ${fmtN(p.p)} j prévus | ${fmtN(p.r)} j réalisés`]));
   downloadCsv('agent-' + slug(agentName(r)), data);
+}
+
+/* ---------- Absences et congés ---------- */
+function absEditor(agentId) {
+  if (!D.hasAbs) return `<div class="card"><h2>Absences et congés</h2><div class="muted">Pour que les congés et absences soient pris en compte dans les charges et les calendriers, il faut créer une table « Absences ». Cela ne se fait qu’une fois pour tout le document et ne modifie aucune donnée existante.</div>
+    <button class="btn s" data-a="enable-abs" style="margin-top:8px">Activer les absences</button></div>`;
+  const rows = D.absences.filter(x => x.a === agentId).sort((a, b) => (b.d1 ?? 0) - (a.d1 ?? 0));
+  return `<div class="card"><h2>Absences et congés</h2><div class="hint">Les jours fériés sont déjà exclus automatiquement. Indiquez seulement le type d’absence, sans motif détaillé.</div>
+    ${rows.map(x => `<div class="abr"><select class="fi" data-ch="abs" data-abs="${x.id}" data-ak="Type" aria-label="Type d’absence">${AB_T.map(t => `<option ${t === x.type ? 'selected' : ''}>${t}</option>`).join('')}</select>
+      <input class="fi" type="date" data-ch="abs" data-abs="${x.id}" data-ak="Date_debut" value="${iso(x.d1)}" aria-label="Premier jour d’absence" title="Premier jour">
+      <input class="fi" type="date" data-ch="abs" data-abs="${x.id}" data-ak="Date_fin" value="${iso(x.d2)}" aria-label="Dernier jour d’absence" title="Dernier jour">
+      <select class="fi" data-ch="abs" data-abs="${x.id}" data-ak="Quotite" aria-label="Durée par jour"><option value="1" ${x.q === 1 ? 'selected' : ''}>Journées entières</option><option value="0.5" ${x.q === 0.5 ? 'selected' : ''}>Demi-journées</option></select>
+      <button class="btn s" data-a="del-abs" data-id="${x.id}" title="Supprimer cette absence" aria-label="Supprimer cette absence">×</button></div><div class="msg" data-am="${x.id}"></div>`).join('') || '<div class="muted" style="margin-bottom:8px">Aucune absence enregistrée.</div>'}
+    <button class="btn s" data-a="add-abs" data-ag="${agentId}">+ Ajouter une absence</button></div>`;
+}
+function absRefresh() {
+  if (S.view === 'equipe') mdDetail(); else if (S.view === 'temps') mtRender();
+}
+CH.abs = async el => {
+  const id = +el.dataset.abs, k = el.dataset.ak, x = D.absences.find(z => z.id === id); if (!x) return;
+  const v = k === 'Type' ? el.value : k === 'Quotite' ? +el.value : secOf(el.value);
+  const d1 = k === 'Date_debut' ? v : x.d1, d2 = k === 'Date_fin' ? v : x.d2, m = $(`[data-am="${id}"]`);
+  const err = (k === 'Date_debut' || k === 'Date_fin') && !v ? 'Renseignez une date.' : d1 && d2 && d2 < d1 ? 'Le dernier jour ne peut pas précéder le premier.' : '';
+  el.classList.toggle('bad', !!err); if (m) m.textContent = err; if (err) return flash(err, 1);
+  const f = {[k]: v}; if (k === 'Date_debut' && (!d2 || d2 < v)) f.Date_fin = v;
+  try { await write([['UpdateRecord', 'Absences', id, f]]); } catch (e) { return; }
+  absRefresh();
+};
+ACT['add-abs'] = async el => {
+  const d = S.view === 'temps' ? S.mt.ws : todaySec();
+  try { await write([['AddRecord', 'Absences', null, {Agent: +el.dataset.ag, Date_debut: d, Date_fin: d, Type: 'Congés', Quotite: 1}]]); } catch (e) { return; }
+  absRefresh(); const ins = $$('[data-ak="Date_debut"]'); if (ins.length) ins[0].focus();
+};
+ACT['del-abs'] = async el => {
+  try { await write([['RemoveRecord', 'Absences', +el.dataset.id]], '✓ Absence supprimée'); } catch (e) { return; }
+  absRefresh();
+};
+ACT['enable-abs'] = async () => {
+  try { await write([['AddTable', 'Absences', [{id: 'Agent', type: 'Ref:Agents'}, {id: 'Date_debut', type: 'Date'}, {id: 'Date_fin', type: 'Date'}, {id: 'Type', type: 'Choice', widgetOptions: JSON.stringify({choices: AB_T})}, {id: 'Quotite', type: 'Numeric'}, {id: 'Origine', type: 'Text'}]]], '✓ Absences activées'); } catch (e) { return; }
+  absRefresh();
+};
+function absUpcoming(agentId) {
+  const t0 = todaySec(), up = D.absences.filter(x => x.a === agentId && x.d2 != null && x.d2 >= t0).sort((a, b) => a.d1 - b.d1);
+  if (!D.hasAbs) return '';
+  return `<div class="card"><h2>Absences à venir</h2>${up.length ? up.slice(0, 10).map(x => `<div class="row"><span class="k" style="flex-basis:150px">${esc(x.type)}${x.q < 1 ? ' (demi-journées)' : ''}</span><span class="v">${x.d1 === x.d2 ? fmtD(x.d1) : 'du ' + fmtD(x.d1) + ' au ' + fmtD(x.d2)}</span></div>`).join('') : '<span class="muted">Aucune absence à venir.</span>'}</div>`;
 }
 
 /* ---------- Formulaires (modifier) ---------- */
@@ -824,7 +890,7 @@ function formProjet(r) {
   ${phasesForm(r, js)}
   <div class="muted">Le temps passé se saisit dans l’onglet « Mon temps ».</div>`;
 }
-function formAgent(r) { return `<h1 id="md-title">${esc(agentName(r))}</h1>${formCards('eq', r)}`; }
+function formAgent(r) { return `<h1 id="md-title">${esc(agentName(r))}</h1>${formCards('eq', r)}${absEditor(r.id)}`; }
 function formPatch() {
   const c = MDC, r = c.byId(c.st.sel); if (!r) return;
   $$('#md-d [data-k]').forEach(el => {
@@ -981,7 +1047,7 @@ function vTemps() {
       <button class="nav" data-a="mt-next" aria-label="Semaine suivante" title="Semaine suivante">▶</button><button id="mt-now" data-a="mt-now">Cette semaine</button></div>
       <span class="sp"></span><button id="mt-copy" data-a="mt-copy" title="Recopie les jours de la semaine précédente dans les cases vides">Recopier la semaine précédente</button>
       <button class="btn save" data-a="mt-save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button></div>
-    <div class="unsaved" id="mt-un" hidden></div><div class="sum" id="mt-sum"></div><div class="tbl" id="mt-grid"></div><div class="add" id="mt-add"></div><div class="note" id="mt-note"></div>
+    <div class="unsaved" id="mt-un" hidden></div><div class="sum" id="mt-sum"></div><div class="tbl" id="mt-grid"></div><div class="add" id="mt-add"></div><div class="note" id="mt-note"></div><div id="mt-abs" style="margin-top:18px"></div>
     <div class="foot"><button class="btn save" data-a="mt-save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button></div></div>`;
   mtRender();
 }
@@ -994,13 +1060,13 @@ function mtRender() {
   const grid = $('#mt-grid');
   if (!S.agentId) {
     grid.innerHTML = '<div class="empty"><b>Bienvenue 👋</b>Choisissez votre nom en haut à droite pour saisir votre temps. Il sera mémorisé sur cet ordinateur.</div>';
-    $('#mt-sum').innerHTML = ''; $('#mt-add').innerHTML = ''; $('#mt-note').textContent = ''; MT.sig = ''; mtUpdateSave(); return;
+    $('#mt-sum').innerHTML = ''; $('#mt-add').innerHTML = ''; $('#mt-note').textContent = ''; $('#mt-abs').innerHTML = ''; MT.sig = ''; mtUpdateSave(); return;
   }
   const rows = mtRows(), ds = mtDays(), today = todaySec();
   MT.sig = [S.agentId, MT.ws, rows.map(r => r.id).join(',')].join('|');
-  const head = ds.map(d => `<th class="${d === today ? 'today' : ''}">${esc(dShort(d))}</th>`).join('');
+  const head = ds.map(d => `<th class="${d === today ? 'today' : ''}" ${!isWd(d) && new Date(d * 1000).getUTCDay() % 6 ? 'title="Jour férié"' : absFrac(S.agentId, d) ? 'title="Absence enregistrée"' : ''}>${esc(dShort(d))}${!isWd(d) ? ' <small>férié</small>' : absFrac(S.agentId, d) >= 1 ? ' <small>absent·e</small>' : absFrac(S.agentId, d) ? ' <small>½ abs.</small>' : ''}</th>`).join('');
   const body = rows.map(r => `<tr><td class="p"><b>${esc(projLabel(r))}</b><small>${esc((r.Reference || '').trim())}${r.Reference && r.Statut ? ' · ' : ''}${esc(r.Statut)}</small></td>` +
-    ds.map(d => `<td class="${d === today ? 'today' : ''}"><input class="c" inputmode="decimal" autocomplete="off" data-ch="mt-cell" data-p="${r.id}" data-d="${d}" placeholder="·" aria-label="${esc(projLabel(r))} – ${esc(dShort(d))} (jours)"></td>`).join('') +
+    ds.map(d => `<td class="${d === today ? 'today' : ''} ${!isWd(d) || absFrac(S.agentId, d) >= 1 ? 'off' : ''}"><input class="c" inputmode="decimal" autocomplete="off" data-ch="mt-cell" data-p="${r.id}" data-d="${d}" placeholder="·" aria-label="${esc(projLabel(r))} – ${esc(dShort(d))} (jours)"></td>`).join('') +
     `<td class="q"><button data-a="mt-fill" data-p="${r.id}" title="Met 1 j dans les jours vides de la semaine">5 × 1 j</button></td></tr>`).join('');
   grid.innerHTML = rows.length ? `<table><thead><tr><th class="p">Projet</th>${head}<th></th></tr></thead><tbody>${body}</tbody>
     <tfoot><tr><td class="p">Total du jour</td>${ds.map(d => `<td data-tot="${d}"></td>`).join('')}<td class="q" id="mt-wt"></td></tr></tfoot></table>`
@@ -1009,6 +1075,7 @@ function mtRender() {
   const others = D.projets.filter(p => !shown.has(p.id) && p.Statut !== 'Terminé' && p.Statut !== 'Archivé');
   $('#mt-add').innerHTML = others.length ? `<select data-ch="mt-addp" aria-label="Ajouter un autre projet"><option value="">+ Ajouter un autre projet…</option>` +
     others.map(p => `<option value="${p.id}">${esc(projLabel(p))}${p.Reference ? ' (' + esc(String(p.Reference).trim()) + ')' : ''}</option>`).join('') + '</select>' : '';
+  const ab = $('#mt-abs'); if (ab) ab.innerHTML = absEditor(S.agentId);
   mtPatch();
 }
 function mtPatch() {
@@ -1259,8 +1326,14 @@ function synHebdo() {
   <div class="card"><h2>Jalons des 30 prochains jours</h2>
     ${h.jal.length ? `<table class="st2 l"><tr><th>Date</th><th>Jalon</th><th>Projet</th><th>Agents</th></tr>${h.jal.map(({j, p}) => `<tr><td>${fmtD(j.Date)}</td><td>${esc(j.Libelle || '(sans libellé)')}${phName(j) ? ` <span class="muted">(${esc(phName(j))})</span>` : ''}</td><td>${lkp(p)}</td><td>${esc(p.Agent_nom || '—')}</td></tr>`).join('')}</table>` : '<div class="muted">Aucun jalon à venir.</div>'}</div>
   ${staffCard(h)}
+  ${absCard30()}
   <div class="card"><h2>Saisie du temps</h2><div class="hint">Jours saisis la semaine dernière (S${isoWeek(h.ws - 7 * DAY)}) et cette semaine (S${isoWeek(h.ws)}).</div>
     <table class="st2 l"><tr><th>Agent</th><th>Semaine dernière</th><th>Cette semaine</th></tr>${h.saisie.map(x => `<tr><td>${esc(agentName(x.a))}</td><td class="${x.prev ? '' : 'wn'}">${x.prev ? fmtN(x.prev) + ' j' : 'Rien saisi'}</td><td>${x.cur ? fmtN(x.cur) + ' j' : '—'}</td></tr>`).join('')}</table></div>`;
+}
+function absCard30() {
+  if (!D.hasAbs) return '';
+  const t0 = todaySec(), t1 = t0 + 30 * DAY, up = D.absences.filter(x => x.a && x.d1 != null && x.d2 >= t0 && x.d1 <= t1).sort((a, b) => a.d1 - b.d1);
+  return `<div class="card"><h2>Absences et congés des 30 prochains jours</h2>${up.length ? `<table class="st2 l"><tr><th>Agent</th><th>Type</th><th>Période</th></tr>${up.map(x => `<tr><td>${esc(agentName(D.by.agent.get(x.a)))}</td><td>${esc(x.type)}${x.q < 1 ? ' (demi-journées)' : ''}</td><td>${x.d1 === x.d2 ? fmtD(x.d1) : 'du ' + fmtD(x.d1) + ' au ' + fmtD(x.d2)}</td></tr>`).join('')}</table>` : '<div class="muted">Aucune absence enregistrée sur la période.</div>'}</div>`;
 }
 function staffData() { const P = buildPeriods('semaine', mondayOf(todaySec()), 4); return chargeModel(P, {hide: new Set(['Archivé', 'Terminé'])}); }
 function staffCard() {
@@ -1268,7 +1341,7 @@ function staffCard() {
   return `<div class="card"><h2>Staffing et charge : cette semaine et les trois suivantes</h2><div class="hint">Jours réalisés ou prévus par agent. ${HEATLEG}.</div>
     <table class="st2 l heat"><tr><th>Agent</th><th>Sur quoi cette semaine</th>${P.map(p => `<th title="${esc(p.tip)}">${p.lab}</th>`).join('')}</tr>
     ${rows.map(a => `<tr><td>${esc(a.name)}</td><td style="text-align:left!important">${a.byP.filter(x => x.c[0][0] + x.c[0][1] > 0).map(x => `${lkp(x.p)} <span class="muted">${fmtC(x.c[0][0] + x.c[0][1])} j</span>`).join('<br>') || '<span class="muted">Aucune charge</span>'}</td>
-      ${P.map((p, i) => { const v = sumC([a.tot[i]]), cp = capOf(a.cap, p); return `<td class="${hcls(v, cp)}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}</td>`; }).join('')}</tr>`).join('')}</table>
+      ${P.map((p, i) => { const v = sumC([a.tot[i]]), cp = a.capP[i], ab = a.ab[i]; return `<td class="${hcls(v, cp)}" title="${esc(tipC(a.tot[i]))}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}${ab ? `<small class="ab">abs. ${fmtC(ab)} j</small>` : ''}</td>`; }).join('')}</tr>`).join('')}</table>
     <div class="noprint" style="margin-top:8px"><button class="fchip" data-a="go-cal">Ouvrir le calendrier complet</button></div></div>`;
 }
 ACT['go-cal'] = () => { S.sy.tab = 'calendrier'; vSyn(); };
@@ -1277,16 +1350,15 @@ ACT['hb-csv'] = () => {
   h.al.watch.forEach(x => r.push(['À surveiller', projLabel(x.p), x.p.Agent_nom, x.w.map(i => i.txt).join(' ; '), '']));
   h.jal.forEach(({j, p}) => r.push(['Jalon', projLabel(p), p.Agent_nom, j.Libelle, fmtD(j.Date)]));
   staffData().agents.filter(a => a.id).forEach(a => r.push(['Staffing', '', a.name, a.tot.map((c, i) => staffData().P[i].lab + ' : ' + fmtC(sumC([c])) + ' j').join(' ; '), '']));
+  D.absences.filter(x => x.a && x.d2 >= h.today && x.d1 <= h.today + 30 * DAY).forEach(x => r.push(['Absence', '', agentName(D.by.agent.get(x.a)), x.type + (x.q < 1 ? ' (demi-journées)' : ''), fmtD(x.d1) + (x.d1 === x.d2 ? '' : ' → ' + fmtD(x.d2))]));
   h.saisie.forEach(x => r.push(['Saisie du temps', '', agentName(x.a), `Semaine dernière : ${fmtN(x.prev)} j ; cette semaine : ${fmtN(x.cur)} j`, '']));
   downloadCsv('point-hebdo-' + iso(h.today), csvRows(r));
 };
 
 /* ---------- Modèle commun : charge réalisée (temps saisi) + prévisionnelle (reste à faire) ---------- */
-const isWd = t => { const d = new Date(t * 1000).getUTCDay(); return d !== 0 && d !== 6; };
 const GRAN = {jour: 'Quotidien', semaine: 'Hebdomadaire', mois: 'Mensuel', annee: 'Annuel'};
 const GSPAN = {jour: 20, semaine: 12, mois: 12, annee: 4};
 const fmtC = v => (Math.round(v * 10) / 10).toLocaleString('fr-FR');
-const capOf = (cap, p) => cap / 260 * p.wd;
 const hcls = (v, cap) => !cap ? (v ? 'hw' : '') : v / cap > 1 ? 'hb' : v / cap >= .8 ? 'hw' : v ? 'hk' : '';
 function landscape(on) {
   let s = $('#pgs'); if (!s) { s = document.createElement('style'); s.id = 'pgs'; document.head.appendChild(s); }
@@ -1327,8 +1399,12 @@ function chargeModel(P, opt = {}) {
     const s = Math.max(today, toSec(p.Date_debut) ?? today), e = Math.min(fin < s ? s + 13 * DAY : fin, s + 3650 * DAY), days = [];  // projet en retard : reste à faire étalé sur les 2 prochaines semaines
     for (let t = s; t <= e; t += DAY) if (isWd(t)) days.push(t);
     if (!days.length) days.push(s);
-    const who = ids(p.Agent).length ? ids(p.Agent) : [0], per = rem / days.length / who.length;
-    days.forEach(t => { const i = idx(t); if (i >= 0) who.forEach(a => { if (!only || a === only) cell(a, p.id)[i][1] += per; }); });
+    const who = ids(p.Agent).length ? ids(p.Agent) : [0], share = rem / who.length;
+    who.forEach(a => {
+      if (only && a !== only) return;
+      const w = days.map(t => a ? 1 - absFrac(a, t) : 1); let W = w.reduce((x, y) => x + y, 0); if (W <= 0) { w.fill(1); W = days.length; }   // l'agent est absent sur toute la période : pas d'ajustement
+      days.forEach((t, k) => { const i = idx(t); if (i >= 0 && w[k] > 0) cell(a, p.id)[i][1] += share * w[k] / W; });
+    });
   });
   const agMap = new Map(), pjMap = new Map();
   activeAgents().forEach(a => { if (!only || a.id === only) agMap.set(a.id, {id: a.id, a, name: agentName(a), cap: num(a.Capacite_annuelle), tot: zero(n), byP: []}); });
@@ -1339,6 +1415,12 @@ function chargeModel(P, opt = {}) {
     if (!pjMap.has(pid)) pjMap.set(pid, {p, tot: zero(n), byA: []});
     const pj = pjMap.get(pid); addTo(pj.tot, c); pj.byA.push({ag, c});
   });
+  {
+    const y = i => new Date(P[i].a * 1000).getUTCFullYear();
+    [...agMap.values()].forEach(ag => { ag.ab = P.map(() => 0); ag.capP = P.map(() => 0);
+      if (!ag.id) return;
+      P.forEach((p, i) => { let av = 0, ab = 0; for (let t = p.a; t <= p.b; t += DAY) if (isWd(t)) { const f = absFrac(ag.id, t); av += 1 - f; ab += f; } ag.ab[i] = ab; ag.capP[i] = ag.cap / wdYear(y(i)) * av; }); });
+  }
   const lc = (a, b) => a.localeCompare(b, 'fr');
   const agents = [...agMap.values()].sort((x, y) => (x.id === 0) - (y.id === 0) || lc(x.name, y.name));
   agents.forEach(a => a.byP.sort((x, y) => lc(projLabel(x.p), projLabel(y.p))));
@@ -1360,8 +1442,8 @@ function projCells(q, P, totalCol) {
     return `<td class="${inSpan ? 'sp' : ''} ${kind(q.tot[i])} ${p.cur ? 'cu' : ''}" title="${esc(tip)}">${sumC([q.tot[i]]) ? fmtC(sumC([q.tot[i]])) : ''}${js.length ? '<i class="jl">◆</i>' : ''}</td>`;
   }).join('') + (totalCol ? `<td class="tt">${fmtC(sumC(q.tot))}</td>` : '');
 }
-function agentCells(c, P, totalCol) {
-  return P.map((p, i) => `<td class="${kind(c[i])} ${p.cur ? 'cu' : ''}" title="${esc(tipC(c[i]))}">${sumC([c[i]]) ? fmtC(sumC([c[i]])) : ''}</td>`).join('') + (totalCol ? `<td class="tt">${fmtC(sumC(c))}</td>` : '');
+function agentCells(c, P, totalCol, ag) {
+  return P.map((p, i) => { const ab = ag && ag.ab ? ag.ab[i] : 0; return `<td class="${kind(c[i])} ${p.cur ? 'cu' : ''}" title="${esc(tipC(c[i]) + (ab ? '\nAbsence : ' + fmtC(ab) + ' j' : ''))}">${sumC([c[i]]) ? fmtC(sumC([c[i]])) : ''}${ab ? `<small class="ab">abs. ${fmtC(ab)} j</small>` : ''}</td>`; }).join('') + (totalCol ? `<td class="tt">${fmtC(sumC(c))}</td>` : '');
 }
 function headRow(P, first, totalCol, extra = '') {
   return `<tr><th>${first}</th>${extra}${P.map(p => `<th class="${p.cur ? 'cu' : ''}" title="${esc(p.tip || '')}">${esc(p.lab)}</th>`).join('')}${totalCol ? '<th>Total</th>' : ''}</tr>`;
@@ -1371,23 +1453,25 @@ function calTable(m, opt) {
   if (!projects.length) return '<div class="muted">Aucun projet sur cette période.</div>';
   return `<div class="heat-w" style="overflow-x:auto"><table class="st2 cal2 ${opt.g || ''}"><thead>${headRow(P, 'Projet / agent', tc)}</thead><tbody>
     ${projects.map(q => `<tr class="pr"><td><button class="lkp" data-a="open-p" data-id="${q.p.id}" data-m="consulter">${esc(projLabel(q.p))}</button><small>${esc(q.p.Statut || '')}${spanOf(q.p)[1] != null ? ' · fin ' + fmtD(spanOf(q.p)[1]) : ''}${opt.detail ? '' : ' · ' + esc(q.p.Agent_nom || 'sans agent')}</small></td>${projCells(q, P, tc)}</tr>
-      ${opt.detail ? q.byA.map(x => `<tr class="ar"><td>↳ ${esc(x.ag.name)}</td>${agentCells(x.c, P, tc)}</tr>`).join('') : ''}`).join('')}</tbody></table></div>`;
+      ${opt.detail ? q.byA.map(x => `<tr class="ar"><td>↳ ${esc(x.ag.name)}</td>${agentCells(x.c, P, tc, x.ag)}</tr>`).join('') : ''}`).join('')}</tbody></table></div>`;
 }
 function agentTable(m, opt) {
   const {P, agents} = m, tc = opt.totalCol;
   if (!agents.length) return '<div class="muted">Aucun agent.</div>';
-  const heat = (c, cap, i) => hcls(sumC([c[i]]), capOf(cap, P[i]));
+  const cellH = (tot, ab, cp, cur, th) => { const v = sumC([tot]), tag = th ? 'th' : 'td';
+    return `<${tag} class="${hcls(v, cp)} ${cur ? 'cu' : ''}" title="${esc(tipC(tot) + (cp ? '\nCapacité disponible : ' + fmtC(cp) + ' j' : '') + (ab ? '\nAbsences : ' + fmtC(ab) + ' j' : ''))}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}${ab ? `<small class="ab">abs. ${fmtC(ab)} j</small>` : ''}</${tag}>`; };
+  const T = zero(P.length), teamCap = P.map(() => 0), teamAb = P.map(() => 0);
+  agents.forEach(a => { addTo(T, a.tot); a.capP.forEach((c, i) => { teamCap[i] += c; teamAb[i] += a.ab[i]; }); });
+  const capTot = agents.filter(a => a.id).reduce((s, a) => s + a.cap, 0);
   return `<div class="heat-w" style="overflow-x:auto"><table class="st2 heat cal2 ${opt.g || ''}"><thead>${headRow(P, 'Agent', tc, '<th>Cap. annuelle</th>')}</thead><tbody>
-    ${agents.map(a => `<tr class="pr"><td>${esc(a.name)}</td><td>${a.id ? fmtC(a.cap) : '—'}</td>${P.map((p, i) => { const v = sumC([a.tot[i]]), cp = capOf(a.cap, p);
-      return `<td class="${heat(a.tot, a.cap, i)} ${p.cur ? 'cu' : ''}" title="${esc(tipC(a.tot[i]) + (cp ? '\nCapacité de la période : ' + fmtC(cp) + ' j' : ''))}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}</td>`; }).join('')}${tc ? `<td class="tt">${fmtC(sumC(a.tot))}${a.cap ? `<small>${Math.round(sumC(a.tot) / P.reduce((s, p) => s + capOf(a.cap, p), 0) * 100)} %</small>` : ''}</td>` : ''}</tr>
+    ${agents.map(a => `<tr class="pr"><td>${esc(a.name)}</td><td>${a.id ? fmtC(a.cap) : '—'}</td>${P.map((p, i) => cellH(a.tot[i], a.ab[i], a.capP[i], p.cur)).join('')}${tc ? `<td class="tt">${fmtC(sumC(a.tot))}${a.cap ? `<small>${Math.round(sumC(a.tot) / a.capP.reduce((x, y) => x + y, 0) * 100)} %</small>` : ''}</td>` : ''}</tr>
       ${opt.detail ? a.byP.map(x => `<tr class="ar"><td>↳ ${lkp(x.p)}</td><td></td>${agentCells(x.c, P, tc)}</tr>`).join('') : ''}`).join('')}
-    ${(() => { const cp = agents.filter(a => a.id).reduce((s, a) => s + a.cap, 0), T = zero(P.length); agents.forEach(a => addTo(T, a.tot));
-      return `<tr class="tot"><th>Équipe</th><th>${fmtC(cp)}</th>${P.map((p, i) => { const v = sumC([T[i]]), c = capOf(cp, p); return `<th class="${hcls(v, c)} ${p.cur ? 'cu' : ''}" title="${esc(tipC(T[i]))}">${v ? fmtC(v) + (c ? `<small>${Math.round(v / c * 100)} %</small>` : '') : '·'}</th>`; }).join('')}${tc ? `<th>${fmtC(sumC(T))}</th>` : ''}</tr>`; })()}
+    <tr class="tot"><th>Équipe</th><th>${fmtC(capTot)}</th>${P.map((p, i) => cellH(T[i], teamAb[i], teamCap[i], p.cur, true)).join('')}${tc ? `<th>${fmtC(sumC(T))}</th>` : ''}</tr>
     </tbody></table></div>`;
 }
 const LEG0 = '<span><i class="lgb re"></i>Réalisé (temps saisi)</span><span><i class="lgb pl"></i>Prévisionnel (reste à faire)</span><span><i class="lgb mx"></i>Réalisé et prévu (période en cours)</span>';
 const LEGEND = `<div class="lg">${LEG0}<span><i class="jl">◆</i>Jalon</span><span><i class="lgb sp"></i>Durée du projet</span></div>`;
-const HEATLEG = '<span class="tag ok">vert</span> sous 80 % · <span class="tag warn">orange</span> de 80 à 100 % · <span class="tag bad">rouge</span> au-delà de la capacité de la période (capacité annuelle ÷ 260 jours ouvrés)';
+const HEATLEG = '<span class="tag ok">vert</span> sous 80 % · <span class="tag warn">orange</span> de 80 à 100 % · <span class="tag bad">rouge</span> au-delà de la capacité de la période (capacité annuelle répartie sur les jours ouvrés, hors congés, absences et jours fériés)';
 function ctl(w, st, P) {
   return `<div class="acts noprint" style="margin-top:8px">${Object.entries(GRAN).map(([k, l]) => `<button class="fchip ${st.g === k ? 'on' : ''}" data-a="${w}-g" data-v="${k}">${l}</button>`).join('')}
     <span class="seg"><button data-a="${w}-off" data-v="-1" aria-label="Période précédente">◀</button><button data-a="${w}-off" data-v="0">Aujourd’hui</button><button data-a="${w}-off" data-v="1" aria-label="Période suivante">▶</button></span>
@@ -1447,10 +1531,25 @@ function raYears() {
   ys.add(new Date().getFullYear()); return [...ys].sort((a, b) => b - a);
 }
 function raModel(y) { return chargeModel(buildPeriods('mois', Date.UTC(y, 0, 1) / 1000, 12), {hide: new Set(), span: true}); }
+function absYear(y) {
+  const o = new Map(), lo = Date.UTC(y, 0, 1) / 1000, hi = Date.UTC(y + 1, 0, 1) / 1000 - DAY;
+  D.absences.forEach(x => { if (!x.a || x.d1 == null) return; let n = 0; for (let t = Math.max(x.d1, lo); t <= Math.min(x.d2, hi); t += DAY) if (isWd(t)) n += x.q;
+    if (!n) return; const r = o.get(x.a) || o.set(x.a, {}).get(x.a); r[x.type] = (r[x.type] || 0) + n; });
+  return o;
+}
+function raAbs(y) {
+  if (!D.hasAbs) return '';
+  const o = absYear(y), rows = [...o.entries()].map(([a, r]) => ({a: D.by.agent.get(a), r})).filter(x => x.a).sort((p, q) => agentName(p.a).localeCompare(agentName(q.a), 'fr'));
+  if (!rows.length) return `<div class="card"><h2>Absences et congés en ${y}</h2><div class="muted">Aucune absence enregistrée.</div></div>`;
+  const tot = t => rows.reduce((s, x) => s + (x.r[t] || 0), 0), all = x => AB_T.reduce((s, t) => s + (x.r[t] || 0), 0);
+  return `<div class="card"><h2>Absences et congés en ${y}</h2><div class="hint">Jours ouvrés d’absence (hors jours fériés). Ils réduisent d’autant la capacité disponible de l’agent. L’année compte ${wdYear(y)} jours ouvrés.</div>
+    <table class="st2"><tr><th>Agent</th>${AB_T.map(t => `<th>${t}</th>`).join('')}<th>Total</th></tr>${rows.map(x => `<tr><td>${esc(agentName(x.a))}</td>${AB_T.map(t => `<td>${x.r[t] ? fmtC(x.r[t]) : '—'}</td>`).join('')}<td><b>${fmtC(all(x))}</b></td></tr>`).join('')}
+    <tr><th>Équipe</th>${AB_T.map(t => `<th>${fmtC(tot(t))}</th>`).join('')}<th>${fmtC(rows.reduce((s, x) => s + all(x), 0))}</th></tr></table></div>`;
+}
 function raCal(y) {
   const m = raModel(y);
   return `<div class="card"><h2>Calendrier de l’année ${y} : projets, charge et jalons</h2><div class="hint">Jours de travail par projet et par mois (réalisé pour les mois passés, prévisionnel pour les mois à venir).</div>${LEGEND}${calTable(m, {g: 'mois', detail: false, totalCol: true})}</div>
-  <div class="card"><h2>Charge par agent en ${y}</h2><div class="hint">${HEATLEG}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>`;
+  <div class="card"><h2>Charge par agent en ${y}</h2><div class="hint">${HEATLEG}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>${raAbs(y)}`;
 }
 function synRapport() {
   const ys = raYears(); if (!S.sy.ra.year || !ys.includes(S.sy.ra.year)) S.sy.ra.year = new Date().getFullYear();
