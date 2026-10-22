@@ -53,6 +53,11 @@ td.today .c{box-shadow:0 0 0 1px var(--acc) inset}
 .empty{padding:40px 20px;text-align:center;color:var(--mut)}
 .empty b{color:var(--txt);display:block;font-size:16px;margin-bottom:6px}
 #st{position:fixed;right:16px;bottom:12px;padding:5px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none}
+.c.dirty{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn) inset}
+.unsaved{margin:0 0 12px;padding:8px 12px;border:1px solid var(--warn);border-radius:8px;color:var(--warn);font-size:13px;font-weight:600}
+[hidden]{display:none!important}
+.foot{display:flex;justify-content:flex-end;margin-top:14px}
+.btn.save{min-width:150px}
 @media (max-width:560px){.week .lbl{min-width:0;flex:1}.c{width:52px}}
 </style>
 </head>
@@ -68,12 +73,15 @@ td.today .c{box-shadow:0 0 0 1px var(--acc) inset}
       <button id="now" class="s">Cette semaine</button>
     </div>
     <span class="sp"></span>
-    <button id="copy" class="btn" title="Recopie les jours de la semaine précédente dans les cases vides">Recopier la semaine précédente</button>
+    <button id="copy" class="s" title="Recopie les jours de la semaine précédente dans les cases vides">Recopier la semaine précédente</button>
+    <button class="btn save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button>
   </div>
+  <div class="unsaved" id="unsaved" hidden></div>
   <div class="sum" id="sum"></div>
   <div class="card" id="grid"></div>
   <div class="add" id="add"></div>
   <div class="note" id="note"></div>
+  <div class="foot"><button class="btn save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button></div>
 </div>
 <div id="st" role="status"></div>
 
@@ -98,7 +106,7 @@ const dShort = t => new Date(t * 1000).toLocaleDateString('fr-FR', {timeZone: 'U
 const isoWeek = t => { const d = new Date(t * 1000); d.setUTCDate(d.getUTCDate() + 3); const y = d.getUTCFullYear(), j = new Date(Date.UTC(y, 0, 4));
   return 1 + Math.round(((d - j) / 864e5 - 3 + ((j.getUTCDay() + 6) % 7)) / 7); };
 
-let S = {agents: [], projets: [], temps: [], agentId: null, ws: mondayOf(todaySec()), extra: new Set(), sig: ''};
+let S = {agents: [], projets: [], temps: [], agentId: null, ws: mondayOf(todaySec()), extra: new Set(), sig: '', pend: {}, saving: false};
 let queue = Promise.resolve(), toastT;
 
 function flash(t, bad) {
@@ -116,13 +124,19 @@ async function load() {
 }
 
 const recs = (p, d) => S.temps.filter(t => t.a === S.agentId && t.p === p && t.d === d);
-const cellVal = (p, d) => recs(p, d).reduce((s, t) => s + t.j, 0);
+/* Modifications en attente d'enregistrement : une table par agent, clé « projet|date » */
+const pend = () => S.pend[S.agentId] || (S.pend[S.agentId] = new Map());
+const pk = (p, d) => p + '|' + d;
+const stored = (p, d) => recs(p, d).reduce((s, t) => s + t.j, 0);
+const cellVal = (p, d) => { const m = pend(), k = pk(p, d); return m.has(k) ? m.get(k) : stored(p, d); };
+function setPending(p, d, val) { const m = pend(), k = pk(p, d); if (Math.abs(val - stored(p, d)) < 1e-9) m.delete(k); else m.set(k, val); }
 const days = () => [0, 1, 2, 3, 4].map(i => S.ws + i * DAY);
 
 function rowsFor() {
   const lo = S.ws, hi = S.ws + 6 * DAY;
   const set = new Set(S.projets.filter(p => (p.st === 'En cours' || p.st === 'À cadrer') && p.ag.includes(S.agentId)).map(p => p.id));
   S.temps.filter(t => t.a === S.agentId && t.d >= lo && t.d <= hi).forEach(t => set.add(t.p));
+  pend().forEach((val, k) => { const [p, d] = k.split('|').map(Number); if (d >= lo && d <= hi) set.add(p); });
   S.extra.forEach(x => set.add(x));
   return S.projets.filter(p => set.has(p.id)).sort((a, b) => (a.st === 'En cours' ? 0 : 1) - (b.st === 'En cours' ? 0 : 1) || a.t.localeCompare(b.t, 'fr'));
 }
@@ -143,7 +157,7 @@ function render() {
   const grid = $('#grid');
   if (!S.agentId) {
     grid.innerHTML = '<div class="empty"><b>Bienvenue 👋</b>Choisissez votre nom en haut pour saisir votre temps. Il sera mémorisé sur cet ordinateur.</div>';
-    $('#sum').innerHTML = ''; $('#add').innerHTML = ''; $('#note').textContent = ''; S.sig = ''; return;
+    $('#sum').innerHTML = ''; $('#add').innerHTML = ''; $('#note').textContent = ''; S.sig = ''; updateSave(); return;
   }
   const rows = rowsFor(), ds = days(), today = todaySec();
   S.sig = [S.agentId, S.ws, rows.map(r => r.id).join(',')].join('|');
@@ -167,14 +181,19 @@ function patch() {
   if (!S.agentId) return;
   document.querySelectorAll('input.c').forEach(el => {
     if (el === document.activeElement) return;
-    const val = cellVal(+el.dataset.p, +el.dataset.d), n = recs(+el.dataset.p, +el.dataset.d).length;
+    const p = +el.dataset.p, d = +el.dataset.d, val = cellVal(p, d), n = recs(p, d).length;
     el.value = val ? fmt(val) : '';
     el.classList.toggle('has', val > 0);
+    el.classList.toggle('dirty', pend().has(pk(p, d)));
     el.title = n > 1 ? `${n} saisies cumulées (elles seront regroupées si vous modifiez cette case)` : '';
   });
-  totals();
+  refreshSummary();
+}
+
+function refreshSummary() {
+  const wk = totals();
+  updateSave();
   const me = S.agents.find(a => a.id === S.agentId);
-  const wk = S.temps.filter(t => t.a === S.agentId && t.d >= S.ws && t.d <= S.ws + 4 * DAY).reduce((s, t) => s + t.j, 0);
   const we = S.temps.filter(t => t.a === S.agentId && t.d > S.ws + 4 * DAY && t.d <= S.ws + 6 * DAY).reduce((s, t) => s + t.j, 0);
   const pct = me && me.cap ? Math.round(me.ya / me.cap * 100) : null;
   $('#sum').innerHTML = `<span class="chip">Cette semaine : <b>${fmt(wk)} j</b></span>` +
@@ -193,6 +212,17 @@ function totals() {
     td.title = s > 1 ? 'Plus d’une journée saisie ce jour-là' : '';
   });
   const wt = $('#wt'); if (wt) wt.textContent = all ? fmt(all) + ' j' : '';
+  return all;
+}
+
+function updateSave() {
+  const n = S.agentId ? pend().size : 0;
+  document.querySelectorAll('.save').forEach(b => {
+    b.disabled = !n || S.saving;
+    b.textContent = S.saving ? 'Enregistrement…' : 'Enregistrer' + (n ? ` (${n})` : '');
+  });
+  const u = $('#unsaved'); u.hidden = !n;
+  u.textContent = n ? `⚠ ${n} modification${n > 1 ? 's' : ''} non enregistrée${n > 1 ? 's' : ''} : cliquez sur « Enregistrer » avant de quitter la page.` : '';
 }
 
 /* ---------- Écriture ---------- */
@@ -203,14 +233,22 @@ function buildCellActions(p, d, val) {
   else rs.forEach(r => a.push(['RemoveRecord', 'Temps', r.id]));
   return a;
 }
-function run(actions, okMsg) {
-  if (!actions.length) return Promise.resolve();
+function save() {
+  if (!S.agentId || S.saving) return;
+  const m = pend(); if (!m.size) return;
+  const entries = [...m.entries()], a = [];
+  entries.forEach(([k, val]) => { const [p, d] = k.split('|').map(Number); a.push(...buildCellActions(p, d, val)); });
+  S.saving = true; updateSave();
   queue = queue.then(async () => {
-    try { await act(actions); flash(okMsg || '✓ Enregistré'); }
-    catch (e) { flash('Enregistrement refusé : ' + (e.message || e), 1); }
-    await load(); renderOrPatch();
+    try {
+      if (a.length) await act(a);
+      entries.forEach(([k, val]) => { if (m.get(k) === val) m.delete(k); });
+      const n = entries.length;
+      flash(`✓ ${n} modification${n > 1 ? 's' : ''} enregistrée${n > 1 ? 's' : ''}`);
+    } catch (e) { flash('Enregistrement refusé : ' + (e.message || e), 1); }
+    S.saving = false;
+    await load(); renderOrPatch(); updateSave();
   });
-  return queue;
 }
 function renderOrPatch() {
   const sig = [S.agentId, S.ws, rowsFor().map(r => r.id).join(',')].join('|');
@@ -226,30 +264,41 @@ document.addEventListener('change', e => {
   if (el.classList.contains('c')) {
     const raw = el.value.trim(), val = raw === '' ? 0 : parseN(raw);
     if (val === null || val < 0 || val > 31) { el.classList.add('bad'); flash('Saisissez un nombre de jours, par exemple 0,5 ou 1.', 1); return; }
-    el.classList.remove('bad'); el.value = val ? fmt(val) : ''; totals();
-    run(buildCellActions(+el.dataset.p, +el.dataset.d, val));
+    const p = +el.dataset.p, d = +el.dataset.d;
+    el.classList.remove('bad'); el.value = val ? fmt(val) : ''; setPending(p, d, val);
+    el.classList.toggle('has', val > 0); el.classList.toggle('dirty', pend().has(pk(p, d)));
+    refreshSummary();
   }
 });
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    const f = document.activeElement; if (f && f.classList && f.classList.contains('c')) f.blur();
+    save();
+  }
+});
+window.addEventListener('beforeunload', e => { if (S.agentId && pend().size) { e.preventDefault(); e.returnValue = ''; } });
 document.addEventListener('focusin', e => { if (e.target.classList && e.target.classList.contains('c')) e.target.select(); });
 document.addEventListener('click', e => {
   const t = e.target.closest('button'); if (!t) return;
   if (t.id === 'prev') { S.ws -= 7 * DAY; return render(); }
   if (t.id === 'next') { S.ws += 7 * DAY; return render(); }
   if (t.id === 'now') { S.ws = mondayOf(todaySec()); return render(); }
+  if (t.classList.contains('save')) return save();
   if (t.classList.contains('fill')) {
-    const p = +t.dataset.p, a = [];
-    days().forEach(d => { if (!cellVal(p, d)) a.push(...buildCellActions(p, d, 1)); });
-    return a.length ? run(a, `✓ ${a.length} jour${a.length > 1 ? 's' : ''} ajouté${a.length > 1 ? 's' : ''}`) : flash('Les cinq jours sont déjà renseignés.');
+    const p = +t.dataset.p; let n = 0;
+    days().forEach(d => { if (!cellVal(p, d)) { setPending(p, d, 1); n++; } });
+    if (!n) return flash('Les cinq jours sont déjà renseignés.');
+    patch(); return flash(`${n} jour${n > 1 ? 's' : ''} ajouté${n > 1 ? 's' : ''} : pensez à enregistrer`);
   }
   if (t.id === 'copy') {
-    const prev = S.temps.filter(x => x.a === S.agentId && x.d >= S.ws - 7 * DAY && x.d <= S.ws - 3 * DAY && x.j > 0), a = [];
-    const done = new Set();
-    prev.forEach(x => { const d = x.d + 7 * DAY, k = x.p + '|' + d; if (done.has(k) || cellVal(x.p, d)) return; done.add(k);
-      const j = prev.filter(y => y.p === x.p && y.d === x.d).reduce((s, y) => s + y.j, 0);
-      a.push(['AddRecord', 'Temps', null, {Projet: x.p, Agent: S.agentId, Date: d, Jours: j}]); });
+    const prev = S.temps.filter(x => x.a === S.agentId && x.d >= S.ws - 7 * DAY && x.d <= S.ws - 3 * DAY && x.j > 0);
     if (!prev.length) return flash('Rien à recopier : la semaine précédente est vide.', 1);
-    if (!a.length) return flash('Les cases correspondantes sont déjà remplies.');
-    return run(a, `✓ ${a.length} case${a.length > 1 ? 's' : ''} recopiée${a.length > 1 ? 's' : ''}`);
+    const seen = new Set(); let n = 0;
+    prev.forEach(x => { const d = x.d + 7 * DAY, k = pk(x.p, d); if (seen.has(k) || cellVal(x.p, d)) return; seen.add(k);
+      setPending(x.p, d, prev.filter(y => y.p === x.p && y.d === x.d).reduce((s, y) => s + y.j, 0)); n++; });
+    if (!n) return flash('Les cases correspondantes sont déjà remplies.');
+    renderOrPatch(); return flash(`${n} case${n > 1 ? 's' : ''} recopiée${n > 1 ? 's' : ''} : pensez à enregistrer`);
   }
 });
 
