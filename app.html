@@ -214,6 +214,12 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 .st2{width:100%;border-collapse:collapse}.st2 th,.st2 td{padding:6px 8px;text-align:right;border-top:1px solid var(--line)}
 .st2 th:first-child,.st2 td:first-child{text-align:left}.st2 th{color:var(--mut);font-weight:500;font-size:12px;border-top:0}
 
+.st2.l td,.st2.l th{text-align:left;vertical-align:top}
+.lkp{background:none;border:0;padding:0;font-weight:600;text-align:left;cursor:pointer}.lkp:hover{text-decoration:underline;color:var(--acc)}
+.heat td,.heat th{text-align:center!important}.heat td:first-child,.heat th:first-child{text-align:left!important}
+.heat td small{display:block;color:var(--mut);font-size:11px}.heat .hk{background:rgba(63,182,122,.14)}.heat .hw{background:rgba(240,164,60,.28)}.heat .hb{background:rgba(238,99,99,.32)}
+.ra-c{width:100%;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--field)}.ra-p{display:none;white-space:pre-wrap}
+
 @media (max-width:760px){
  .md{grid-template-columns:1fr;grid-template-rows:auto 1fr}.lp{max-height:230px;border-right:0;border-bottom:1px solid var(--line)}
  .kpis{grid-template-columns:repeat(2,1fr)}h1{font-size:24px}
@@ -230,6 +236,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .card{break-inside:avoid;box-shadow:none}
  .cal .cv{display:block!important;break-inside:avoid}.cal .cv+.cv{margin-top:18px}.cvt{display:block}
  .rp-r{break-inside:avoid}
+ .ra-p{display:block}.lkp{font-weight:600}.st2 tr{break-inside:avoid}
 }
 </style>
 </head>
@@ -359,7 +366,7 @@ const S = {
   pj: {sel: null, mode: 'consulter', q: '', filter: 'tous', old: false, cal: 'frise', arch: false},
   eq: {sel: null, mode: 'consulter', q: '', inactive: false},
   mt: {ws: mondayOf(todaySec()), extra: new Set(), pend: {}, saving: false, sig: ''},
-  sy: {tab: 'projets', pj: {hidden: new Set(['Archivé']), year: 'all', tab: 'ens'}, eq: {inactive: false, tab: 'ens'}},
+  sy: {tab: 'hebdo', ra: {year: null}, pj: {hidden: new Set(['Archivé']), year: 'all', tab: 'ens'}, eq: {inactive: false, tab: 'ens'}},
   ac: {scope: 'tous'}
 };
 const VIEWS = {
@@ -399,21 +406,22 @@ function alertsFor(scope) {
   const today = todaySec(), res = {watch: [], todo: [], next: []};
   const jBy = {}; D.jalons.forEach(j => (jBy[j.Projet] = jBy[j.Projet] || []).push(j));
   D.projets.filter(p => p.Statut === 'En cours' && (scope !== 'mes' || mine(p))).forEach(p => {
-    const w = [], t = [], js = jBy[p.id] || [];
+    const w = [], js = jBy[p.id] || [];
     if (p.Retard && typeof p.Date_fin_prevue === 'number') w.push({sev: 2, txt: `En retard de ${plural(Math.max(1, Math.round((today - p.Date_fin_prevue) / DAY)), 'jour')}`});
     const tc = num(p.Taux_conso);
-    if (tc > 1) w.push({sev: 2, txt: `Charge dépassée (${pct(tc)} %)`}); else if (tc >= .8) w.push({sev: 1, txt: `Charge à ${pct(tc)} %`});
+    if (tc > 1) w.push({sev: 2, txt: `Charge supérieure à 100 % (${pct(tc)} %)`}); else if (tc >= .8) w.push({sev: 1, txt: `Charge à ${pct(tc)} %`});
     const late = js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date < today);
     if (late.length) w.push({sev: 2, txt: late.length === 1 ? `Jalon « ${late[0].Libelle || 'sans libellé'} » dépassé` : `${late.length} jalons dépassés`});
-    if (!ids(p.Agent).length) t.push('Aucun agent affecté');
-    if (!p.Date_fin_prevue) t.push('Date de fin à renseigner');
-    if (!js.some(j => j.Libelle || j.Date)) t.push('Aucun jalon');
-    if (!num(p.Charge_prevue)) t.push('Charge prévue à renseigner');
-    if (w.length) res.watch.push({p, w, sev: Math.max(...w.map(x => x.sev))});
-    if (t.length) res.todo.push({p, t});
+    const real = w.length;
+    if (!ids(p.Agent).length) w.push({sev: 1, txt: 'Aucun agent affecté', todo: 1});
+    if (!p.Date_fin_prevue) w.push({sev: 1, txt: 'Sans date de fin', todo: 1});
+    if (!js.some(j => j.Libelle || j.Date)) w.push({sev: 1, txt: 'Sans jalon', todo: 1});
+    if (!num(p.Charge_prevue)) w.push({sev: 0, txt: 'Charge prévue à renseigner', todo: 1});
+    if (w.length) res.watch.push({p, w, sev: Math.max(...w.map(x => x.sev)), onlyTodo: !real});
+    if (w.some(x => x.todo)) res.todo.push({p, t: w.filter(x => x.todo).map(x => x.txt)});
     js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date >= today && j.Date <= today + 14 * DAY).forEach(j => res.next.push({p, j}));
   });
-  res.watch.sort((a, b) => b.sev - a.sev); res.next.sort((a, b) => a.j.Date - b.j.Date);
+  res.watch.sort((a, b) => b.sev - a.sev || projLabel(a.p).localeCompare(projLabel(b.p), 'fr')); res.next.sort((a, b) => a.j.Date - b.j.Date);
   return res;
 }
 const weekSum = (agent, ws) => D.temps.filter(t => t.a === agent && typeof t.d === 'number' && t.d >= ws && t.d <= ws + 4 * DAY).reduce((s, t) => s + t.j, 0);
@@ -423,7 +431,7 @@ function vHome() {
   const ws = mondayOf(todaySec()), wk = me ? weekSum(me.id, ws) : 0;
   const myActive = D.projets.filter(p => p.Statut === 'En cours' && mine(p)).length;
   const nudge = me && now.getDay() >= 3 && now.getDay() <= 5 && wk === 0;
-  const lim = 6, more = (n) => n > lim ? `<div class="muted" style="padding:6px 4px">+ ${n - lim} autre${n - lim > 1 ? 's' : ''} dans l’onglet Projets</div>` : '';
+  const lim = 8, more = (n) => n > lim ? `<button class="al" data-a="go-hebdo"><span class="muted">+ ${n - lim} autre${n - lim > 1 ? 's' : ''} : voir la liste complète (Synthèse › Point hebdo)</span><span class="muted">›</span></button>` : '';
   $('#view').innerHTML = `<div class="home">
     <h1 class="hello">${now.getHours() < 18 ? 'Bonjour' : 'Bonsoir'}${me ? ' ' + esc(me.Prenom || agentName(me)) : ''}</h1>
     <div class="muted">${me ? 'Que souhaitez-vous faire ?' : 'Choisissez votre nom en haut à droite pour personnaliser l’accueil et saisir votre temps.'}</div>
@@ -435,14 +443,11 @@ function vHome() {
     ${nudge ? `<div class="nudge"><span>⏱ Vous n’avez pas encore saisi de temps cette semaine.</span><button class="btn" data-a="go" data-v="temps">Saisir maintenant</button></div>` : ''}
     <div class="card"><div class="cal-h"><h2>À surveiller</h2>
       <div class="seg" role="group" aria-label="Périmètre"><button class="${S.ac.scope === 'tous' ? 'on' : ''}" data-a="ac-scope" data-v="tous">Tous les projets</button><button class="${S.ac.scope === 'mes' ? 'on' : ''}" data-a="ac-scope" data-v="mes">Mes projets</button></div></div>
-      ${al.watch.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="consulter"><span><b>${esc(projLabel(x.p))}</b><small>${esc(x.p.Agent_nom || 'Sans agent')}</small></span><span>${x.w.map(i => `<span class="tag ${i.sev > 1 ? 'bad' : 'warn'}">${esc(i.txt)}</span>`).join('')}</span></button>`).join('') || '<div class="muted">✓ Rien à signaler : aucun retard ni dépassement.</div>'}${more(al.watch.length)}</div>
-    <div class="two">
-      <div class="card"><h2>Prochains jalons (14 jours)</h2>
-        ${al.next.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="consulter"><span><b>${esc(x.j.Libelle || 'Jalon sans libellé')}</b><small>${esc(projLabel(x.p))}</small></span><span class="muted">${fmtD(x.j.Date)}</span></button>`).join('') || '<div class="muted">Aucun jalon dans les 14 prochains jours.</div>'}${more(al.next.length)}</div>
-      <div class="card"><h2>À compléter</h2>
-        ${al.todo.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="modifier"><span><b>${esc(projLabel(x.p))}</b><small>${x.t.map(esc).join(' · ')}</small></span><span class="muted">Modifier ›</span></button>`).join('') || '<div class="muted">✓ Les projets en cours sont complets.</div>'}${more(al.todo.length)}</div>
-    </div></div>`;
+      ${al.watch.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="${x.onlyTodo ? 'modifier' : 'consulter'}"><span><b>${esc(projLabel(x.p))}</b><small>${esc(x.p.Agent_nom || 'Sans agent')}</small></span><span style="text-align:right">${x.w.map(i => `<span class="tag ${i.sev > 1 ? 'bad' : i.sev ? 'warn' : ''}">${esc(i.txt)}</span>`).join('')}</span></button>`).join('') || '<div class="muted">✓ Rien à signaler : aucun retard, dépassement ou projet incomplet.</div>'}${more(al.watch.length)}</div>
+    <div class="card"><h2>Prochains jalons (14 jours)</h2>
+        ${al.next.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="consulter"><span><b>${esc(x.j.Libelle || 'Jalon sans libellé')}</b><small>${esc(projLabel(x.p))}</small></span><span class="muted">${fmtD(x.j.Date)}</span></button>`).join('') || '<div class="muted">Aucun jalon dans les 14 prochains jours.</div>'}${al.next.length > lim ? `<div class="muted" style="padding:6px 4px">+ ${al.next.length - lim} autre(s)</div>` : ''}</div></div>`;
 }
+ACT['go-hebdo'] = () => { S.sy.tab = 'hebdo'; go('synthese'); };
 ACT['ac-scope'] = el => { S.ac.scope = el.dataset.v; vHome(); };
 ACT['home-mine'] = () => go('projets', {pj: {filter: S.agentId ? 'mes' : 'tous', q: '', old: false}});
 ACT['open-p'] = el => go('projets', {pj: {sel: +el.dataset.id, mode: el.dataset.m || 'consulter', filter: 'tous', q: '', arch: false}});
@@ -1024,10 +1029,12 @@ const sum = (a, k) => a.reduce((s, x) => s + (+x[k] || 0), 0);
 const grp = (a, k) => { const m = {}; a.forEach(x => { const g = x[k] || 'Non renseigné'; (m[g] = m[g] || []).push(x); }); return Object.entries(m).sort((p, q) => q[1].length - p[1].length); };
 const csvRows = rows => rows.map(r => r.map(c => typeof c === 'number' ? String(c).replace('.', ',') : c));
 
+const SY_TABS = [['hebdo', 'Point hebdo'], ['charge', 'Charge par agent'], ['rapport', 'Rapport annuel'], ['projets', 'Projets'], ['equipe', 'Équipe']];
 function vSyn() {
-  $('#view').innerHTML = `<div class="syn"><div class="seg noprint" style="margin-bottom:14px" role="group" aria-label="Synthèse">
-    <button class="${S.sy.tab === 'projets' ? 'on' : ''}" data-a="sy-tab" data-v="projets">Projets</button><button class="${S.sy.tab === 'equipe' ? 'on' : ''}" data-a="sy-tab" data-v="equipe">Équipe</button></div><div id="sy-b"></div></div>`;
-  S.sy.tab === 'projets' ? synProjets() : synEquipe();
+  if (!SY_TABS.some(t => t[0] === S.sy.tab)) S.sy.tab = 'hebdo';
+  $('#view').innerHTML = `<div class="syn"><div class="seg noprint" style="margin-bottom:14px;flex-wrap:wrap" role="group" aria-label="Synthèse">
+    ${SY_TABS.map(([k, l]) => `<button class="${S.sy.tab === k ? 'on' : ''}" data-a="sy-tab" data-v="${k}">${l}</button>`).join('')}</div><div id="sy-b"></div></div>`;
+  ({hebdo: synHebdo, charge: synCharge, rapport: synRapport, projets: synProjets, equipe: synEquipe})[S.sy.tab]();
 }
 ACT['sy-tab'] = el => { S.sy.tab = el.dataset.v; vSyn(); };
 
@@ -1120,6 +1127,131 @@ ACT['syq-csv'] = () => {
     .concat(f.map(r => [agentName(r), String(r.Fonction || '').replace(/\n+/g, ' · '), r.Capacite_annuelle, r.Charge_prevue, r.Charge_reelle_annee, pct(r.Taux_occupation) + ' %', r.Nb_projets_actifs, r.Nb_projets_suivis]))));
 };
 
+/* =====================================================================
+   Pilotage de la cheffe de bureau : point hebdo, charge par agent, rapport annuel
+   ===================================================================== */
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const plan = p => p.Statut === 'En cours' || p.Statut === 'À cadrer';
+const lkp = p => `<button class="lkp" data-a="open-p" data-id="${p.id}" data-m="consulter">${esc(projLabel(p))}</button>`;
+const nowStr = () => new Date().toLocaleDateString('fr-FR', {day: 'numeric', month: 'long', year: 'numeric'});
+
+/* ---------- Point hebdo ---------- */
+function hebdoData() {
+  const today = todaySec(), ws = mondayOf(today), al = alertsFor('tous'), hz = today + 30 * DAY;
+  const jal = D.jalons.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date >= today && j.Date <= hz && D.by.projet.get(j.Projet) && plan(D.by.projet.get(j.Projet)))
+    .sort((a, b) => a.Date - b.Date).map(j => ({j, p: D.by.projet.get(j.Projet)}));
+  const saisie = activeAgents().map(a => ({a, prev: weekSum(a.id, ws - 7 * DAY), cur: weekSum(a.id, ws)})).sort((x, y) => x.prev - y.prev || agentName(x.a).localeCompare(agentName(y.a), 'fr'));
+  const cur = D.projets.filter(p => p.Statut === 'En cours');
+  return {today, ws, al, jal, saisie, cur, nLate: cur.filter(p => p.Retard).length, nOver: cur.filter(p => num(p.Taux_conso) > 1).length,
+    nInc: al.watch.filter(x => x.w.some(i => i.todo)).length};
+}
+function synHebdo() {
+  const h = hebdoData(), end = h.ws + 4 * DAY;
+  $('#sy-b').innerHTML = `<header><h1>Point de bureau</h1>
+    <div class="muted">Semaine ${isoWeek(h.ws)} · du ${dLong(h.ws)} au ${dLong(end)} ${new Date(end * 1000).getUTCFullYear()} · édité le ${nowStr()}</div>
+    <div class="acts noprint" style="margin-top:8px"><button class="fchip" data-a="hb-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
+  <div class="card"><div class="facts"><div><b>${h.cur.length}</b><span>projets en cours</span></div>
+    <div><b class="${h.nLate ? 'ko' : ''}">${h.nLate}</b><span>en retard</span></div><div><b class="${h.nOver ? 'ko' : ''}">${h.nOver}</b><span>charge supérieure à 100 %</span></div>
+    <div><b class="${h.nInc ? 'wn' : ''}">${h.nInc}</b><span>incomplets (agent, fin ou jalon)</span></div><div><b>${h.jal.length}</b><span>jalons dans les 30 jours</span></div></div></div>
+  <div class="card"><h2>Points d’attention</h2><div class="hint noprint">Cliquez sur un projet pour ouvrir sa fiche.</div>
+    ${h.al.watch.length ? `<table class="st2 l"><tr><th>Projet</th><th>Agents</th><th>À surveiller</th></tr>${h.al.watch.map(x => `<tr><td>${lkp(x.p)}</td><td>${esc(x.p.Agent_nom || '—')}</td>
+      <td>${x.w.map(i => `<span class="tag ${i.sev > 1 ? 'bad' : i.sev ? 'warn' : ''}">${esc(i.txt)}</span>`).join('')}</td></tr>`).join('')}</table>` : '<div class="muted">✓ Rien à signaler : aucun retard, dépassement ou projet incomplet.</div>'}</div>
+  <div class="card"><h2>Jalons des 30 prochains jours</h2>
+    ${h.jal.length ? `<table class="st2 l"><tr><th>Date</th><th>Jalon</th><th>Projet</th><th>Agents</th></tr>${h.jal.map(({j, p}) => `<tr><td>${fmtD(j.Date)}</td><td>${esc(j.Libelle || '(sans libellé)')}</td><td>${lkp(p)}</td><td>${esc(p.Agent_nom || '—')}</td></tr>`).join('')}</table>` : '<div class="muted">Aucun jalon à venir.</div>'}</div>
+  <div class="card"><h2>Saisie du temps</h2><div class="hint">Jours saisis la semaine dernière (S${isoWeek(h.ws - 7 * DAY)}) et cette semaine (S${isoWeek(h.ws)}).</div>
+    <table class="st2 l"><tr><th>Agent</th><th>Semaine dernière</th><th>Cette semaine</th></tr>${h.saisie.map(x => `<tr><td>${esc(agentName(x.a))}</td><td class="${x.prev ? '' : 'wn'}">${x.prev ? fmtN(x.prev) + ' j' : 'Rien saisi'}</td><td>${x.cur ? fmtN(x.cur) + ' j' : '—'}</td></tr>`).join('')}</table></div>`;
+}
+ACT['hb-csv'] = () => {
+  const h = hebdoData(), r = [['Rubrique', 'Projet', 'Agents', 'Détail', 'Date']];
+  h.al.watch.forEach(x => r.push(['À surveiller', projLabel(x.p), x.p.Agent_nom, x.w.map(i => i.txt).join(' ; '), '']));
+  h.jal.forEach(({j, p}) => r.push(['Jalon', projLabel(p), p.Agent_nom, j.Libelle, fmtD(j.Date)]));
+  h.saisie.forEach(x => r.push(['Saisie du temps', '', agentName(x.a), `Semaine dernière : ${fmtN(x.prev)} j ; cette semaine : ${fmtN(x.cur)} j`, '']));
+  downloadCsv('point-hebdo-' + iso(h.today), csvRows(r));
+};
+
+/* ---------- Charge par agent : prévisionnel mensuel ---------- */
+const NM = 6;
+function chargeData() {
+  const today = todaySec(), n0 = new Date(today * 1000), y0 = n0.getUTCFullYear(), m0 = n0.getUTCMonth();
+  const ms = Array.from({length: NM}, (_, i) => Date.UTC(y0, m0 + i, 1) / 1000), wEnd = Date.UTC(y0, m0 + NM, 1) / 1000 - DAY;
+  const cell = {}, add = (k, i, p, v) => { const c = (cell[k] = cell[k] || Array.from({length: NM + 1}, () => ({v: 0, l: []})))[i]; c.v += v; c.l.push({p, v}); };
+  const nofin = [];
+  D.projets.filter(plan).forEach(p => {
+    const rem = Math.max(0, num(p.Charge_prevue) - num(p.Charge_reelle)); if (!rem) return;
+    const fin = toSec(p.Date_fin_prevue); if (fin == null) { nofin.push(p); return; }
+    const s = Math.max(today, toSec(p.Date_debut) ?? today), e = Math.max(fin, s), tot = (e - s) / DAY + 1;
+    const who = ids(p.Agent).length ? ids(p.Agent) : [0];
+    for (let i = 0; i <= NM; i++) {
+      const a = i < NM ? Math.max(s, ms[i]) : Math.max(s, wEnd + DAY), b = i < NM ? Math.min(e, (ms[i + 1] ?? wEnd + DAY) - DAY) : e;
+      if (b < a) continue;
+      const v = rem * ((b - a) / DAY + 1) / tot / who.length; who.forEach(ag => add(ag, i, p, v));
+    }
+  });
+  const rows = activeAgents().sort((a, b) => agentName(a).localeCompare(agentName(b), 'fr')).map(a => ({a, name: agentName(a), cap: (num(a.Capacite_annuelle) || 0) / 12, c: cell[a.id]}));
+  if (cell[0]) rows.push({a: null, name: 'Sans agent affecté', cap: 0, c: cell[0]});
+  return {ms, rows, nofin};
+}
+const hcls = (v, cap) => !cap ? (v ? 'hw' : '') : v / cap > 1 ? 'hb' : v / cap >= .8 ? 'hw' : v ? 'hk' : '';
+function synCharge() {
+  const d = chargeData(), zero = Array.from({length: NM + 1}, () => ({v: 0, l: []}));
+  const tot = Array.from({length: NM + 1}, (_, i) => d.rows.reduce((s, r) => s + (r.c ? r.c[i].v : 0), 0));
+  const capT = d.rows.reduce((s, r) => s + r.cap, 0);
+  const th = d.ms.map(m => `<th>${new Date(m * 1000).toLocaleDateString('fr-FR', {month: 'short', year: '2-digit', timeZone: 'UTC'})}</th>`).join('');
+  $('#sy-b').innerHTML = `<header><h1>Charge par agent : prévisionnel</h1>
+    <div class="muted">Jours restant à réaliser sur les projets « À cadrer » et « En cours », sur les ${NM} prochains mois · édité le ${nowStr()}</div>
+    <div class="acts noprint" style="margin-top:8px"><button class="fchip" data-a="ch-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
+  <div class="card"><div class="hint">Pour chaque projet : charge prévue moins jours déjà saisis, répartie à parts égales entre ses agents et au prorata des jours calendaires jusqu’à la fin prévue. Référence = capacité annuelle ÷ 12 : <span class="tag ok">vert</span> sous 80 % · <span class="tag warn">orange</span> de 80 à 100 % · <span class="tag bad">rouge</span> au-delà. Passez la souris sur une case pour voir les projets concernés.</div>
+    <div style="overflow-x:auto"><table class="st2 heat"><tr><th>Agent</th><th>Cap./mois</th>${th}<th>Ensuite</th></tr>
+    ${d.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.a ? fmt1(r.cap) : '—'}</td>${(r.c || zero).map((c, i) => `<td class="${i < NM ? hcls(c.v, r.cap) : ''}" title="${esc(c.l.map(x => projLabel(x.p) + ' : ' + fmt1(x.v) + ' j').join('\n'))}">${c.v ? fmt1(c.v) + (i < NM && r.cap ? `<small>${Math.round(c.v / r.cap * 100)} %</small>` : '') : '·'}</td>`).join('')}</tr>`).join('')}
+    <tr><th>Équipe</th><th>${fmt1(capT)}</th>${tot.map((v, i) => `<th class="${i < NM ? hcls(v, capT) : ''}">${v ? fmt1(v) : '·'}</th>`).join('')}</tr></table></div></div>
+  ${d.nofin.length ? `<div class="card"><h2>Non pris en compte : sans date de fin prévue</h2><div class="hint">Ces projets ont encore de la charge à réaliser mais ne peuvent pas être répartis dans le temps.</div>${d.nofin.map(p => `<span class="tag warn">${lkp(p)}</span>`).join('')}</div>` : ''}`;
+}
+ACT['ch-csv'] = () => {
+  const d = chargeData();
+  downloadCsv('charge-par-agent', csvRows([['Agent', 'Capacité mensuelle (j)', ...d.ms.map(m => new Date(m * 1000).toLocaleDateString('fr-FR', {month: 'long', year: 'numeric', timeZone: 'UTC'})), 'Ensuite']]
+    .concat(d.rows.map(r => [r.name, r.a ? Math.round(r.cap * 10) / 10 : '', ...Array.from({length: NM + 1}, (_, i) => r.c ? Math.round(r.c[i].v * 10) / 10 : 0)]))));
+};
+
+/* ---------- Rapport annuel pour la hiérarchie ---------- */
+const raKey = y => 'app-rapport-' + y;
+function raData(y) {
+  const P = D.projets.filter(p => p.Annee == y), fy = r => { const t = toSec(r); return t == null ? null : new Date(t * 1000).getUTCFullYear(); };
+  const done = D.projets.filter(p => p.Statut === 'Terminé' && (fy(p.Date_fin_reelle) === y || (fy(p.Date_fin_reelle) == null && p.Annee == y)));
+  const open = P.filter(p => p.Statut === 'En cours' || p.Statut === 'En pause' || p.Statut === 'À cadrer');
+  const ts = D.temps.filter(t => typeof t.d === 'number' && new Date(t.d * 1000).getUTCFullYear() === y), jours = ts.reduce((s, t) => s + t.j, 0);
+  const cap = activeAgents().reduce((s, a) => s + num(a.Capacite_annuelle), 0);
+  const by = k => grp(P, k).map(([n, a]) => ({n, a, nb: a.length, ter: a.filter(x => x.Statut === 'Terminé').length, prev: sum(a, 'Charge_prevue'), reel: sum(a, 'Charge_reelle')}));
+  return {P, done, open, jours, cap, byType: by('Type_nom'), byNiv: by('Niveau_commanditaire'), prev: sum(P, 'Charge_prevue'), reel: sum(P, 'Charge_reelle'), late: P.filter(p => p.Retard).length};
+}
+function raYears() {
+  const ys = new Set(D.projets.map(p => p.Annee).filter(Boolean).map(Number)); D.temps.forEach(t => typeof t.d === 'number' && ys.add(new Date(t.d * 1000).getUTCFullYear()));
+  ys.add(new Date().getFullYear()); return [...ys].sort((a, b) => b - a);
+}
+function synRapport() {
+  const ys = raYears(); if (!S.sy.ra.year || !ys.includes(S.sy.ra.year)) S.sy.ra.year = new Date().getFullYear();
+  const y = S.sy.ra.year, r = raData(y);
+  const tbl = (l, rows) => `<table class="st2"><tr><th>${l}</th><th>Projets</th><th>Terminés</th><th>Prévu (j)</th><th>Réalisé (j)</th><th>Conso</th></tr>${rows.map(x => `<tr><td>${esc(x.n)}</td><td>${x.nb}</td><td>${x.ter}</td><td>${fmt1(x.prev)}</td><td>${fmt1(x.reel)}</td><td>${x.prev ? Math.round(x.reel / x.prev * 100) + ' %' : '—'}</td></tr>`).join('')}</table>`;
+  $('#sy-b').innerHTML = `<header><h1>Bilan d’activité du bureau ${y}</h1><div class="muted">Édité le ${nowStr()}</div>
+    <div class="acts noprint" style="margin-top:8px"><select data-ch="ra-yr" aria-label="Année">${ys.map(v => `<option ${v === y ? 'selected' : ''}>${v}</option>`).join('')}</select>
+      <button class="fchip" data-a="ra-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
+  <div class="card"><p style="margin:0 0 12px">En ${y}, le bureau a conduit <b>${plural(r.P.length, 'projet')}</b> : <b>${r.done.length}</b> terminé${r.done.length > 1 ? 's' : ''} dans l’année et <b>${r.open.length}</b> en cours ou à venir.
+    L’équipe a consacré <b>${fmt1(r.jours)} jours</b> à ces activités${r.cap ? ` (${Math.round(r.jours / r.cap * 100)} % de la capacité annuelle de ${fmt1(r.cap)} jours)` : ''}.</p>
+    <div class="facts"><div><b>${r.P.length}</b><span>projets rattachés à ${y}</span></div><div><b>${r.done.length}</b><span>projets terminés</span></div><div><b>${fmt1(r.prev)} j</b><span>charge prévue</span></div>
+    <div><b>${fmt1(r.reel)} j</b><span>charge réalisée (${r.prev ? Math.round(r.reel / r.prev * 100) : 0} %)</span></div><div><b class="${r.late ? 'ko' : ''}">${r.late}</b><span>en retard</span></div></div></div>
+  <div class="card"><h2>Par type de projet</h2>${r.byType.length ? tbl('Type', r.byType) : '<div class="muted">Aucun projet.</div>'}</div>
+  <div class="card"><h2>Par niveau de commanditaire</h2>${r.byNiv.length ? tbl('Commanditaire', r.byNiv) : '<div class="muted">Aucun projet.</div>'}</div>
+  <div class="card"><h2>Projets terminés en ${y}</h2>${r.done.length ? `<table class="st2 l"><tr><th>Projet</th><th>Type</th><th>Commanditaire</th><th>Fin réelle</th><th>Prévu</th><th>Réalisé</th></tr>${r.done.map(p => `<tr><td>${lkp(p)}</td><td>${esc(p.Type_nom || '—')}</td><td>${esc([p.Niveau_commanditaire, p.Commanditaire].filter(Boolean).join(' – ') || '—')}</td><td>${fmtD(p.Date_fin_reelle) || '—'}</td><td>${fmt1(p.Charge_prevue)} j</td><td>${fmt1(p.Charge_reelle)} j</td></tr>`).join('')}</table>` : '<div class="muted">Aucun projet terminé.</div>'}</div>
+  <div class="card"><h2>Projets en cours ou à venir</h2>${r.open.length ? `<table class="st2 l"><tr><th>Projet</th><th>Statut</th><th>Agents</th><th>Fin prévue</th><th>Avancement</th></tr>${r.open.map(p => `<tr><td>${lkp(p)}</td><td>${esc(p.Statut)}</td><td>${esc(p.Agent_nom || '—')}</td><td class="${p.Retard ? 'ko' : ''}">${fmtD(p.Date_fin_prevue) || '—'}</td><td>${pct(p.Avancement_jalons)} %</td></tr>`).join('')}</table>` : '<div class="muted">Aucun projet en cours.</div>'}</div>
+  <div class="card"><h2>Faits marquants et commentaires</h2><div class="hint noprint">Texte libre, imprimé avec le bilan. Il est mémorisé sur cet ordinateur uniquement.</div>
+    <textarea class="fi ra-c noprint" data-in="ra-c" rows="5" placeholder="Faits marquants, difficultés, perspectives…" aria-label="Commentaire">${esc(store.get(raKey(y)) || '')}</textarea><div class="ra-p" id="ra-p">${esc(store.get(raKey(y)) || '')}</div></div>`;
+}
+CH['ra-yr'] = el => { S.sy.ra.year = +el.value; synRapport(); };
+IN['ra-c'] = el => { store.set(raKey(S.sy.ra.year), el.value); const p = $('#ra-p'); if (p) p.textContent = el.value; };
+ACT['ra-csv'] = () => {
+  const y = S.sy.ra.year;
+  downloadCsv('bilan-' + y, csvRows([['Référence', 'Titre', 'Type', 'Statut', 'Niveau commanditaire', 'Commanditaire', 'Agents', 'Début', 'Fin prévue', 'Fin réelle', 'Charge prévue', 'Charge réelle', 'En retard']]
+    .concat(raData(y).P.map(p => [String(p.Reference || '').trim(), p.Titre, p.Type_nom, p.Statut, p.Niveau_commanditaire, p.Commanditaire, p.Agent_nom, fmtD(p.Date_debut), fmtD(p.Date_fin_prevue), fmtD(p.Date_fin_reelle), p.Charge_prevue, p.Charge_reelle, p.Retard ? 'Oui' : 'Non']))));
+};
 /* =====================================================================
    Démarrage
    ===================================================================== */
