@@ -7,7 +7,9 @@
 <script src="https://grist.numerique.gouv.fr/grist-plugin-api.js"></script>
 <style>
 :root{--bg:#11131b;--card:#181b25;--field:#232734;--line:#2c3140;--txt:#e8eaf0;--mut:#9aa0b4;--acc:#5b8cff;--acc2:#3b4f86;--ok:#3fb67a;--warn:#f0a43c;--bad:#f26b6b}
-@media (prefers-color-scheme:light){:root{--bg:#f6f7fb;--card:#fff;--field:#eef0f6;--line:#d9dce7;--txt:#1b1f2a;--mut:#626a80;--acc:#2f5fd8;--acc2:#9db4f5}}
+@media (prefers-color-scheme:light){:root:not([data-theme]){--bg:#f6f7fb;--card:#fff;--field:#eef0f6;--line:#d9dce7;--txt:#1b1f2a;--mut:#626a80;--acc:#2f5fd8;--acc2:#9db4f5}}
+:root[data-theme=light]{--bg:#f6f7fb;--card:#fff;--field:#eef0f6;--line:#d9dce7;--txt:#1b1f2a;--mut:#626a80;--acc:#2f5fd8;--acc2:#9db4f5}
+:root[data-theme=dark]{--bg:#11131b;--card:#181b25;--field:#232734;--line:#2c3140;--txt:#e8eaf0;--mut:#9aa0b4;--acc:#5b8cff;--acc2:#3b4f86}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%}
@@ -34,6 +36,26 @@ a{color:var(--acc)}
 .who{display:flex;gap:6px;align-items:center;color:var(--mut)}
 #view{flex:1;min-height:0;overflow:auto}
 #st{position:fixed;right:16px;bottom:12px;padding:5px 14px;border-radius:99px;background:var(--card);border:1px solid var(--line);font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:50}
+
+
+/* ----- barre du haut : retour, recherche, réglages ----- */
+#view{zoom:var(--z,1)}
+.bk{padding:6px 10px;font-weight:600}
+.gs{position:relative;flex:0 1 190px;min-width:120px;margin-left:6px}
+.who select{max-width:170px}
+.gs input{width:100%;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.gsr{position:absolute;left:0;right:0;top:100%;margin-top:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:60;max-height:60vh;overflow:auto;min-width:280px}
+.gsr button{display:flex;width:100%;border:0;border-radius:0;text-align:left;gap:8px;justify-content:space-between;padding:8px 12px;background:transparent}
+.gsr button:hover,.gsr button.on{background:var(--field)}
+.gsr .gh{padding:6px 12px 2px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+.gsr small{color:var(--mut)}
+.pastille{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:99px;background:var(--warn);color:#000;font-size:11px;font-weight:700;text-align:center;margin-left:6px;padding:0 4px}
+.setp{position:absolute;right:14px;top:50px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.35);display:grid;gap:10px;min-width:240px}
+.setp .seg{display:flex}
+.setp label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+.guide h3{font-size:15px;margin:14px 0 4px}.guide p,.guide li{margin:3px 0}.guide ul{padding-left:20px}
+.hint{font-size:12px;color:var(--mut)}
+.qm{display:inline-block;width:18px;height:18px;line-height:16px;text-align:center;border:1px solid var(--line);border-radius:99px;font-size:11px;font-weight:700;cursor:pointer;color:var(--mut);background:var(--card);padding:0}
 
 /* ----- accueil ----- */
 .home{max-width:980px;margin:0 auto;padding:22px 18px 40px}
@@ -250,6 +272,17 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .rp-h,.rp-r{grid-template-columns:1fr 70px}.rp-h span:nth-child(2){display:none}.rp-t{grid-column:1 / -1;grid-row:2}
  .week .lbl{min-width:0;flex:1}.c{width:52px}.ag{grid-template-columns:1fr}.jr,.jr.p5,.phr,.abr{grid-template-columns:1fr 1fr}
 }
+
+.lgd{margin:4px 0 8px}.lgd summary{cursor:pointer;color:var(--acc);font-size:12px;font-weight:600}
+.mailbox{width:100%;min-height:170px;border:1px solid var(--line);border-radius:8px;background:var(--field);padding:8px;font:13px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
+.drift svg{width:100%;max-height:230px;display:block}.drift .lg{margin-top:6px}
+.keyf{margin:4px 0 12px}
+@media (max-width:760px){
+ #nav{padding:6px 8px;gap:2px;position:sticky;top:0;z-index:40}.brand{display:none}.tab{padding:7px 9px;font-size:13px}.gs{flex:1 1 100%;order:9;margin:4px 0 0}
+ .who{width:100%;order:10}.who select{max-width:none;flex:1}.home,.syn,.mt{padding-left:10px;padding-right:10px}.bigs{grid-template-columns:1fr}
+ .card{overflow-x:auto}.facts{gap:16px}.dp{padding:12px 10px 40px}.dh{flex-wrap:wrap}.setp{right:8px;left:8px}
+ .st2 th,.st2 td{padding:5px 6px}.mt .top{flex-wrap:wrap}
+}
 @page{margin:12mm}
 @media print{
  :root{--bg:#fff;--card:#fff;--field:#e3e6ee;--line:#c9cdd8;--txt:#000;--mut:#444;--acc:#2f5fd8;--acc2:#9db4f5}
@@ -270,6 +303,12 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 <nav id="nav" class="noprint" aria-label="Navigation principale"></nav>
 <main id="view"><div class="empty">Chargement…</div></main>
 <div id="st" role="status"></div>
+<dialog id="gd"><div class="guide"><h2>Comment ça marche ?</h2>
+<h3>En 3 gestes</h3><ul><li><b>Choisir mon nom</b> en haut à droite (mémorisé sur cet ordinateur).</li><li><b>Saisir mon temps</b> : onglet « Mon temps », un chiffre en jours par case, puis « Enregistrer ».</li><li><b>Suivre un projet</b> : onglet « Projets », cliquer sur un projet pour voir sa fiche, ses phases et ses jalons.</li></ul>
+<h3>Raccourcis utiles</h3><ul><li><b>/</b> ou <b>Ctrl + K</b> : rechercher un projet, un agent ou un jalon.</li><li>Dans « Mon temps » : flèches du clavier pour passer d’une case à l’autre, <b>Ctrl + S</b> pour enregistrer.</li><li><b>← Retour</b> : revient à l’écran précédent.</li></ul>
+<h3>Lire les couleurs</h3><ul><li><span style="color:var(--bad)">●</span> Rouge : retard ou charge supérieure à 100 %.</li><li><span style="color:var(--warn)">●</span> Orange : à surveiller (charge 80–100 %, élément manquant).</li><li><span style="color:var(--ok)">●</span> Vert : tout va bien.</li></ul>
+<h3>Réglages</h3><p>Le bouton ⚙ permet de choisir le thème (clair/sombre) et la taille du texte.</p>
+<div class="dacts"><button type="button" class="btn" data-a="guide-x">Fermer</button></div></div></dialog>
 <dialog id="np"><form id="npf" novalidate>
 <h2>Nouveau projet</h2>
 <div class="f"><label for="np-t">Titre *</label><input class="fi" id="np-t" maxlength="200" autocomplete="off"><div class="msg" id="np-m"></div></div>
@@ -342,10 +381,10 @@ function flash(t, bad) {
    [libellé, position en % de la durée du projet]. Mots-clés (cle) = reconnaissance du type par son libellé.
    À adapter librement par le bureau. */
 const MODELES = {
- ditp: {cle: ['ditp'], j: [['Lettre de saisine', 0], ['Réunion de cadrage', 10], ['Livrable intermédiaire', 50], ['Restitution', 90], ['Clôture et retour d’expérience', 100]]},
- diag: {cle: ['diagnostic'], j: [['Lettre de mission et cadrage', 0], ['Entretiens et collecte', 30], ['Diagnostic provisoire', 60], ['Restitution du diagnostic', 85], ['Plan d’action validé', 100]]},
- pp: {cle: ['politique'], j: [['Cadrage et commande', 0], ['Comité de pilotage de lancement', 15], ['Analyse et collecte', 45], ['Rapport provisoire', 75], ['Rapport final', 100]]},
- def: {cle: [], j: [['Cadrage validé', 0], ['Point d’étape', 50], ['Livrable final', 100]]}};
+ ditp: {cle: ['ditp'], ph: [['Cadrage', 0, 15], ['Réalisation', 15, 80], ['Restitution et clôture', 80, 100]], j: [['Lettre de saisine', 0, 0], ['Réunion de cadrage', 10, 0], ['Livrable intermédiaire', 50, 1], ['Restitution', 90, 2], ['Clôture et retour d’expérience', 100, 2]]},
+ diag: {cle: ['diagnostic'], ph: [['Cadrage', 0, 15], ['Collecte et analyse', 15, 65], ['Restitution', 65, 90], ['Plan d’action', 90, 100]], j: [['Lettre de mission et cadrage', 0, 0], ['Entretiens et collecte', 30, 1], ['Diagnostic provisoire', 60, 1], ['Restitution du diagnostic', 85, 2], ['Plan d’action validé', 100, 3]]},
+ pp: {cle: ['politique'], ph: [['Cadrage', 0, 20], ['Analyse', 20, 60], ['Rédaction et validation', 60, 100]], j: [['Cadrage et commande', 0, 0], ['Comité de pilotage de lancement', 15, 0], ['Analyse et collecte', 45, 1], ['Rapport provisoire', 75, 2], ['Rapport final', 100, 2]]},
+ def: {cle: [], ph: [['Cadrage', 0, 20], ['Réalisation', 20, 80], ['Finalisation', 80, 100]], j: [['Cadrage validé', 0, 0], ['Point d’étape', 50, 1], ['Livrable final', 100, 2]]}};
 const modele = lab => { const n = norm(lab); return Object.values(MODELES).find(m => m.cle.some(k => n.includes(k))) || MODELES.def; };
 
 /* ---------- Données ---------- */
@@ -423,24 +462,93 @@ const VIEWS = {
   equipe: {label: 'Équipe', render: () => mdShow(MD_EQ), refresh: () => mdRefresh()},
   synthese: {label: 'Synthèse', render: () => vSyn()}
 };
+const ACT = {}, CH = {}, IN = {};
+const HIST = [];
+const curState = () => ({view: S.view, sel: S.pj.sel, mode: S.pj.mode, esel: S.eq.sel, emode: S.eq.mode, tab: S.sy.tab});
 function renderNav() {
-  const list = activeAgents();
-  $('#nav').innerHTML = `<span class="brand">Activité du bureau</span>` +
-    Object.entries(VIEWS).map(([k, v]) => `<button class="tab ${S.view === k ? 'on' : ''}" data-a="go" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${v.label}</button>`).join('') +
-    `<span class="sp"></span><span class="who"><label for="who" style="margin:0">Je suis</label><select id="who" data-ch="who" aria-label="Choisir mon nom"><option value="">— Choisir —</option>` +
+  const list = activeAgents(), kp = lateWeekBadge();
+  $('#nav').innerHTML = (HIST.length ? `<button class="bk" data-a="back" title="Revenir à l’écran précédent">← Retour</button>` : '') + `<span class="brand">Activité du bureau</span>` +
+    Object.entries(VIEWS).map(([k, v]) => `<button class="tab ${S.view === k ? 'on' : ''}" data-a="go" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${v.label}${k === 'temps' && kp ? `<span class="pastille" title="${esc(kp)}">!</span>` : ''}</button>`).join('') +
+    `<span class="gs"><input id="gs" type="search" placeholder="🔍 Rechercher (/)" autocomplete="off" data-in="gs" aria-label="Recherche globale"><div class="gsr" id="gsr" hidden></div></span>` +
+    `<span class="sp"></span><button id="setb" data-a="set-open" title="Thème et taille du texte" aria-label="Réglages d’affichage">⚙</button><button class="qm" data-a="guide" title="Comment ça marche ?" aria-label="Aide">?</button><span class="who"><label for="who" style="margin:0">Je suis</label><select id="who" data-ch="who" aria-label="Choisir mon nom"><option value="">— Choisir —</option>` +
     list.map(a => `<option value="${a.id}" ${a.id === S.agentId ? 'selected' : ''}>${esc(agentName(a))}</option>`).join('') + `</select></span>`;
 }
-function go(view, opts) {
+/* pastille « Mon temps » : semaine précédente vide, ou cette semaine vide à partir du mercredi */
+function lateWeekBadge() {
+  if (!S.agentId || !loaded) return '';
+  const ws = mondayOf(todaySec()), now = new Date(), dow = now.getDay();
+  const has = w => D.temps.some(t => t.a === S.agentId && typeof t.d === 'number' && t.d >= w && t.d <= w + 4 * DAY && t.j > 0);
+  const actif = D.projets.some(p => p.Statut === 'En cours' && ids(p.Agent).includes(S.agentId));
+  if (!actif) return '';
+  const pw = ws - 7 * DAY, offFull = w => [0, 1, 2, 3, 4].every(i => absFrac(S.agentId, w + i * DAY) >= 1 || !isWd(w + i * DAY));
+  if (!has(pw) && !offFull(pw) && D.temps.some(t => t.a === S.agentId)) return 'Semaine précédente non saisie';
+  if (dow >= 3 && dow <= 5 && !has(ws) && !offFull(ws)) return 'Semaine en cours non saisie';
+  return '';
+}
+function go(view, opts, noHist) {
+  if (!noHist) { const c = curState(); const l = HIST[HIST.length - 1]; if (!l || JSON.stringify(l) !== JSON.stringify(c)) HIST.push(c); if (HIST.length > 20) HIST.shift(); }
   if (opts && opts.pj) Object.assign(S.pj, opts.pj);
   if (opts && opts.eq) Object.assign(S.eq, opts.eq);
   S.view = view; store.set('app-view', view);
   renderNav(); renderView();
 }
+ACT.back = () => {
+  const c = HIST.pop(); if (!c) return;
+  S.pj.sel = c.sel; S.pj.mode = c.mode; S.eq.sel = c.esel; S.eq.mode = c.emode; S.sy.tab = c.tab;
+  go(c.view, null, true);
+};
+/* ----- recherche globale ----- */
+let gsHits = [], gsI = -1;
+IN.gs = el => {
+  const q = norm(el.value).trim(), box = $('#gsr'); gsI = -1;
+  if (q.length < 2) { box.hidden = true; gsHits = []; return; }
+  const P = D.projets.filter(p => norm(projLabel(p) + ' ' + (p.Reference || '')).includes(q)).slice(0, 6).map(p => ({k: 'p', id: p.id, t: projLabel(p), s: (p.Reference || '') + ' ' + (p.Statut || '')}));
+  const A = D.agents.filter(a => norm(agentName(a)).includes(q)).slice(0, 4).map(a => ({k: 'a', id: a.id, t: agentName(a), s: 'Agent'}));
+  const J = D.jalons.filter(j => norm(j.Libelle).includes(q) && D.by.projet.get(j.Projet)).slice(0, 5).map(j => ({k: 'p', id: j.Projet, t: j.Libelle, s: 'Jalon · ' + projLabel(D.by.projet.get(j.Projet)) + (typeof j.Date === 'number' ? ' · ' + fmtD(j.Date) : '')}));
+  gsHits = [...P, ...A, ...J];
+  const sec = (h, arr, off) => arr.length ? `<div class="gh">${h}</div>` + arr.map((x, i) => `<button data-a="gs-go" data-i="${off + i}"><span>${esc(x.t)}</span><small>${esc(x.s)}</small></button>`).join('') : '';
+  box.innerHTML = gsHits.length ? sec('Projets', P, 0) + sec('Agents', A, P.length) + sec('Jalons', J, P.length + A.length) : '<div class="muted" style="padding:10px 12px">Aucun résultat</div>';
+  box.hidden = false;
+};
+function gsClose() { const b = $('#gsr'); if (b) b.hidden = true; const i = $('#gs'); if (i) i.value = ''; gsHits = []; }
+ACT['gs-go'] = el => {
+  const h = gsHits[+el.dataset.i]; if (!h) return; gsClose();
+  if (h.k === 'p') go('projets', {pj: {sel: h.id, mode: 'consulter', filter: 'tous', q: '', arch: false}});
+  else go('equipe', {eq: {sel: h.id, mode: 'consulter', q: ''}});
+};
+document.addEventListener('keydown', e => {
+  const t = e.target, typing = t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+  if ((e.key === '/' && !typing) || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) { e.preventDefault(); const i = $('#gs'); if (i) i.focus(); return; }
+  if (t && t.id === 'gs') {
+    const bs = $$('#gsr button');
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!bs.length) return; gsI = (gsI + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length; bs.forEach((b, i) => b.classList.toggle('on', i === gsI)); }
+    else if (e.key === 'Enter') { e.preventDefault(); const b = bs[Math.max(gsI, 0)]; if (b) b.click(); }
+    else if (e.key === 'Escape') gsClose();
+  }
+});
+document.addEventListener('click', e => { if (!e.target.closest('.gs')) { const b = $('#gsr'); if (b) b.hidden = true; } if (!e.target.closest('.setp') && !e.target.closest('#setb')) { const s = $('.setp'); if (s) s.remove(); } });
+/* ----- réglages : thème, taille du texte, guide ----- */
+const applyPrefs = () => {
+  const th = store.get('app-theme'), z = store.get('app-zoom');
+  if (th === 'light' || th === 'dark') document.documentElement.setAttribute('data-theme', th); else document.documentElement.removeAttribute('data-theme');
+  document.documentElement.style.setProperty('--z', z || '1');
+};
+ACT['set-open'] = () => {
+  const old = $('.setp'); if (old) return old.remove();
+  const th = store.get('app-theme') || 'auto', z = store.get('app-zoom') || '1';
+  const seg = (k, cur, arr) => `<div class="seg">${arr.map(([v, l]) => `<button class="${cur === v ? 'on' : ''}" data-a="set-v" data-k="${k}" data-v="${v}">${l}</button>`).join('')}</div>`;
+  const d = document.createElement('div'); d.className = 'setp';
+  d.innerHTML = `<div><label>Thème</label>${seg('theme', th, [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']])}</div><div><label>Taille du texte</label>${seg('zoom', z, [['1', 'Normal'], ['1.15', 'Grand'], ['1.3', 'Très grand']])}</div>`;
+  $('#nav').appendChild(d);
+};
+ACT['set-v'] = el => { store.set(el.dataset.k === 'theme' ? 'app-theme' : 'app-zoom', el.dataset.v); applyPrefs(); const s = $('.setp'); if (s) s.remove(); ACT['set-open'](); };
+ACT.guide = () => $('#gd').showModal();
+ACT['guide-x'] = () => $('#gd').close();
+applyPrefs();
 function renderView() { landscape(false); $('#view').scrollTop = 0; VIEWS[S.view].render(); }
 function refreshView() { renderNav(); const v = VIEWS[S.view]; (v.refresh || v.render)(); }
 
 /* ---------- Écouteurs globaux (délégation) ---------- */
-const ACT = {}, CH = {}, IN = {};
 document.addEventListener('click', e => { const el = e.target.closest('[data-a]'); if (el && ACT[el.dataset.a]) ACT[el.dataset.a](el, e); });
 document.addEventListener('change', e => { const el = e.target; if (el.dataset && el.dataset.ch && CH[el.dataset.ch]) CH[el.dataset.ch](el, e); });
 document.addEventListener('input', e => { const el = e.target; if (el.dataset && el.dataset.in && IN[el.dataset.in]) IN[el.dataset.in](el, e); });
@@ -461,6 +569,8 @@ function alertsFor(scope) {
     const late = js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date < today);
     if (late.length) w.push({sev: 2, txt: late.length === 1 ? `Jalon « ${late[0].Libelle || 'sans libellé'} » dépassé` : `${late.length} jalons dépassés`});
     const real = w.length;
+    if (typeof p.Date_debut === 'number' && typeof p.Date_fin_prevue === 'number' && p.Date_fin_prevue < p.Date_debut) w.push({sev: 1, txt: 'Fin prévue avant le début', todo: 1});
+    if (typeof p.Date_fin_prevue === 'number' && D.phases.some(ph => ph.Projet === p.id && typeof ph.Date_fin === 'number' && ph.Date_fin > p.Date_fin_prevue + 86400)) w.push({sev: 0, txt: 'Une phase finit après la fin du projet', todo: 1});
     if (!ids(p.Agent).length) w.push({sev: 1, txt: 'Aucun agent affecté', todo: 1});
     if (!p.Date_fin_prevue) w.push({sev: 1, txt: 'Sans date de fin', todo: 1});
     if (!js.some(j => j.Libelle || j.Date)) w.push({sev: 1, txt: 'Sans jalon', todo: 1});
@@ -489,7 +599,7 @@ function vHome() {
       <button class="big" data-a="home-mine"><b>📁 Mes projets</b><span>${me ? plural(myActive, 'projet') + ' en cours' : 'Projets qui me sont affectés'}</span></button>
       <button class="big" data-a="new-project"><b>➕ Nouveau projet</b><span>Titre, type, agents et jalons types</span></button>
     </div>
-    ${ref ? `<div class="refbox"><div class="reft">Espace référent·e de suivi</div><div class="bigs">
+    ${ref ? `<div class="refbox"><div class="reft">Espace référent·e de suivi</div>${keyFacts()}<div class="bigs">
       <button class="big" data-a="home-suivis"><b>👁 Projets que je suis</b><span>${plural(mySuivis.length, 'projet')} en cours${suivisAl ? ' · ' + suivisAl + ' à surveiller' : ''}</span></button>
       <button class="big" data-a="go-sy" data-t="hebdo"><b>📋 Point hebdo</b><span>Alertes, jalons, absences</span></button>
       <button class="big" data-a="go-sy" data-t="calendrier"><b>📅 Calendrier des projets</b><span>Qui est staffé sur quoi</span></button>
@@ -533,6 +643,7 @@ const MD_PJ = {
   top: () => `<div class="fl" role="group" aria-label="Filtre"><button class="fchip ${S.pj.filter === 'tous' ? 'on' : ''}" data-a="md-filter" data-v="tous">Tous</button><button class="fchip ${S.pj.filter === 'mes' ? 'on' : ''}" data-a="md-filter" data-v="mes">Mes projets</button>${isRef() ? `<button class="fchip ${S.pj.filter === 'suivis' ? 'on' : ''}" data-a="md-filter" data-v="suivis">Que je suis</button>` : ''}</div>
     <label class="cb"><input type="checkbox" data-ch="md-old" ${S.pj.old ? 'checked' : ''}>Afficher les archivés</label>`,
   consult: r => consultProjet(r), modify: r => formProjet(r),
+  consultActions: r => `<button data-a="dup-p" data-id="${r.id}" title="Crée une copie : mêmes agents, phases et jalons, dates décalées à partir d’aujourd’hui">Dupliquer</button>`,
   modActions: r => S.pj.arch
     ? `<span class="confirm">Archiver ce projet ?<button class="btn warn" data-a="arch-yes">Oui</button><button data-a="arch-no">Non</button></span>`
     : (r.Statut !== 'Archivé' ? `<button data-a="arch">Archiver</button>` : ''),
@@ -578,7 +689,7 @@ function mdDetail() {
   const m = c.st.mode;
   box.innerHTML = `<div class="dw"><div class="dh noprint"><div class="seg" role="group" aria-label="Mode">
     <button class="${m === 'consulter' ? 'on' : ''}" data-a="md-mode" data-v="consulter">Consulter</button><button class="${m === 'modifier' ? 'on' : ''}" data-a="md-mode" data-v="modifier">Modifier</button></div>
-    <div class="acts">${m === 'consulter' ? '<button data-a="print">Imprimer / PDF</button><button data-a="md-csv">Exporter en CSV</button>' : c.modActions(r)}</div></div>
+    <div class="acts">${m === 'consulter' ? '<button data-a="print">Imprimer / PDF</button><button data-a="md-csv">Exporter en CSV</button>' + (c.consultActions ? c.consultActions(r) : '') : c.modActions(r)}</div></div>
     ${m === 'consulter' ? c.consult(r) : c.modify(r)}</div>`;
   if (m === 'modifier') S.fsig = c.sig ? c.sig(r) : '';
 }
@@ -722,7 +833,7 @@ ACT['cal-view'] = el => {
 /* ---------- Projet : consulter ---------- */
 function consultProjet(r) {
   const prev = num(r.Charge_prevue), reel = num(r.Charge_reelle), taux = prev ? reel / prev : 0, lv = level(taux);
-  const etat = !prev ? '' : taux > 1 ? 'Dépassement' : taux >= 0.8 ? '> 80 %' : 'OK';
+  const etat = !prev ? '' : taux > 1 ? 'Surcharge (> 100 %)' : taux >= 0.8 ? 'À surveiller (80–100 %)' : 'Dans le prévu';
   const jal = projJalons(r), done = jal.filter(j => j.Statut === 'Atteint').length;
   const jLine = (j, sub) => `<div class="ms ${sub ? 'sub' : ''}"><span class="dot ${j.Statut === 'Atteint' ? 'ok' : j.Statut === 'En retard' || (j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date < todaySec()) ? 'bad' : ''}"></span>
       <span>${esc(j.Libelle) || '—'}</span><span class="d">${fmtD(j.Date) || '—'}</span></div>`;
@@ -740,6 +851,7 @@ function consultProjet(r) {
   return `<div class="eyebrow">${esc((r.Reference || '').trim())}</div><h1 id="md-title">${esc(projLabel(r))}</h1>
   <div class="chips">${r.Type_nom ? `<span class="chip">${esc(r.Type_nom)}</span>` : ''}${r.Statut ? `<span class="chip">${esc(r.Statut)}</span>` : ''}${r.Retard ? '<span class="chip bad">En retard</span>' : ''}</div>
   ${calendrier(r)}
+  ${driftCard(r)}
   <div class="card"><h2>Charge de travail</h2>
     ${prev ? `<div style="margin-bottom:10px">${fmtN(reel)} j réalisés sur ${fmtN(prev)} j prévus (${pct(taux)} %)
       <span class="chip ${lv === 'bad' ? 'bad' : lv === '' ? 'ok' : 'warn'}" style="margin-left:8px">${etat}</span></div><div class="bar"><i class="${lv}" style="width:${clamp(taux) * 100}%"></i></div>`
@@ -996,7 +1108,7 @@ function nextRef() {
 }
 function npPrev() {
   const ty = D.by.type.get(+$('#np-ty').value), m = modele(ty && ty.n), dated = $('#np-d').value && $('#np-f').value;
-  $('#np-jl').textContent = 'Jalons : ' + m.j.map(x => x[0]).join(' · ') + (dated ? ' (dates réparties entre le début et la fin)' : ' (sans date : renseignez le début et la fin pour les placer automatiquement)');
+  $('#np-jl').textContent = (D.hasPh && m.ph ? 'Phases : ' + m.ph.map(x => x[0]).join(' › ') + '. ' : '') + 'Jalons : ' + m.j.map(x => x[0]).join(' · ') + (dated ? ' (dates réparties entre le début et la fin)' : ' (sans date : renseignez le début et la fin pour les placer automatiquement)');
 }
 async function openNewProject() {
   if (!loaded) await loadAll();
@@ -1019,8 +1131,10 @@ async function createProject(ev) {
     if (ag.length) rec.Agent = ['L', ...ag];
     const r = await write([['AddRecord', 'Projets', null, rec]], null), id = r.retValues[0];
     if ($('#np-j').checked) {
-      const mo = modele((D.by.type.get(ty) || {}).n);
-      await write(mo.j.map(([l, p]) => ['AddRecord', 'Jalons', null, {Projet: id, Libelle: l, Statut: 'À venir', Date: d && f ? d + Math.round(p / 100 * (f - d) / DAY) * DAY : null}]), null);
+      const mo = modele((D.by.type.get(ty) || {}).n), at = p => d && f ? d + Math.round(p / 100 * (f - d) / DAY) * DAY : null;
+      let phIds = [];
+      if (D.hasPh && mo.ph) { const rp = await write(mo.ph.map(([l, a, b]) => ['AddRecord', 'Phases', null, {Projet: id, Libelle: l, Statut: 'À venir', Date_debut: at(a), Date_fin: at(b)}]), null); phIds = rp.retValues; }
+      await write(mo.j.map(([l, p, k]) => { const rec = {Projet: id, Libelle: l, Statut: 'À venir', Date: at(p)}; if (phIds.length && phIds[k]) rec.Phase = phIds[k]; return ['AddRecord', 'Jalons', null, rec]; }), null);
     }
     $('#np').close(); flash('✓ Projet créé');
     go('projets', {pj: {sel: id, mode: 'modifier', filter: 'tous', q: '', arch: false}});
@@ -1057,8 +1171,8 @@ function vTemps() {
   $('#view').innerHTML = `<div class="mt"><h1 style="font-size:24px;margin-bottom:12px">Mon temps</h1>
     <div class="top"><div class="week"><button class="nav" data-a="mt-prev" aria-label="Semaine précédente" title="Semaine précédente">◀</button><span class="lbl" id="mt-lbl" aria-live="polite"></span>
       <button class="nav" data-a="mt-next" aria-label="Semaine suivante" title="Semaine suivante">▶</button><button id="mt-now" data-a="mt-now">Cette semaine</button></div>
-      <span class="sp"></span><button id="mt-copy" data-a="mt-copy" title="Recopie les jours de la semaine précédente dans les cases vides">Recopier la semaine précédente</button>
-      <button class="btn save" data-a="mt-save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button></div>
+      <span class="sp"></span><button id="mt-main" data-a="mt-main" title="Met 1 j sur votre projet principal pour chaque jour ouvré vide de la semaine">Semaine complète sur mon projet principal</button><button id="mt-copy" data-a="mt-copy" title="Recopie les jours de la semaine précédente dans les cases vides">Recopier la semaine précédente</button>
+      <button id="mt-undo" data-a="mt-undo" hidden title="Remet les cases comme avant le dernier enregistrement">↩ Annuler le dernier enregistrement</button><button class="btn save" data-a="mt-save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button></div>
     <div class="unsaved" id="mt-un" hidden></div><div class="sum" id="mt-sum"></div><div class="tbl" id="mt-grid"></div><div class="add" id="mt-add"></div><div class="note" id="mt-note"></div><div id="mt-abs" style="margin-top:18px"></div>
     <div class="foot"><button class="btn save" data-a="mt-save" disabled title="Enregistrer ma saisie (Ctrl + S)">Enregistrer</button></div></div>`;
   mtRender();
@@ -1068,7 +1182,7 @@ function mtRender() {
   const end = MT.ws + 4 * DAY;
   $('#mt-lbl').textContent = `Semaine ${isoWeek(MT.ws)} · du ${dLong(MT.ws)} au ${dLong(end)} ${new Date(end * 1000).getUTCFullYear()}`;
   $('#mt-now').disabled = MT.ws === mondayOf(todaySec());
-  $('#mt-copy').disabled = !S.agentId;
+  $('#mt-copy').disabled = !S.agentId; $('#mt-main').disabled = !S.agentId;
   const grid = $('#mt-grid');
   if (!S.agentId) {
     grid.innerHTML = '<div class="empty"><b>Bienvenue 👋</b>Choisissez votre nom en haut à droite pour saisir votre temps. Il sera mémorisé sur cet ordinateur.</div>';
@@ -1124,12 +1238,21 @@ function mtTotals() {
   const wt = $('#mt-wt'); if (wt) wt.textContent = all ? fmtN(all) + ' j' : '';
   return all;
 }
+ACT['mt-undo'] = async () => {
+  const u = MT.undo; if (!u || u.agent !== S.agentId || MT.saving) return;
+  const a = []; u.cells.forEach(c => a.push(...buildCellActions(c.p, c.d, c.v)));
+  MT.undo = null; mtUpdateSave();
+  try { if (a.length) await write(a, '↩ Dernier enregistrement annulé'); } catch (e) {}
+  mtRefresh();
+};
 function mtUpdateSave() {
+  const ub = $('#mt-undo'); if (ub) ub.hidden = !(MT.undo && MT.undo.agent === S.agentId);
   const n = S.agentId ? mtPend().size : 0;
   $$('.save').forEach(b => { b.disabled = !n || MT.saving; b.textContent = MT.saving ? 'Enregistrement…' : 'Enregistrer' + (n ? ` (${n})` : ''); });
   const u = $('#mt-un'); if (!u) return;
   u.hidden = !n;
-  u.textContent = n ? `⚠ ${n} modification${n > 1 ? 's' : ''} non enregistrée${n > 1 ? 's' : ''} : cliquez sur « Enregistrer » avant de quitter la page.` : '';
+  const over = $$('[data-tot].over').length;
+  u.textContent = n ? `⚠ ${n} modification${n > 1 ? 's' : ''} non enregistrée${n > 1 ? 's' : ''} : cliquez sur « Enregistrer » avant de quitter la page.` + (over ? ` Attention : plus d’une journée saisie sur ${over} jour${over > 1 ? 's' : ''} (colonne en rouge).` : '') : '';
 }
 function buildCellActions(p, d, val) {
   const rs = mtRecs(p, d), a = [];
@@ -1144,9 +1267,11 @@ async function mtSave() {
   const entries = [...m.entries()], a = [];
   entries.forEach(([k, val]) => { const [p, d] = k.split('|').map(Number); a.push(...buildCellActions(p, d, val)); });
   MT.saving = true; mtUpdateSave();
+  const prevState = {agent: S.agentId, cells: entries.map(([k]) => { const [pp, dd] = k.split('|').map(Number); return {p: pp, d: dd, v: mtStored(pp, dd)}; })};
   try {
     if (a.length) await write(a, null);
     entries.forEach(([k, val]) => { if (m.get(k) === val) m.delete(k); });
+    MT.undo = prevState;
     const n = entries.length; flash(`✓ ${n} modification${n > 1 ? 's' : ''} enregistrée${n > 1 ? 's' : ''}`);
   } catch (e) { /* write() a déjà affiché l'erreur : les modifications restent en attente */ }
   MT.saving = false; mtRefresh();
@@ -1178,6 +1303,31 @@ ACT['mt-copy'] = () => {
   if (!n) return flash('Les cases correspondantes sont déjà remplies.');
   mtRefresh(); flash(`${n} case${n > 1 ? 's' : ''} recopiée${n > 1 ? 's' : ''} : pensez à enregistrer`);
 };
+
+/* semaine complète en un clic sur le projet principal (le plus saisi ces 4 dernières semaines, sinon le premier de la liste) */
+ACT['mt-main'] = () => {
+  const rows = mtRows(); if (!rows.length) return flash('Aucun projet à remplir.', 1);
+  const since = MT.ws - 28 * DAY, tot = {};
+  D.temps.filter(t => t.a === S.agentId && t.d >= since && t.d < MT.ws).forEach(t => tot[t.p] = (tot[t.p] || 0) + t.j);
+  const main = rows.slice().sort((a, b) => (tot[b.id] || 0) - (tot[a.id] || 0))[0]; let n = 0;
+  mtDays().forEach(d => {
+    const free = 1 - absFrac(S.agentId, d); if (!isWd(d) || free <= 0) return;
+    const used = rows.reduce((s, r) => s + cellVal(r.id, d), 0);
+    if (used === 0) { setPending(main.id, d, free); n++; }
+  });
+  if (!n) return flash('Tous les jours ouvrés sont déjà remplis.');
+  mtRefresh(); flash(`${n} jour${n > 1 ? 's' : ''} saisi${n > 1 ? 's' : ''} sur « ${projLabel(main)} » : pensez à enregistrer`);
+};
+/* navigation au clavier dans la grille */
+document.addEventListener('keydown', e => {
+  const el = e.target; if (!el || !el.classList || !el.classList.contains('c')) return;
+  const k = e.key; if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter'].includes(k)) return;
+  if ((k === 'ArrowLeft' || k === 'ArrowRight') && el.selectionStart !== undefined && el.value.length && !(el.selectionStart === 0 && el.selectionEnd === el.value.length) && !(k === 'ArrowLeft' ? el.selectionStart === 0 : el.selectionEnd === el.value.length)) return;
+  const all = $$('input.c'), rowsN = new Set(all.map(x => x.dataset.p)).size, colsN = all.length / rowsN, i = all.indexOf(el);
+  let j = i; const dr = k === 'ArrowUp' ? -1 : (k === 'ArrowDown' || k === 'Enter') ? 1 : 0, dc = k === 'ArrowLeft' ? -1 : k === 'ArrowRight' ? 1 : 0;
+  j = i + dr * colsN + dc; if (j < 0 || j >= all.length || (dc && Math.floor(j / colsN) !== Math.floor(i / colsN))) return;
+  e.preventDefault(); all[j].focus(); all[j].select();
+});
 CH['mt-addp'] = el => { if (el.value) { MT.extra.add(+el.value); mtRender(); } };
 CH['mt-cell'] = el => {
   const raw = el.value.trim(), val = raw === '' ? 0 : parseN(raw);
@@ -1328,7 +1478,7 @@ function synHebdo() {
   const h = hebdoData(), end = h.ws + 4 * DAY;
   $('#sy-b').innerHTML = `<header><h1>Point de bureau</h1>
     <div class="muted">Semaine ${isoWeek(h.ws)} · du ${dLong(h.ws)} au ${dLong(end)} ${new Date(end * 1000).getUTCFullYear()} · édité le ${nowStr()}</div>
-    <div class="acts noprint" style="margin-top:8px"><button class="fchip" data-a="hb-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
+    <div class="acts noprint" style="margin-top:8px"><button class="fchip" data-a="hb-csv">Exporter en CSV</button><button class="fchip" data-a="word" data-n="point-hebdo">Exporter en Word</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
   <div class="card"><div class="facts"><div><b>${h.cur.length}</b><span>projets en cours</span></div>
     <div><b class="${h.nLate ? 'ko' : ''}">${h.nLate}</b><span>en retard</span></div><div><b class="${h.nOver ? 'ko' : ''}">${h.nOver}</b><span>charge supérieure à 100 %</span></div>
     <div><b class="${h.nInc ? 'wn' : ''}">${h.nInc}</b><span>incomplets (agent, fin ou jalon)</span></div><div><b>${h.jal.length}</b><span>jalons dans les 30 jours</span></div></div></div>
@@ -1339,6 +1489,7 @@ function synHebdo() {
     ${h.jal.length ? `<table class="st2 l"><tr><th>Date</th><th>Jalon</th><th>Projet</th><th>Agents</th></tr>${h.jal.map(({j, p}) => `<tr><td>${fmtD(j.Date)}</td><td>${esc(j.Libelle || '(sans libellé)')}${phName(j) ? ` <span class="muted">(${esc(phName(j))})</span>` : ''}</td><td>${lkp(p)}</td><td>${esc(p.Agent_nom || '—')}</td></tr>`).join('')}</table>` : '<div class="muted">Aucun jalon à venir.</div>'}</div>
   ${staffCard(h)}
   ${absCard30()}
+  ${mailCard(h)}${checksCard()}
   <div class="card"><h2>Saisie du temps</h2><div class="hint">Jours saisis la semaine dernière (S${isoWeek(h.ws - 7 * DAY)}) et cette semaine (S${isoWeek(h.ws)}).</div>
     <table class="st2 l"><tr><th>Agent</th><th>Semaine dernière</th><th>Cette semaine</th></tr>${h.saisie.map(x => `<tr><td>${esc(agentName(x.a))}</td><td class="${x.prev ? '' : 'wn'}">${x.prev ? fmtN(x.prev) + ' j' : 'Rien saisi'}</td><td>${x.cur ? fmtN(x.cur) + ' j' : '—'}</td></tr>`).join('')}</table></div>`;
 }
@@ -1350,7 +1501,7 @@ function absCard30() {
 function staffData() { const P = buildPeriods('semaine', mondayOf(todaySec()), 4); return chargeModel(P, {hide: new Set(['Archivé', 'Terminé'])}); }
 function staffCard() {
   const m = staffData(), P = m.P, rows = m.agents.filter(a => a.id);
-  return `<div class="card"><h2>Staffing et charge : cette semaine et les trois suivantes</h2><div class="hint">Jours réalisés ou prévus par agent. ${HEATLEG}.</div>
+  return `<div class="card"><h2>Staffing et charge : cette semaine et les trois suivantes</h2><details class="lgd noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Jours réalisés ou prévus par agent. ${HEATLEG}.</div></details>
     <table class="st2 l heat"><tr><th>Agent</th><th>Sur quoi cette semaine</th>${P.map(p => `<th title="${esc(p.tip)}">${p.lab}</th>`).join('')}</tr>
     ${rows.map(a => `<tr><td>${esc(a.name)}</td><td style="text-align:left!important">${a.byP.filter(x => x.c[0][0] + x.c[0][1] > 0).map(x => `${lkp(x.p)} <span class="muted">${fmtC(x.c[0][0] + x.c[0][1])} j</span>`).join('<br>') || '<span class="muted">Aucune charge</span>'}</td>
       ${P.map((p, i) => { const v = sumC([a.tot[i]]), cp = a.capP[i], ab = a.ab[i]; return `<td class="${hcls(v, cp)}" title="${esc(tipC(a.tot[i]))}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}${ab ? `<small class="ab">abs. ${fmtC(ab)} j</small>` : ''}</td>`; }).join('')}</tr>`).join('')}</table>
@@ -1498,9 +1649,9 @@ function synCalendrier() {
   $('#sy-b').innerHTML = `<header><h1>Calendrier des projets</h1><div class="muted">Qui est staffé sur quoi, et avec quelle charge, projet par projet.</div>${ctl('cal', st, P)}
     <div class="fl noprint" style="margin-top:8px">${SY_STAT.map(s => `<button class="fchip ${st.hide.has(s) ? '' : 'on'}" data-a="cal-s" data-v="${s}">${s}</button>`).join('')}
       <select data-ch="cal-ag" aria-label="Agent"><option value="0">Tous les agents</option>${activeAgents().map(a => `<option value="${a.id}" ${a.id === st.agent ? 'selected' : ''}>${esc(agentName(a))}</option>`).join('')}</select>
-      <label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="cal-det" ${st.detail ? 'checked' : ''}>Détail par agent</label></div></header>
+      <label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="cal-det" ${st.detail ? 'checked' : ''}>Vue détaillée (par agent)</label></div></header>
   <div class="card"><div class="hint">Chaque case indique les jours de travail (réalisés ou prévus) du projet sur la période. Passez la souris sur une case pour le détail, les phases et les jalons.</div>${LEGEND}${calTable(m, {g: st.g, detail: st.detail})}</div>
-  <div class="card"><h2>Charge cumulée par agent</h2><div class="hint">${HEATLEG}</div>${agentTable(m, {g: st.g, detail: false})}</div>${nofinCard(m)}`;
+  <div class="card"><h2>Charge cumulée par agent</h2><details class="lgd noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${HEATLEG}</div></details>${agentTable(m, {g: st.g, detail: false})}</div>${nofinCard(m)}`;
 }
 const wState = w => w === 'cal' ? S.sy.cal : S.sy.ch, wRender = w => w === 'cal' ? synCalendrier() : synCharge();
 ['cal', 'ch'].forEach(w => {
@@ -1523,8 +1674,8 @@ ACT['ch-csv'] = () => { const st = S.sy.ch; csvModel('charge-par-agent-' + st.g,
 function synCharge() {
   const st = S.sy.ch, P = periodsOf(st), m = chargeModel(P, {hide: st.hide});
   $('#sy-b').innerHTML = `<header><h1>Charge par agent</h1><div class="muted">Temps réalisé (passé) et reste à faire réparti sur les jours ouvrés (futur), agent par agent.</div>${ctl('ch', st, P)}
-    <div class="fl noprint" style="margin-top:8px"><label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="ch-det" ${st.detail ? 'checked' : ''}>Détail par projet</label></div></header>
-  <div class="card"><div class="hint">Charge d’un projet à venir = charge prévue − jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés jusqu’à la fin prévue (pour un projet en retard : sur les deux semaines qui viennent). ${HEATLEG}.</div><div class="lg">${LEG0}</div>${agentTable(m, {g: st.g, detail: st.detail})}</div>${nofinCard(m)}`;
+    <div class="fl noprint" style="margin-top:8px"><label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="ch-det" ${st.detail ? 'checked' : ''}>Vue détaillée (par projet)</label></div></header>
+  <div class="card"><details class="lgd noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Charge d’un projet à venir = charge prévue − jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés jusqu’à la fin prévue (pour un projet en retard : sur les deux semaines qui viennent). ${HEATLEG}.</div></details><div class="lg">${LEG0}</div>${agentTable(m, {g: st.g, detail: st.detail})}</div>${nofinCard(m)}`;
 }
 
 /* ---------- Rapport annuel pour la hiérarchie ---------- */
@@ -1561,7 +1712,7 @@ function raAbs(y) {
 function raCal(y) {
   const m = raModel(y);
   return `<div class="card"><h2>Calendrier de l’année ${y} : projets, charge et jalons</h2><div class="hint">Jours de travail par projet et par mois (réalisé pour les mois passés, prévisionnel pour les mois à venir).</div>${LEGEND}${calTable(m, {g: 'mois', detail: false, totalCol: true})}</div>
-  <div class="card"><h2>Charge par agent en ${y}</h2><div class="hint">${HEATLEG}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>${raAbs(y)}`;
+  <div class="card"><h2>Charge par agent en ${y}</h2><details class="lgd noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${HEATLEG}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div></details>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>${raAbs(y)}`;
 }
 function synRapport() {
   const ys = raYears(); if (!S.sy.ra.year || !ys.includes(S.sy.ra.year)) S.sy.ra.year = new Date().getFullYear();
@@ -1569,7 +1720,7 @@ function synRapport() {
   const tbl = (l, rows) => `<table class="st2"><tr><th>${l}</th><th>Projets</th><th>Terminés</th><th>Prévu (j)</th><th>Réalisé (j)</th><th>Conso</th></tr>${rows.map(x => `<tr><td>${esc(x.n)}</td><td>${x.nb}</td><td>${x.ter}</td><td>${fmt1(x.prev)}</td><td>${fmt1(x.reel)}</td><td>${x.prev ? Math.round(x.reel / x.prev * 100) + ' %' : '—'}</td></tr>`).join('')}</table>`;
   $('#sy-b').innerHTML = `<header><h1>Bilan d’activité du bureau ${y}</h1><div class="muted">Édité le ${nowStr()}</div>
     <div class="acts noprint" style="margin-top:8px"><select data-ch="ra-yr" aria-label="Année">${ys.map(v => `<option ${v === y ? 'selected' : ''}>${v}</option>`).join('')}</select>
-      <button class="fchip" data-a="ra-csv">Exporter les projets (CSV)</button><button class="fchip" data-a="ra-csv2">Exporter la charge (CSV)</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
+      <button class="fchip" data-a="ra-csv">Exporter les projets (CSV)</button><button class="fchip" data-a="ra-csv2">Exporter la charge (CSV)</button><button class="fchip" data-a="word" data-n="bilan-activite">Exporter en Word</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
   <div class="card"><p style="margin:0 0 12px">En ${y}, le bureau a conduit <b>${plural(r.P.length, 'projet')}</b> : <b>${r.done.length}</b> terminé${r.done.length > 1 ? 's' : ''} dans l’année et <b>${r.open.length}</b> en cours ou à venir.
     L’équipe a consacré <b>${fmt1(r.jours)} jours</b> à ces activités${r.cap ? ` (${Math.round(r.jours / r.cap * 100)} % de la capacité annuelle de ${fmt1(r.cap)} jours)` : ''}.</p>
     <div class="facts"><div><b>${r.P.length}</b><span>projets rattachés à ${y}</span></div><div><b>${r.done.length}</b><span>projets terminés</span></div><div><b>${fmt1(r.prev)} j</b><span>charge prévue</span></div>
@@ -1590,6 +1741,116 @@ ACT['ra-csv'] = () => {
   downloadCsv('bilan-' + y, csvRows([['Référence', 'Titre', 'Type', 'Statut', 'Niveau commanditaire', 'Commanditaire', 'Agents', 'Début', 'Fin prévue', 'Fin réelle', 'Charge prévue', 'Charge réelle', 'En retard']]
     .concat(raData(y).P.map(p => [String(p.Reference || '').trim(), p.Titre, p.Type_nom, p.Statut, p.Niveau_commanditaire, p.Commanditaire, p.Agent_nom, fmtD(p.Date_debut), fmtD(p.Date_fin_prevue), fmtD(p.Date_fin_reelle), p.Charge_prevue, p.Charge_reelle, p.Retard ? 'Oui' : 'Non']))));
 };
+/* =====================================================================
+   Lot 2 : chiffres clés, résumé mail, vérifications, export Word,
+   duplication de projet, courbe prévu / réalisé
+   ===================================================================== */
+function keyFacts() {
+  const h = hebdoData();
+  return `<div class="facts keyf"><div><b>${h.cur.length}</b><span>projets en cours</span></div><div><b class="${h.nLate ? 'ko' : ''}">${h.nLate}</b><span>en retard</span></div>
+    <div><b class="${h.nOver ? 'ko' : ''}">${h.nOver}</b><span>surcharge (> 100 %)</span></div><div><b class="${h.nInc ? 'wn' : ''}">${h.nInc}</b><span>incomplets</span></div><div><b>${h.jal.length}</b><span>jalons à 30 jours</span></div></div>`;
+}
+
+/* ----- résumé à copier dans un mail ----- */
+function mailText(h) {
+  const end = h.ws + 4 * DAY, L = [];
+  L.push(`Point de bureau – semaine ${isoWeek(h.ws)} (du ${dLong(h.ws)} au ${dLong(end)})`, '');
+  L.push(`• ${plural(h.cur.length, 'projet')} en cours, dont ${h.nLate} en retard et ${h.nOver} en surcharge (> 100 %) ; ${h.nInc} projet${h.nInc > 1 ? 's' : ''} incomplet${h.nInc > 1 ? 's' : ''}.`, '');
+  const real = h.al.watch.filter(x => !x.onlyTodo);
+  L.push('Points d’attention :');
+  if (real.length) real.slice(0, 10).forEach(x => L.push(`- ${projLabel(x.p)} : ${x.w.filter(i => !i.todo).map(i => i.txt).join(' ; ')}`)); else L.push('- Rien à signaler.');
+  if (real.length > 10) L.push(`- … et ${real.length - 10} autre(s) (voir le point hebdo complet)`);
+  L.push('', 'Jalons des 30 prochains jours :');
+  if (h.jal.length) h.jal.slice(0, 10).forEach(({j, p}) => L.push(`- ${fmtD(j.Date)} : ${j.Libelle || '(sans libellé)'} – ${projLabel(p)}`)); else L.push('- Aucun.');
+  if (D.hasAbs) {
+    const up = D.absences.filter(x => x.a && x.d1 != null && x.d2 >= h.today && x.d1 <= h.today + 30 * DAY).sort((a, b) => a.d1 - b.d1);
+    L.push('', 'Absences et congés des 30 prochains jours :');
+    if (up.length) up.slice(0, 12).forEach(x => L.push(`- ${agentName(D.by.agent.get(x.a))} : ${x.type}, ${fmtD(x.d1)}${x.d1 === x.d2 ? '' : ' → ' + fmtD(x.d2)}`)); else L.push('- Aucune.');
+  }
+  const late = h.saisie.filter(x => !x.prev);
+  if (late.length) L.push('', `Saisie du temps non faite la semaine dernière : ${late.map(x => agentName(x.a)).join(', ')}.`);
+  return L.join('\n');
+}
+function mailCard(h) {
+  return `<div class="card noprint"><h2>Résumé à envoyer par mail</h2><div class="hint">Texte prêt à coller dans un mail (copie en un clic).</div>
+    <textarea class="mailbox" id="hb-mail" readonly>${esc(mailText(h))}</textarea>
+    <div style="margin-top:8px"><button class="btn" data-a="hb-copy">Copier le résumé</button></div></div>`;
+}
+ACT['hb-copy'] = async () => {
+  const t = $('#hb-mail'); if (!t) return;
+  try { await navigator.clipboard.writeText(t.value); flash('✓ Résumé copié'); }
+  catch (e) { t.focus(); t.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (x) {} flash(ok ? '✓ Résumé copié' : 'Texte sélectionné : faites Ctrl + C', !ok); }
+};
+
+/* ----- vérifications de cohérence (hebdo) ----- */
+function checksCard() {
+  const iss = [], ag = activeAgents(), caps = ag.map(a => num(a.Capacite_annuelle));
+  const cnt = {}; caps.filter(x => x > 0).forEach(x => cnt[x] = (cnt[x] || 0) + 1);
+  const common = +Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]?.[0] || 0;
+  ag.forEach(a => { const c = num(a.Capacite_annuelle); if (!c) iss.push(`${agentName(a)} : capacité annuelle non renseignée`); else if (common && c !== common) iss.push(`${agentName(a)} : capacité de ${fmtN(c)} j (la plupart ont ${fmtN(common)} j) – à vérifier`); });
+  const nl = D.jalons.filter(j => !String(j.Libelle || '').trim() && D.by.projet.get(j.Projet)).length;
+  if (nl) iss.push(`${plural(nl, 'jalon')} sans libellé`);
+  const byDay = new Map(); D.temps.forEach(t => { if (typeof t.d !== 'number') return; const k = t.a + '|' + t.d; byDay.set(k, (byDay.get(k) || 0) + t.j); });
+  const ov = [...byDay.entries()].filter(([, v]) => v > 1.001).length;
+  if (ov) iss.push(`${plural(ov, 'journée')} avec plus de 1 j saisi pour un même agent`);
+  return `<div class="card noprint"><h2>Vérifications</h2>${iss.length ? `<ul style="margin:6px 0;padding-left:20px">${iss.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<div class="muted">✓ Aucune anomalie détectée (capacités, jalons, saisies).</div>'}</div>`;
+}
+
+/* ----- export Word (document HTML ouvert par Word) ----- */
+ACT.word = el => {
+  const src = $('#sy-b'); if (!src) return;
+  const c = src.cloneNode(true);
+  $$('.noprint,button,select,details,.lgd,.hint.noprint,script', c).forEach(x => x.remove());
+  $$('textarea', c).forEach(t => { const d = document.createElement('p'); d.style.whiteSpace = 'pre-wrap'; d.textContent = t.value; t.replaceWith(d); });
+  const css = 'body{font-family:Calibri,Arial,sans-serif;font-size:11pt}h1{font-size:20pt}h2{font-size:14pt;margin-top:14pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:3px 5px;font-size:9.5pt;text-align:left}.tag{padding:0 4px;border:1px solid #bbb}.muted,.hint{color:#555}';
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(el.dataset.n)}</title><style>${css}</style></head><body>${c.innerHTML}</body></html>`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿', html], {type: 'application/msword'}));
+  a.download = el.dataset.n + '-' + iso(todaySec()) + '.doc'; document.body.appendChild(a); a.click(); a.remove();
+  flash('✓ Document Word téléchargé');
+};
+
+/* ----- duplication d'un projet ----- */
+ACT['dup-p'] = async el => {
+  const r = D.by.projet.get(+el.dataset.id); if (!r) return;
+  const today = todaySec(), shift = typeof r.Date_debut === 'number' ? today - r.Date_debut : 0, mv = v => typeof v === 'number' ? v + shift : null;
+  const rec = {Reference: nextRef(), Titre: projLabel(r) + ' (copie)', Statut: 'À cadrer', Type: r.Type || 0, Niveau_commanditaire: r.Niveau_commanditaire || null, Commanditaire: r.Commanditaire || '', Beneficiaire: r.Beneficiaire || '',
+    Description: r.Description || '', Charge_prevue: num(r.Charge_prevue) || null, Date_debut: typeof r.Date_debut === 'number' ? today : null, Date_fin_prevue: mv(r.Date_fin_prevue)};
+  if (ids(r.Agent).length) rec.Agent = ['L', ...ids(r.Agent)];
+  if (ids(r.Suivi_par).length) rec.Suivi_par = ['L', ...ids(r.Suivi_par)];
+  try {
+    const res = await write([['AddRecord', 'Projets', null, rec]], null), nid = res.retValues[0];
+    const phs = D.phases.filter(p => p.Projet === r.id).sort((a, b) => (a.Date_debut || 1e12) - (b.Date_debut || 1e12)); let map = {};
+    if (D.hasPh && phs.length) { const rp = await write(phs.map(p => ['AddRecord', 'Phases', null, {Projet: nid, Libelle: p.Libelle || '', Statut: 'À venir', Date_debut: mv(p.Date_debut), Date_fin: mv(p.Date_fin)}]), null); phs.forEach((p, i) => map[p.id] = rp.retValues[i]); }
+    const js = D.jalons.filter(j => j.Projet === r.id);
+    if (js.length) await write(js.map(j => { const x = {Projet: nid, Libelle: j.Libelle || '', Statut: 'À venir', Date: mv(j.Date)}; if (D.hasJPh && map[j.Phase]) x.Phase = map[j.Phase]; return ['AddRecord', 'Jalons', null, x]; }), null);
+    flash('✓ Projet dupliqué : vérifiez le titre et les dates');
+    go('projets', {pj: {sel: nid, mode: 'modifier', filter: 'tous', q: '', arch: false}});
+  } catch (e) { /* message affiché par write() */ }
+};
+
+/* ----- courbe prévu / réalisé d'un projet ----- */
+function driftCard(r) {
+  const d0 = r.Date_debut, d1 = r.Date_fin_prevue, prev = num(r.Charge_prevue);
+  if (typeof d0 !== 'number' || typeof d1 !== 'number' || d1 <= d0 || !prev) return '';
+  const rec = D.temps.filter(t => t.p === r.id && typeof t.d === 'number').sort((a, b) => a.d - b.d);
+  if (!rec.length) return '';
+  const today = todaySec(), x1 = Math.max(d1, today, rec[rec.length - 1].d), W = 600, H = 190, m = {l: 36, r: 10, t: 10, b: 24};
+  const reel = rec.reduce((s, t) => s + t.j, 0), ymax = Math.max(prev, reel) * 1.1 || 1;
+  const X = t => m.l + (t - d0) / (x1 - d0) * (W - m.l - m.r), Y = v => H - m.b - v / ymax * (H - m.t - m.b);
+  let cum = 0, pts = [[d0, 0]]; rec.forEach(t => { cum += t.j; pts.push([Math.max(t.d, d0), cum]); }); pts.push([Math.min(Math.max(today, d0), x1), cum]);
+  const path = pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' ');
+  const exp = prev * Math.min(Math.max((today - d0) / (d1 - d0), 0), 1), gap = reel - exp;
+  const msg = today < d0 ? 'Le projet n’a pas encore démarré.' : Math.abs(gap) < prev * .05 ? 'Consommation conforme au rythme prévu.' : gap > 0 ? `Consommation en avance de ${fmtN(Math.round(gap * 10) / 10)} j sur le rythme prévu.` : `Consommation en retard de ${fmtN(Math.round(-gap * 10) / 10)} j sur le rythme prévu.`;
+  const tk = [0, .5, 1].map(f => `<text x="${m.l - 4}" y="${Y(ymax / 1.1 * f) + 4}" text-anchor="end" font-size="10" fill="var(--mut)">${fmtN(Math.round(ymax / 1.1 * f))}</text>`).join('');
+  return `<div class="card drift"><h2>Prévu et réalisé</h2><div style="margin-bottom:6px">${esc(msg)}</div>
+    <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Courbe cumulée du temps prévu et réalisé">${tk}<line x1="${m.l}" y1="${H - m.b}" x2="${W - m.r}" y2="${H - m.b}" stroke="var(--line)"/>
+      <line x1="${X(d0)}" y1="${Y(0)}" x2="${X(d1)}" y2="${Y(prev)}" stroke="var(--acc2)" stroke-width="2" stroke-dasharray="6 4"/>
+      <path d="${path}" fill="none" stroke="var(--acc)" stroke-width="2.5"/>
+      <line x1="${X(Math.min(Math.max(today, d0), x1))}" y1="${m.t}" x2="${X(Math.min(Math.max(today, d0), x1))}" y2="${H - m.b}" stroke="var(--warn)" stroke-dasharray="2 3"/>
+      <text x="${m.l}" y="${H - 6}" font-size="10" fill="var(--mut)">${fmtD(d0)}</text><text x="${W - m.r}" y="${H - 6}" text-anchor="end" font-size="10" fill="var(--mut)">${fmtD(x1)}</text></svg>
+    <div class="lg"><span><i class="lgb" style="background:var(--acc2)"></i>Rythme prévu (cumulé)</span><span><i class="lgb" style="background:var(--acc)"></i>Réalisé (cumulé)</span><span><i class="lgb" style="background:var(--warn)"></i>Aujourd’hui</span></div></div>`;
+}
 /* =====================================================================
    Démarrage
    ===================================================================== */
