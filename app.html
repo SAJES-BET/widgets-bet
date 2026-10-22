@@ -273,7 +273,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .week .lbl{min-width:0;flex:1}.c{width:52px}.ag{grid-template-columns:1fr}.jr,.jr.p5,.phr,.abr{grid-template-columns:1fr 1fr}
 }
 
-.lgd{margin:4px 0 8px}.lgd summary{cursor:pointer;color:var(--acc);font-size:12px;font-weight:600}
+.aide{margin:4px 0 8px}.aide summary{cursor:pointer;color:var(--acc);font-size:12px;font-weight:600}
 .mailbox{width:100%;min-height:170px;border:1px solid var(--line);border-radius:8px;background:var(--field);padding:8px;font:13px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
 .drift svg{width:100%;max-height:230px;display:block}.drift .lg{margin-top:6px}
 .keyf{margin:4px 0 12px}
@@ -1501,7 +1501,7 @@ function absCard30() {
 function staffData() { const P = buildPeriods('semaine', mondayOf(todaySec()), 4); return chargeModel(P, {hide: new Set(['Archivé', 'Terminé'])}); }
 function staffCard() {
   const m = staffData(), P = m.P, rows = m.agents.filter(a => a.id);
-  return `<div class="card"><h2>Staffing et charge : cette semaine et les trois suivantes</h2><details class="lgd noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Jours réalisés ou prévus par agent. ${HEATLEG}.</div></details>
+  return `<div class="card"><h2>Staffing et charge : cette semaine et les trois suivantes</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Jours réalisés ou prévus par agent. ${HEATLEG}.</div></details>
     <table class="st2 l heat"><tr><th>Agent</th><th>Sur quoi cette semaine</th>${P.map(p => `<th title="${esc(p.tip)}">${p.lab}</th>`).join('')}</tr>
     ${rows.map(a => `<tr><td>${esc(a.name)}</td><td style="text-align:left!important">${a.byP.filter(x => x.c[0][0] + x.c[0][1] > 0).map(x => `${lkp(x.p)} <span class="muted">${fmtC(x.c[0][0] + x.c[0][1])} j</span>`).join('<br>') || '<span class="muted">Aucune charge</span>'}</td>
       ${P.map((p, i) => { const v = sumC([a.tot[i]]), cp = a.capP[i], ab = a.ab[i]; return `<td class="${hcls(v, cp)}" title="${esc(tipC(a.tot[i]))}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}${ab ? `<small class="ab">abs. ${fmtC(ab)} j</small>` : ''}</td>`; }).join('')}</tr>`).join('')}</table>
@@ -1651,7 +1651,7 @@ function synCalendrier() {
       <select data-ch="cal-ag" aria-label="Agent"><option value="0">Tous les agents</option>${activeAgents().map(a => `<option value="${a.id}" ${a.id === st.agent ? 'selected' : ''}>${esc(agentName(a))}</option>`).join('')}</select>
       <label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="cal-det" ${st.detail ? 'checked' : ''}>Vue détaillée (par agent)</label></div></header>
   <div class="card"><div class="hint">Chaque case indique les jours de travail (réalisés ou prévus) du projet sur la période. Passez la souris sur une case pour le détail, les phases et les jalons.</div>${LEGEND}${calTable(m, {g: st.g, detail: st.detail})}</div>
-  <div class="card"><h2>Charge cumulée par agent</h2><details class="lgd noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${HEATLEG}</div></details>${agentTable(m, {g: st.g, detail: false})}</div>${nofinCard(m)}`;
+  <div class="card"><h2>Charge cumulée par agent</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${HEATLEG}</div></details>${agentTable(m, {g: st.g, detail: false})}</div>${nofinCard(m)}`;
 }
 const wState = w => w === 'cal' ? S.sy.cal : S.sy.ch, wRender = w => w === 'cal' ? synCalendrier() : synCharge();
 ['cal', 'ch'].forEach(w => {
@@ -1675,7 +1675,7 @@ function synCharge() {
   const st = S.sy.ch, P = periodsOf(st), m = chargeModel(P, {hide: st.hide});
   $('#sy-b').innerHTML = `<header><h1>Charge par agent</h1><div class="muted">Temps réalisé (passé) et reste à faire réparti sur les jours ouvrés (futur), agent par agent.</div>${ctl('ch', st, P)}
     <div class="fl noprint" style="margin-top:8px"><label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="ch-det" ${st.detail ? 'checked' : ''}>Vue détaillée (par projet)</label></div></header>
-  <div class="card"><details class="lgd noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Charge d’un projet à venir = charge prévue − jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés jusqu’à la fin prévue (pour un projet en retard : sur les deux semaines qui viennent). ${HEATLEG}.</div></details><div class="lg">${LEG0}</div>${agentTable(m, {g: st.g, detail: st.detail})}</div>${nofinCard(m)}`;
+  <div class="card"><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Charge d’un projet à venir = charge prévue − jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés jusqu’à la fin prévue (pour un projet en retard : sur les deux semaines qui viennent). ${HEATLEG}.</div></details><div class="lg">${LEG0}</div>${agentTable(m, {g: st.g, detail: st.detail})}</div>${nofinCard(m)}`;
 }
 
 /* ---------- Rapport annuel pour la hiérarchie ---------- */
@@ -1712,7 +1712,7 @@ function raAbs(y) {
 function raCal(y) {
   const m = raModel(y);
   return `<div class="card"><h2>Calendrier de l’année ${y} : projets, charge et jalons</h2><div class="hint">Jours de travail par projet et par mois (réalisé pour les mois passés, prévisionnel pour les mois à venir).</div>${LEGEND}${calTable(m, {g: 'mois', detail: false, totalCol: true})}</div>
-  <div class="card"><h2>Charge par agent en ${y}</h2><details class="lgd noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${HEATLEG}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div></details>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>${raAbs(y)}`;
+  <div class="card"><h2>Charge par agent en ${y}</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${HEATLEG}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div></details>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>${raAbs(y)}`;
 }
 function synRapport() {
   const ys = raYears(); if (!S.sy.ra.year || !ys.includes(S.sy.ra.year)) S.sy.ra.year = new Date().getFullYear();
@@ -1800,7 +1800,7 @@ function checksCard() {
 ACT.word = el => {
   const src = $('#sy-b'); if (!src) return;
   const c = src.cloneNode(true);
-  $$('.noprint,button,select,details,.lgd,.hint.noprint,script', c).forEach(x => x.remove());
+  $$('.noprint,button,select,details,.aide,.hint.noprint,script', c).forEach(x => x.remove());
   $$('textarea', c).forEach(t => { const d = document.createElement('p'); d.style.whiteSpace = 'pre-wrap'; d.textContent = t.value; t.replaceWith(d); });
   const css = 'body{font-family:Calibri,Arial,sans-serif;font-size:11pt}h1{font-size:20pt}h2{font-size:14pt;margin-top:14pt}table{border-collapse:collapse;width:100%}td,th{border:1px solid #999;padding:3px 5px;font-size:9.5pt;text-align:left}.tag{padding:0 4px;border:1px solid #bbb}.muted,.hint{color:#555}';
   const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${esc(el.dataset.n)}</title><style>${css}</style></head><body>${c.innerHTML}</body></html>`;
