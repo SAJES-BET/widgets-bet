@@ -38,27 +38,27 @@ let ST = {P: [], A: [], T: [], sel: new Set(), arm: '', busy: false, msg: ''};
 const PST = ['À venir', 'En cours', 'Terminée'];
 // agents : noms de famille ; ph = [libellé, début, fin, statut] ; j = [libellé, date, statut, n° de phase (1…) ou 0]
 const DEMO = [
- {ref: 'DEMO-01', t: 'Cartographie des processus du bureau', ty: 'Diagnostic', st: 'En cours', niv: 'SG', co: 'Secrétariat général', be: 'Agents du bureau', ag: ['VAGNEUR', 'CHENIERE'], su: ['FRALEUX-MIGNON'], d: -75, f: 45, prev: 60, reel: 33,
+ {ref: 'DEMO-01', t: 'Cartographie des processus du bureau', ty: 'Diagnostic', st: 'En cours', niv: 'SG', co: 'Secrétariat général', be: 'Agents du bureau', ag: ['VAGNEUR', 'CHENIERE'], su: ['FRALEUX-MIGNON'], d: -75, f: 45, prev: 36, reel: 20,
   desc: 'Décrire les principaux processus du bureau et repérer les points de friction.',
   ph: [['Cadrage', -75, -55, 'Terminée'], ['Entretiens et collecte', -54, -10, 'Terminée'], ['Analyse et restitution', -9, 45, 'En cours']],
   j: [['Lettre de mission signée', -75, 'Atteint', 1], ['Calendrier des entretiens validé', -55, 'Atteint', 1], ['Entretiens terminés', -10, 'Atteint', 2], ['Diagnostic provisoire', 14, 'À venir', 3], ['Restitution au comité', 40, 'À venir', 3]]},
- {ref: 'DEMO-02', t: 'Évaluation d’une politique publique : indicateurs de suivi', ty: 'Politique', st: 'En cours', niv: 'Direction', co: 'Direction partenaire', be: 'Direction partenaire', ag: ['BARONI', 'MOUSSA'], su: ['DREVET'], d: -120, f: -6, prev: 80, reel: 71,
+ {ref: 'DEMO-02', t: 'Évaluation d’une politique publique : indicateurs de suivi', ty: 'Politique', st: 'En cours', niv: 'Direction', co: 'Direction partenaire', be: 'Direction partenaire', ag: ['BARONI', 'MOUSSA'], su: ['DREVET'], d: -120, f: -6, prev: 45, reel: 40,
   desc: 'Construire et fiabiliser les indicateurs d’évaluation d’un dispositif.',
   ph: [['Cadrage', -120, -100, 'Terminée'], ['Collecte des données', -99, -40, 'Terminée'], ['Rapport d’évaluation', -39, -6, 'En cours']],
   j: [['Cadrage validé', -100, 'Atteint', 1], ['Données consolidées', -40, 'Atteint', 2], ['Rapport provisoire', -12, 'En retard', 3], ['Rapport final', -6, 'À venir', 3]]},
- {ref: 'DEMO-03', t: 'Appui DITP : amélioration du parcours usager', ty: 'DITP', st: 'En cours', niv: 'DITP', co: 'DITP', be: 'Usagers', ag: ['MARRET', 'EL SKAFF', 'VAN SPEYBROECK'], su: ['BAUCHARD'], d: -60, f: 30, prev: 40, reel: 52,
+ {ref: 'DEMO-03', t: 'Appui DITP : amélioration du parcours usager', ty: 'DITP', st: 'En cours', niv: 'DITP', co: 'DITP', be: 'Usagers', ag: ['MARRET', 'EL SKAFF', 'VAN SPEYBROECK'], su: ['BAUCHARD'], d: -60, f: 30, prev: 30, reel: 39,
   desc: 'Accompagnement d’un chantier interministériel de simplification du parcours.',
   ph: [['Lancement', -60, -45, 'Terminée'], ['Co-construction', -44, 5, 'En cours'], ['Déploiement', 6, 30, 'À venir']],
   j: [['Lettre de saisine', -60, 'Atteint', 1], ['Atelier 1', -30, 'Atteint', 2], ['Atelier 2', -3, 'Atteint', 2], ['Restitution intermédiaire', 10, 'À venir', 3], ['Retour d’expérience', 30, 'À venir', 3]]},
- {ref: 'DEMO-04', t: 'Note de cadrage : nouvel outil de suivi', ty: 'Diagnostic', st: 'En cours', niv: 'Bureau', co: '', be: '', ag: [], su: [], d: -7, f: null, prev: 15, reel: 2, desc: 'Projet volontairement incomplet (sans agent, sans date de fin, sans jalon).', ph: [], j: []},
- {ref: 'DEMO-05', t: 'Revue annuelle des conventions', ty: 'Politique', st: 'À cadrer', niv: 'Service', co: 'Service partenaire', be: '', ag: ['AUSSEIL', 'VAN SPEYBROECK'], su: ['FRALEUX-MIGNON'], d: 10, f: 90, prev: 25, reel: 0, desc: '',
+ {ref: 'DEMO-04', t: 'Note de cadrage : nouvel outil de suivi', ty: 'Diagnostic', st: 'En cours', niv: 'Bureau', co: '', be: '', ag: [], su: [], d: -7, f: null, prev: 15, reel: 1, desc: 'Projet volontairement incomplet (sans agent, sans date de fin, sans jalon).', ph: [], j: []},
+ {ref: 'DEMO-05', t: 'Revue annuelle des conventions', ty: 'Politique', st: 'À cadrer', niv: 'Service', co: 'Service partenaire', be: '', ag: ['AUSSEIL', 'VAN SPEYBROECK'], su: ['FRALEUX-MIGNON'], d: 10, f: 90, prev: 20, reel: 0, desc: '',
   ph: [], j: [['Cadrage', 10, 'À venir', 0], ['Livrable final', 90, 'À venir', 0]]},
- {ref: 'DEMO-06', t: 'Bilan de la mission de transformation', ty: 'DITP', st: 'Terminé', niv: 'Cab GDS', co: 'Cabinet', be: 'Direction', ag: ['VAGNEUR', 'BAUCHARD'], su: ['FRALEUX-MIGNON'], d: -230, f: -40, fr: -35, prev: 45, reel: 48, desc: 'Bilan et capitalisation.',
+ {ref: 'DEMO-06', t: 'Bilan de la mission de transformation', ty: 'DITP', st: 'Terminé', niv: 'Cab GDS', co: 'Cabinet', be: 'Direction', ag: ['VAGNEUR', 'BAUCHARD'], su: ['FRALEUX-MIGNON'], d: -230, f: -40, fr: -35, prev: 30, reel: 32, desc: 'Bilan et capitalisation.',
   ph: [['Préparation', -230, -170, 'Terminée'], ['Analyse', -169, -80, 'Terminée'], ['Rédaction du bilan', -79, -35, 'Terminée']],
   j: [['Lancement', -230, 'Atteint', 1], ['Données reçues', -170, 'Atteint', 2], ['Bilan remis', -35, 'Atteint', 3]]},
- {ref: 'DEMO-07', t: 'Guide pratique à destination des agents', ty: 'Diagnostic', st: 'Terminé', niv: 'Bureau', co: 'Cheffe de bureau', be: 'Agents', ag: ['CHENIERE'], su: ['DREVET'], d: -170, f: -100, fr: -104, prev: 20, reel: 17, desc: '',
+ {ref: 'DEMO-07', t: 'Guide pratique à destination des agents', ty: 'Diagnostic', st: 'Terminé', niv: 'Bureau', co: 'Cheffe de bureau', be: 'Agents', ag: ['CHENIERE'], su: ['DREVET'], d: -170, f: -100, fr: -104, prev: 12, reel: 10, desc: '',
   ph: [], j: [['Plan validé', -150, 'Atteint', 0], ['Guide diffusé', -104, 'Atteint', 0]]},
- {ref: 'DEMO-08', t: 'Étude d’opportunité (mise en pause)', ty: 'Politique', st: 'En pause', niv: 'SGA', co: 'Secrétariat général adjoint', be: '', ag: ['BARONI'], su: ['DREVET'], d: -90, f: 60, prev: 30, reel: 6, desc: 'En attente d’arbitrage.',
+ {ref: 'DEMO-08', t: 'Étude d’opportunité (mise en pause)', ty: 'Politique', st: 'En pause', niv: 'SGA', co: 'Secrétariat général adjoint', be: '', ag: ['BARONI'], su: ['DREVET'], d: -90, f: 60, prev: 20, reel: 4, desc: 'En attente d’arbitrage.',
   ph: [], j: [['Arbitrage attendu', 20, 'À venir', 0]]}
 ];
 
@@ -139,7 +139,7 @@ function render() {
     ${t.length ? t.map(p => `<label class="row"><input type="checkbox" data-id="${p.id}" ${ST.sel.has(p.id) ? 'checked' : ''}><span>${esc(label(p))}<span class="tag">${esc(p.Statut || '—')}</span></span></label>`).join('') : '<div style="margin-top:8px">✓ Aucun projet de test repéré.</div>'}
     ${t.length ? `<div class="acts">${arm === 'del' ? `<span>Supprimer ${ST.sel.size} projet(s) ? Action définitive.</span><button class="bad" data-a="del-yes" ${dis}>Oui, supprimer</button><button data-a="cancel">Non</button>` : `<button data-a="del" ${ST.sel.size && !ST.busy ? '' : 'disabled'}>Supprimer la sélection (${ST.sel.size})</button>`}</div>` : ''}</div>
   <div class="card"><h2>2. Démo pour la cheffe de bureau</h2>
-    <div class="mut">Charge ${DEMO.length} projets <b>fictifs</b> (références « DEMO-01 »…) avec phases, jalons et temps saisis sur les derniers mois : un projet en retard, un en dépassement de charge, un incomplet, deux terminés, un en pause, un à cadrer. Les agents sont ceux de votre fichier ; les dates sont calculées par rapport à aujourd’hui.</div>
+    <div class="mut">Charge ${DEMO.length} projets <b>fictifs</b> (références « DEMO-01 »…) avec phases, jalons et temps saisis sur les derniers mois : un projet en retard, un en dépassement de charge (130 %), un incomplet, deux terminés, un en pause, un à cadrer. Les agents sont ceux de votre fichier ; les dates sont calculées par rapport à aujourd’hui.</div>
     <div class="acts">${arm === 'rel' ? `<span>Remplacer la démo existante ?</span><button class="pri" data-a="load-yes" ${dis}>Oui, recharger</button><button data-a="cancel">Non</button>` : `<button class="pri" data-a="${d.length ? 'rel' : 'load-yes'}" ${dis}>${d.length ? 'Recharger la démo' : 'Charger la démo'}</button>`}
     ${d.length ? (arm === 'rm' ? `<span>Retirer ${d.length} projet(s) de démo ?</span><button class="bad" data-a="rm-yes" ${dis}>Oui, retirer</button><button data-a="cancel">Non</button>` : `<button data-a="rm" ${dis}>Retirer la démo</button>`) : ''}</div></div>
   <div id="log">${esc(ST.msg)}</div>`;

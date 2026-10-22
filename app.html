@@ -225,6 +225,15 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 .sv-pt{fill:#fff;font-size:12px;font-weight:700}.sv-pt.dk{fill:var(--txt)}
 .lgb{display:inline-block;width:18px;height:8px;border-radius:3px;background:var(--acc2)}
 .rp-bar.ph{opacity:.45;height:14px;margin-top:-7px;border-radius:5px}.rp-bar.ph.cur{background:var(--acc)}.rp-bar.ph.ok{background:var(--ok)}.rp-bar.ph.bad{background:var(--bad)}
+.cal2{font-size:13px}.cal2 th,.cal2 td{padding:5px 6px!important;min-width:46px;white-space:nowrap}.cal2 th:first-child,.cal2 td:first-child{min-width:200px;white-space:normal;position:sticky;left:0;background:var(--card);z-index:1}
+.cal2 td{text-align:center!important}.cal2 td:first-child{text-align:left!important}.cal2 td small,.cal2 th small{display:block;font-size:11px;color:var(--mut);font-weight:400}.cal2 td:first-child small{white-space:normal}
+.cal2 .ar td{color:var(--mut);font-size:12px;padding-top:3px!important;padding-bottom:3px!important}.cal2 .ar td:first-child{padding-left:20px!important}
+.cal2 td.sp{background:rgba(91,140,255,.10)}.cal2 td.re{background:rgba(91,140,255,.38);font-weight:600}.cal2 td.pl{background:repeating-linear-gradient(135deg,rgba(91,140,255,.20) 0 5px,rgba(91,140,255,.05) 5px 10px)}
+.cal2 td.mix{background:linear-gradient(90deg,rgba(91,140,255,.38) 50%,rgba(91,140,255,.16) 50%);font-weight:600}
+.cal2 th.cu,.cal2 td.cu{box-shadow:inset 2px 0 0 var(--bad),inset -2px 0 0 var(--bad)}.cal2 .tt,.cal2 th:last-child{font-weight:700}.cal2 tr.tot th{border-top:2px solid var(--line)}
+.heat.cal2 td.hk,.heat.cal2 th.hk{background:rgba(63,182,122,.14)}.heat.cal2 td.hw,.heat.cal2 th.hw{background:rgba(240,164,60,.28)}.heat.cal2 td.hb,.heat.cal2 th.hb{background:rgba(238,99,99,.32)}
+.jl{font-style:normal;color:var(--warn);font-size:11px;margin-left:3px}
+.lgb.re{background:rgba(91,140,255,.45)}.lgb.pl{background:repeating-linear-gradient(135deg,rgba(91,140,255,.45) 0 3px,rgba(91,140,255,.1) 3px 6px)}.lgb.mx{background:linear-gradient(90deg,rgba(91,140,255,.45) 50%,rgba(91,140,255,.15) 50%)}.lgb.sp{background:rgba(91,140,255,.14)}
 .st2.l td,.st2.l th{text-align:left;vertical-align:top}
 .lkp{background:none;border:0;padding:0;font-weight:600;text-align:left;cursor:pointer}.lkp:hover{text-decoration:underline;color:var(--acc)}
 .heat td,.heat th{text-align:center!important}.heat td:first-child,.heat th:first-child{text-align:left!important}
@@ -247,7 +256,8 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .card{break-inside:avoid;box-shadow:none}
  .cal .cv{display:block!important;break-inside:avoid}.cal .cv+.cv{margin-top:18px}.cvt{display:block}
  .rp-r{break-inside:avoid}
- .heat-w{overflow:visible!important}.heat td,.heat th{padding:3px 2px;font-size:9.5px;min-width:0!important}.heat td small{font-size:8px}
+ .card:has(.cal2){break-inside:auto}.cal2 tr{break-inside:avoid}.cal2 thead{display:table-header-group}
+ .heat-w{overflow:visible!important}.cal2 td:first-child,.cal2 th:first-child{position:static;min-width:0;width:190px}.cal2{font-size:9.5px}.cal2 th,.cal2 td{min-width:0;padding:2px 3px!important}.heat td,.heat th{padding:3px 2px;font-size:9.5px;min-width:0!important}.heat td small{font-size:8px}
  .ra-p{display:block}.lkp{font-weight:600}.st2 tr{break-inside:avoid}
 }
 </style>
@@ -379,7 +389,7 @@ const S = {
   pj: {sel: null, mode: 'consulter', q: '', filter: 'tous', old: false, cal: 'frise', arch: false},
   eq: {sel: null, mode: 'consulter', q: '', inactive: false},
   mt: {ws: mondayOf(todaySec()), extra: new Set(), pend: {}, saving: false, sig: ''},
-  sy: {tab: 'hebdo', ch: {g: 'mois'}, ra: {year: null}, pj: {hidden: new Set(['Archivé']), year: 'all', tab: 'ens'}, eq: {inactive: false, tab: 'ens'}},
+  sy: {tab: 'hebdo', ch: {g: 'mois', off: 0, detail: false, hide: new Set(['Archivé'])}, cal: {g: 'semaine', off: 0, hide: new Set(['Archivé', 'Terminé']), agent: 0, detail: true}, ra: {year: null}, pj: {hidden: new Set(['Archivé']), year: 'all', tab: 'ens'}, eq: {inactive: false, tab: 'ens'}},
   ac: {scope: 'tous'}
 };
 const VIEWS = {
@@ -402,7 +412,7 @@ function go(view, opts) {
   S.view = view; store.set('app-view', view);
   renderNav(); renderView();
 }
-function renderView() { $('#view').scrollTop = 0; VIEWS[S.view].render(); }
+function renderView() { landscape(false); $('#view').scrollTop = 0; VIEWS[S.view].render(); }
 function refreshView() { renderNav(); const v = VIEWS[S.view]; (v.refresh || v.render)(); }
 
 /* ---------- Écouteurs globaux (délégation) ---------- */
@@ -1117,12 +1127,13 @@ const sum = (a, k) => a.reduce((s, x) => s + (+x[k] || 0), 0);
 const grp = (a, k) => { const m = {}; a.forEach(x => { const g = x[k] || 'Non renseigné'; (m[g] = m[g] || []).push(x); }); return Object.entries(m).sort((p, q) => q[1].length - p[1].length); };
 const csvRows = rows => rows.map(r => r.map(c => typeof c === 'number' ? String(c).replace('.', ',') : c));
 
-const SY_TABS = [['hebdo', 'Point hebdo'], ['charge', 'Charge par agent'], ['rapport', 'Rapport annuel'], ['projets', 'Projets'], ['equipe', 'Équipe']];
+const SY_TABS = [['hebdo', 'Point hebdo'], ['calendrier', 'Calendrier'], ['charge', 'Charge par agent'], ['rapport', 'Rapport annuel'], ['projets', 'Projets'], ['equipe', 'Équipe']];
 function vSyn() {
   if (!SY_TABS.some(t => t[0] === S.sy.tab)) S.sy.tab = 'hebdo';
   $('#view').innerHTML = `<div class="syn"><div class="seg noprint" style="margin-bottom:14px;flex-wrap:wrap" role="group" aria-label="Synthèse">
     ${SY_TABS.map(([k, l]) => `<button class="${S.sy.tab === k ? 'on' : ''}" data-a="sy-tab" data-v="${k}">${l}</button>`).join('')}</div><div id="sy-b"></div></div>`;
-  ({hebdo: synHebdo, charge: synCharge, rapport: synRapport, projets: synProjets, equipe: synEquipe})[S.sy.tab]();
+  landscape(S.sy.tab === 'calendrier' || S.sy.tab === 'charge');
+  ({hebdo: synHebdo, calendrier: synCalendrier, charge: synCharge, rapport: synRapport, projets: synProjets, equipe: synEquipe})[S.sy.tab]();
 }
 ACT['sy-tab'] = el => { S.sy.tab = el.dataset.v; vSyn(); };
 
@@ -1247,70 +1258,178 @@ function synHebdo() {
       <td>${x.w.map(i => `<span class="tag ${i.sev > 1 ? 'bad' : i.sev ? 'warn' : ''}">${esc(i.txt)}</span>`).join('')}</td></tr>`).join('')}</table>` : '<div class="muted">✓ Rien à signaler : aucun retard, dépassement ou projet incomplet.</div>'}</div>
   <div class="card"><h2>Jalons des 30 prochains jours</h2>
     ${h.jal.length ? `<table class="st2 l"><tr><th>Date</th><th>Jalon</th><th>Projet</th><th>Agents</th></tr>${h.jal.map(({j, p}) => `<tr><td>${fmtD(j.Date)}</td><td>${esc(j.Libelle || '(sans libellé)')}${phName(j) ? ` <span class="muted">(${esc(phName(j))})</span>` : ''}</td><td>${lkp(p)}</td><td>${esc(p.Agent_nom || '—')}</td></tr>`).join('')}</table>` : '<div class="muted">Aucun jalon à venir.</div>'}</div>
+  ${staffCard(h)}
   <div class="card"><h2>Saisie du temps</h2><div class="hint">Jours saisis la semaine dernière (S${isoWeek(h.ws - 7 * DAY)}) et cette semaine (S${isoWeek(h.ws)}).</div>
     <table class="st2 l"><tr><th>Agent</th><th>Semaine dernière</th><th>Cette semaine</th></tr>${h.saisie.map(x => `<tr><td>${esc(agentName(x.a))}</td><td class="${x.prev ? '' : 'wn'}">${x.prev ? fmtN(x.prev) + ' j' : 'Rien saisi'}</td><td>${x.cur ? fmtN(x.cur) + ' j' : '—'}</td></tr>`).join('')}</table></div>`;
 }
+function staffData() { const P = buildPeriods('semaine', mondayOf(todaySec()), 4); return chargeModel(P, {hide: new Set(['Archivé', 'Terminé'])}); }
+function staffCard() {
+  const m = staffData(), P = m.P, rows = m.agents.filter(a => a.id);
+  return `<div class="card"><h2>Staffing et charge : cette semaine et les trois suivantes</h2><div class="hint">Jours réalisés ou prévus par agent. ${HEATLEG}.</div>
+    <table class="st2 l heat"><tr><th>Agent</th><th>Sur quoi cette semaine</th>${P.map(p => `<th title="${esc(p.tip)}">${p.lab}</th>`).join('')}</tr>
+    ${rows.map(a => `<tr><td>${esc(a.name)}</td><td style="text-align:left!important">${a.byP.filter(x => x.c[0][0] + x.c[0][1] > 0).map(x => `${lkp(x.p)} <span class="muted">${fmtC(x.c[0][0] + x.c[0][1])} j</span>`).join('<br>') || '<span class="muted">Aucune charge</span>'}</td>
+      ${P.map((p, i) => { const v = sumC([a.tot[i]]), cp = capOf(a.cap, p); return `<td class="${hcls(v, cp)}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}</td>`; }).join('')}</tr>`).join('')}</table>
+    <div class="noprint" style="margin-top:8px"><button class="fchip" data-a="go-cal">Ouvrir le calendrier complet</button></div></div>`;
+}
+ACT['go-cal'] = () => { S.sy.tab = 'calendrier'; vSyn(); };
 ACT['hb-csv'] = () => {
   const h = hebdoData(), r = [['Rubrique', 'Projet', 'Agents', 'Détail', 'Date']];
   h.al.watch.forEach(x => r.push(['À surveiller', projLabel(x.p), x.p.Agent_nom, x.w.map(i => i.txt).join(' ; '), '']));
   h.jal.forEach(({j, p}) => r.push(['Jalon', projLabel(p), p.Agent_nom, j.Libelle, fmtD(j.Date)]));
+  staffData().agents.filter(a => a.id).forEach(a => r.push(['Staffing', '', a.name, a.tot.map((c, i) => staffData().P[i].lab + ' : ' + fmtC(sumC([c])) + ' j').join(' ; '), '']));
   h.saisie.forEach(x => r.push(['Saisie du temps', '', agentName(x.a), `Semaine dernière : ${fmtN(x.prev)} j ; cette semaine : ${fmtN(x.cur)} j`, '']));
   downloadCsv('point-hebdo-' + iso(h.today), csvRows(r));
 };
 
-/* ---------- Charge par agent : prévisionnel (mois, semaines ou jours) ---------- */
+/* ---------- Modèle commun : charge réalisée (temps saisi) + prévisionnelle (reste à faire) ---------- */
 const isWd = t => { const d = new Date(t * 1000).getUTCDay(); return d !== 0 && d !== 6; };
-const GRAN = {mois: 'Mensuel', semaine: 'Hebdomadaire', jour: 'Quotidien'};
-function chargePeriods(g) {
-  const today = todaySec(), n0 = new Date(today * 1000), P = [];
-  if (g === 'mois') for (let i = 0; i < 6; i++) { const a = Date.UTC(n0.getUTCFullYear(), n0.getUTCMonth() + i, 1) / 1000, b = Date.UTC(n0.getUTCFullYear(), n0.getUTCMonth() + i + 1, 1) / 1000 - DAY;
-    P.push({a, b, lab: new Date(a * 1000).toLocaleDateString('fr-FR', {month: 'short', year: '2-digit', timeZone: 'UTC'}), tip: ''}); }
-  else if (g === 'semaine') for (let i = 0; i < 12; i++) { const a = mondayOf(today) + i * 7 * DAY; P.push({a, b: a + 6 * DAY, lab: 'S' + isoWeek(a), tip: 'du ' + fmtD(a) + ' au ' + fmtD(a + 4 * DAY)}); }
-  else { let t = today; while (!isWd(t)) t += DAY; for (let i = 0; i < 20; i++) { P.push({a: t, b: t, lab: dShort(t), tip: ''}); t += DAY; while (!isWd(t)) t += DAY; } }
-  P.forEach(p => { p.wd = 0; for (let t = Math.max(p.a, today); t <= p.b; t += DAY) if (isWd(t)) p.wd++; });
-  return P;
-}
-function chargeData(g) {
-  const today = todaySec(), P = chargePeriods(g), n = P.length, wEnd = P[n - 1].b;
-  const cell = {}, add = (k, i, p, v) => { const c = (cell[k] = cell[k] || Array.from({length: n + 1}, () => ({v: 0, l: []})))[i]; c.v += v; const e = c.l.find(x => x.p === p); e ? e.v += v : c.l.push({p, v}); };
-  const nofin = [];
-  D.projets.filter(plan).forEach(p => {
-    const rem = Math.max(0, num(p.Charge_prevue) - num(p.Charge_reelle)); if (!rem) return;
-    const fin = toSec(p.Date_fin_prevue); if (fin == null) { nofin.push(p); return; }
-    const s = Math.max(today, toSec(p.Date_debut) ?? today), e = Math.min(Math.max(fin, s), s + 3650 * DAY);
-    const days = []; for (let t = s; t <= e; t += DAY) if (isWd(t)) days.push(t);
-    if (!days.length) days.push(s);
-    const who = ids(p.Agent).length ? ids(p.Agent) : [0], per = rem / days.length / who.length;
-    days.forEach(t => { const i = t > wEnd ? n : P.findIndex(x => t >= x.a && t <= x.b); if (i >= 0) who.forEach(ag => add(ag, i, p, per)); });
-  });
-  const rows = activeAgents().sort((a, b) => agentName(a).localeCompare(agentName(b), 'fr')).map(a => ({a, name: agentName(a), cap: num(a.Capacite_annuelle), c: cell[a.id]}));
-  if (cell[0]) rows.push({a: null, name: 'Sans agent affecté', cap: 0, c: cell[0]});
-  return {P, rows, nofin};
-}
+const GRAN = {jour: 'Quotidien', semaine: 'Hebdomadaire', mois: 'Mensuel', annee: 'Annuel'};
+const GSPAN = {jour: 20, semaine: 12, mois: 12, annee: 4};
+const fmtC = v => (Math.round(v * 10) / 10).toLocaleString('fr-FR');
 const capOf = (cap, p) => cap / 260 * p.wd;
 const hcls = (v, cap) => !cap ? (v ? 'hw' : '') : v / cap > 1 ? 'hb' : v / cap >= .8 ? 'hw' : v ? 'hk' : '';
-const fmtC = v => (Math.round(v * 10) / 10).toLocaleString('fr-FR');
-function synCharge() {
-  const g = S.sy.ch.g, d = chargeData(g), n = d.P.length, zero = Array.from({length: n + 1}, () => ({v: 0, l: []}));
-  const tot = Array.from({length: n + 1}, (_, i) => d.rows.reduce((s, r) => s + (r.c ? r.c[i].v : 0), 0));
-  const capAll = d.rows.reduce((s, r) => s + r.cap, 0), per = {mois: '6 prochains mois', semaine: '12 prochaines semaines', jour: '20 prochains jours ouvrés'}[g];
-  $('#sy-b').innerHTML = `<header><h1>Charge par agent : prévisionnel</h1>
-    <div class="muted">Jours restant à réaliser sur les projets « À cadrer » et « En cours », sur les ${per} · édité le ${nowStr()}</div>
-    <div class="acts noprint" style="margin-top:8px">${Object.entries(GRAN).map(([k, l]) => `<button class="fchip ${g === k ? 'on' : ''}" data-a="ch-g" data-v="${k}">${l}</button>`).join('')}
-      <button class="fchip" data-a="ch-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
-  <div class="card"><div class="hint">Pour chaque projet : charge prévue moins jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés (lundi à vendredi) jusqu’à la fin prévue. Référence : capacité annuelle ÷ 260 jours ouvrés, pour les jours restants de la période. <span class="tag ok">vert</span> sous 80 % · <span class="tag warn">orange</span> de 80 à 100 % · <span class="tag bad">rouge</span> au-delà. Passez la souris sur une case pour voir les projets concernés.</div>
-    <div class="heat-w" style="overflow-x:auto"><table class="st2 heat ${g}"><tr><th>Agent</th><th>Cap. annuelle</th>${d.P.map(p => `<th title="${esc(p.tip)}">${esc(p.lab)}</th>`).join('')}<th>Ensuite</th></tr>
-    ${d.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.a ? fmtC(r.cap) : '—'}</td>${(r.c || zero).map((c, i) => { const cap = i < n ? capOf(r.cap, d.P[i]) : 0;
-      return `<td class="${i < n ? hcls(c.v, cap) : ''}" title="${esc(c.l.map(x => projLabel(x.p) + ' : ' + fmtC(x.v) + ' j').join('\n'))}">${c.v ? fmtC(c.v) + (i < n && cap ? `<small>${Math.round(c.v / cap * 100)} %</small>` : '') : '·'}</td>`; }).join('')}</tr>`).join('')}
-    <tr><th>Équipe</th><th>${fmtC(capAll)}</th>${tot.map((v, i) => `<th class="${i < n ? hcls(v, capOf(capAll, d.P[i])) : ''}">${v ? fmtC(v) : '·'}</th>`).join('')}</tr></table></div></div>
-  ${d.nofin.length ? `<div class="card"><h2>Non pris en compte : sans date de fin prévue</h2><div class="hint">Ces projets ont encore de la charge à réaliser mais ne peuvent pas être répartis dans le temps.</div>${d.nofin.map(p => `<span class="tag warn">${lkp(p)}</span>`).join('')}</div>` : ''}`;
+function landscape(on) {
+  let s = $('#pgs'); if (!s) { s = document.createElement('style'); s.id = 'pgs'; document.head.appendChild(s); }
+  s.textContent = on ? '@page{size:landscape;margin:10mm}' : '';
 }
-ACT['ch-g'] = el => { S.sy.ch.g = el.dataset.v; synCharge(); };
-ACT['ch-csv'] = () => {
-  const g = S.sy.ch.g, d = chargeData(g);
-  downloadCsv('charge-par-agent-' + g, csvRows([['Agent', 'Capacité annuelle (j)', ...d.P.map(p => p.lab + (p.tip ? ' (' + p.tip + ')' : '')), 'Ensuite']]
-    .concat(d.rows.map(r => [r.name, r.a ? r.cap : '', ...Array.from({length: d.P.length + 1}, (_, i) => r.c ? Math.round(r.c[i].v * 10) / 10 : 0)]))));
-};
+function buildPeriods(g, anchor, n) {
+  const P = [], today = todaySec();
+  if (g === 'jour') { let t = anchor; while (!isWd(t)) t += DAY; for (let i = 0; i < n; i++) { P.push({a: t, b: t, lab: dShort(t), tip: fmtD(t)}); t += DAY; while (!isWd(t)) t += DAY; } }
+  else if (g === 'semaine') for (let i = 0; i < n; i++) { const a = anchor + i * 7 * DAY; P.push({a, b: a + 6 * DAY, lab: 'S' + isoWeek(a), tip: 'du ' + fmtD(a) + ' au ' + fmtD(a + 4 * DAY)}); }
+  else if (g === 'mois') { const d = new Date(anchor * 1000); for (let i = 0; i < n; i++) { const a = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + i, 1) / 1000, b = Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + i + 1, 1) / 1000 - DAY;
+    P.push({a, b, lab: new Date(a * 1000).toLocaleDateString('fr-FR', {month: 'short', year: '2-digit', timeZone: 'UTC'}), tip: new Date(a * 1000).toLocaleDateString('fr-FR', {month: 'long', year: 'numeric', timeZone: 'UTC'})}); } }
+  else { const y = new Date(anchor * 1000).getUTCFullYear(); for (let i = 0; i < n; i++) P.push({a: Date.UTC(y + i, 0, 1) / 1000, b: Date.UTC(y + i + 1, 0, 1) / 1000 - DAY, lab: String(y + i), tip: 'Année ' + (y + i)}); }
+  P.forEach(p => { p.wd = 0; for (let t = p.a; t <= p.b; t += DAY) if (isWd(t)) p.wd++; p.cur = today >= p.a && today <= p.b; });
+  return P;
+}
+function anchorFor(g, off) {
+  const today = todaySec(), n0 = new Date(today * 1000);
+  if (g === 'jour') return mondayOf(today) + off * 28 * DAY;
+  if (g === 'semaine') return mondayOf(today) - 14 * DAY + off * 84 * DAY;
+  if (g === 'mois') return Date.UTC(n0.getUTCFullYear(), n0.getUTCMonth() - 1 + off * 12, 1) / 1000;
+  return Date.UTC(n0.getUTCFullYear() - 1 + off * 4, 0, 1) / 1000;
+}
+const periodsOf = st => buildPeriods(st.g, anchorFor(st.g, st.off), GSPAN[st.g]);
+const zero = n => Array.from({length: n}, () => [0, 0]);
+const addTo = (t, c) => c.forEach((x, i) => { t[i][0] += x[0]; t[i][1] += x[1]; });
+const sumC = c => c.reduce((s, x) => s + x[0] + x[1], 0);
+const anyC = c => c.some(x => x[0] || x[1]);
+function chargeModel(P, opt = {}) {
+  const today = todaySec(), n = P.length, w0 = P[0].a, wEnd = P[n - 1].b, hide = opt.hide || new Set(), only = opt.agent || 0;
+  const idx = t => { if (t < w0 || t > wEnd) return -1; for (let i = 0; i < n; i++) if (t >= P[i].a && t <= P[i].b) return i; return -1; };
+  const cells = new Map(), cell = (a, p) => { const k = a + '|' + p; let c = cells.get(k); if (!c) { c = zero(n); cells.set(k, c); } return c; };
+  const okP = new Map(D.projets.filter(p => !hide.has(p.Statut)).map(p => [p.id, p])), nofin = [];
+  D.temps.forEach(t => { if (typeof t.d !== 'number' || !okP.has(t.p) || (only && t.a !== only)) return; const i = idx(t.d); if (i >= 0) cell(t.a, t.p)[i][0] += t.j; });
+  okP.forEach(p => {
+    if (!plan(p)) return;
+    const rem = Math.max(0, num(p.Charge_prevue) - num(p.Charge_reelle)); if (!rem) return;
+    const fin = toSec(p.Date_fin_prevue); if (fin == null) { nofin.push(p); return; }
+    const s = Math.max(today, toSec(p.Date_debut) ?? today), e = Math.min(fin < s ? s + 13 * DAY : fin, s + 3650 * DAY), days = [];  // projet en retard : reste à faire étalé sur les 2 prochaines semaines
+    for (let t = s; t <= e; t += DAY) if (isWd(t)) days.push(t);
+    if (!days.length) days.push(s);
+    const who = ids(p.Agent).length ? ids(p.Agent) : [0], per = rem / days.length / who.length;
+    days.forEach(t => { const i = idx(t); if (i >= 0) who.forEach(a => { if (!only || a === only) cell(a, p.id)[i][1] += per; }); });
+  });
+  const agMap = new Map(), pjMap = new Map();
+  activeAgents().forEach(a => { if (!only || a.id === only) agMap.set(a.id, {id: a.id, a, name: agentName(a), cap: num(a.Capacite_annuelle), tot: zero(n), byP: []}); });
+  cells.forEach((c, k) => {
+    if (!anyC(c)) return; const [a, pid] = k.split('|').map(Number), p = okP.get(pid);
+    if (!agMap.has(a)) agMap.set(a, {id: a, a: null, name: a ? agentName(D.by.agent.get(a)) + ' (inactif)' : 'Sans agent affecté', cap: 0, tot: zero(n), byP: []});
+    const ag = agMap.get(a); addTo(ag.tot, c); ag.byP.push({p, c});
+    if (!pjMap.has(pid)) pjMap.set(pid, {p, tot: zero(n), byA: []});
+    const pj = pjMap.get(pid); addTo(pj.tot, c); pj.byA.push({ag, c});
+  });
+  const lc = (a, b) => a.localeCompare(b, 'fr');
+  const agents = [...agMap.values()].sort((x, y) => (x.id === 0) - (y.id === 0) || lc(x.name, y.name));
+  agents.forEach(a => a.byP.sort((x, y) => lc(projLabel(x.p), projLabel(y.p))));
+  const projects = [...pjMap.values()].sort((x, y) => (toSec(x.p.Date_debut) ?? 1e12) - (toSec(y.p.Date_debut) ?? 1e12) || lc(projLabel(x.p), projLabel(y.p)));
+  projects.forEach(q => q.byA.sort((x, y) => (x.ag.id === 0) - (y.ag.id === 0) || lc(x.ag.name, y.ag.name)));
+  // projets sans charge mais dont la période recoupe la fenêtre : on les affiche quand même (barre de calendrier)
+  if (opt.span) okP.forEach(p => { if (pjMap.has(p.id) || only) return; const d = toSec(p.Date_debut), f = toSec(p.Date_fin_reelle) ?? toSec(p.Date_fin_prevue); if (d != null && d <= wEnd && (f == null || f >= w0) && (p.Statut === 'En cours' || p.Statut === 'À cadrer' || p.Statut === 'En pause')) projects.push({p, tot: zero(n), byA: []}); });
+  return {P, agents, projects, nofin};
+}
+const tipC = c => (c[0] ? 'Réalisé : ' + fmtC(c[0]) + ' j' : '') + (c[0] && c[1] ? ' · ' : '') + (c[1] ? 'Prévu : ' + fmtC(c[1]) + ' j' : '');
+const kind = c => c[0] && c[1] ? 'mix' : c[0] ? 're' : c[1] ? 'pl' : '';
+function spanOf(p) { const d = toSec(p.Date_debut), f = toSec(p.Date_fin_reelle) ?? toSec(p.Date_fin_prevue); return [d, f]; }
+function projCells(q, P, totalCol) {
+  const [d, f] = spanOf(q.p), jal = projJalons(q.p).filter(j => typeof j.Date === 'number'), ph = D.phases.filter(x => x.Projet === q.p.id);
+  return P.map((p, i) => {
+    const inSpan = (d == null || d <= p.b) && (f == null || f >= p.a) && (d != null || f != null), js = jal.filter(j => j.Date >= p.a && j.Date <= p.b);
+    const ps = ph.filter(x => toSec(x.Date_debut) != null && toSec(x.Date_fin) != null && toSec(x.Date_debut) <= p.b && toSec(x.Date_fin) >= p.a).map(x => (x.Libelle || '').trim()).filter(Boolean);
+    const tip = [tipC(q.tot[i]), ps.length ? 'Phase : ' + ps.join(', ') : '', ...js.map(j => '◆ ' + (j.Libelle || 'Jalon') + ' (' + fmtD(j.Date) + ')')].filter(Boolean).join('\n');
+    return `<td class="${inSpan ? 'sp' : ''} ${kind(q.tot[i])} ${p.cur ? 'cu' : ''}" title="${esc(tip)}">${sumC([q.tot[i]]) ? fmtC(sumC([q.tot[i]])) : ''}${js.length ? '<i class="jl">◆</i>' : ''}</td>`;
+  }).join('') + (totalCol ? `<td class="tt">${fmtC(sumC(q.tot))}</td>` : '');
+}
+function agentCells(c, P, totalCol) {
+  return P.map((p, i) => `<td class="${kind(c[i])} ${p.cur ? 'cu' : ''}" title="${esc(tipC(c[i]))}">${sumC([c[i]]) ? fmtC(sumC([c[i]])) : ''}</td>`).join('') + (totalCol ? `<td class="tt">${fmtC(sumC(c))}</td>` : '');
+}
+function headRow(P, first, totalCol, extra = '') {
+  return `<tr><th>${first}</th>${extra}${P.map(p => `<th class="${p.cur ? 'cu' : ''}" title="${esc(p.tip || '')}">${esc(p.lab)}</th>`).join('')}${totalCol ? '<th>Total</th>' : ''}</tr>`;
+}
+function calTable(m, opt) {
+  const {P, projects} = m, tc = opt.totalCol;
+  if (!projects.length) return '<div class="muted">Aucun projet sur cette période.</div>';
+  return `<div class="heat-w" style="overflow-x:auto"><table class="st2 cal2 ${opt.g || ''}"><thead>${headRow(P, 'Projet / agent', tc)}</thead><tbody>
+    ${projects.map(q => `<tr class="pr"><td><button class="lkp" data-a="open-p" data-id="${q.p.id}" data-m="consulter">${esc(projLabel(q.p))}</button><small>${esc(q.p.Statut || '')}${spanOf(q.p)[1] != null ? ' · fin ' + fmtD(spanOf(q.p)[1]) : ''}${opt.detail ? '' : ' · ' + esc(q.p.Agent_nom || 'sans agent')}</small></td>${projCells(q, P, tc)}</tr>
+      ${opt.detail ? q.byA.map(x => `<tr class="ar"><td>↳ ${esc(x.ag.name)}</td>${agentCells(x.c, P, tc)}</tr>`).join('') : ''}`).join('')}</tbody></table></div>`;
+}
+function agentTable(m, opt) {
+  const {P, agents} = m, tc = opt.totalCol;
+  if (!agents.length) return '<div class="muted">Aucun agent.</div>';
+  const heat = (c, cap, i) => hcls(sumC([c[i]]), capOf(cap, P[i]));
+  return `<div class="heat-w" style="overflow-x:auto"><table class="st2 heat cal2 ${opt.g || ''}"><thead>${headRow(P, 'Agent', tc, '<th>Cap. annuelle</th>')}</thead><tbody>
+    ${agents.map(a => `<tr class="pr"><td>${esc(a.name)}</td><td>${a.id ? fmtC(a.cap) : '—'}</td>${P.map((p, i) => { const v = sumC([a.tot[i]]), cp = capOf(a.cap, p);
+      return `<td class="${heat(a.tot, a.cap, i)} ${p.cur ? 'cu' : ''}" title="${esc(tipC(a.tot[i]) + (cp ? '\nCapacité de la période : ' + fmtC(cp) + ' j' : ''))}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}</td>`; }).join('')}${tc ? `<td class="tt">${fmtC(sumC(a.tot))}${a.cap ? `<small>${Math.round(sumC(a.tot) / P.reduce((s, p) => s + capOf(a.cap, p), 0) * 100)} %</small>` : ''}</td>` : ''}</tr>
+      ${opt.detail ? a.byP.map(x => `<tr class="ar"><td>↳ ${lkp(x.p)}</td><td></td>${agentCells(x.c, P, tc)}</tr>`).join('') : ''}`).join('')}
+    ${(() => { const cp = agents.filter(a => a.id).reduce((s, a) => s + a.cap, 0), T = zero(P.length); agents.forEach(a => addTo(T, a.tot));
+      return `<tr class="tot"><th>Équipe</th><th>${fmtC(cp)}</th>${P.map((p, i) => { const v = sumC([T[i]]), c = capOf(cp, p); return `<th class="${hcls(v, c)} ${p.cur ? 'cu' : ''}" title="${esc(tipC(T[i]))}">${v ? fmtC(v) + (c ? `<small>${Math.round(v / c * 100)} %</small>` : '') : '·'}</th>`; }).join('')}${tc ? `<th>${fmtC(sumC(T))}</th>` : ''}</tr>`; })()}
+    </tbody></table></div>`;
+}
+const LEG0 = '<span><i class="lgb re"></i>Réalisé (temps saisi)</span><span><i class="lgb pl"></i>Prévisionnel (reste à faire)</span><span><i class="lgb mx"></i>Réalisé et prévu (période en cours)</span>';
+const LEGEND = `<div class="lg">${LEG0}<span><i class="jl">◆</i>Jalon</span><span><i class="lgb sp"></i>Durée du projet</span></div>`;
+const HEATLEG = '<span class="tag ok">vert</span> sous 80 % · <span class="tag warn">orange</span> de 80 à 100 % · <span class="tag bad">rouge</span> au-delà de la capacité de la période (capacité annuelle ÷ 260 jours ouvrés)';
+function ctl(w, st, P) {
+  return `<div class="acts noprint" style="margin-top:8px">${Object.entries(GRAN).map(([k, l]) => `<button class="fchip ${st.g === k ? 'on' : ''}" data-a="${w}-g" data-v="${k}">${l}</button>`).join('')}
+    <span class="seg"><button data-a="${w}-off" data-v="-1" aria-label="Période précédente">◀</button><button data-a="${w}-off" data-v="0">Aujourd’hui</button><button data-a="${w}-off" data-v="1" aria-label="Période suivante">▶</button></span>
+    <button class="fchip" data-a="${w}-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div>
+    <div class="muted" style="margin-top:6px">${fmtD(P[0].a)} → ${fmtD(P[P.length - 1].b)} · édité le ${nowStr()}</div>`;
+}
+function nofinCard(m) { return m.nofin.length ? `<div class="card"><h2>Charge non répartie : projets sans date de fin prévue</h2><div class="hint">Ces projets ont encore du reste à faire, mais il ne peut pas être placé dans le temps.</div>${m.nofin.map(p => `<span class="tag warn">${lkp(p)}</span>`).join('')}</div>` : ''; }
+
+/* ---------- Calendrier des projets ---------- */
+function synCalendrier() {
+  const st = S.sy.cal, P = periodsOf(st), m = chargeModel(P, {hide: st.hide, agent: st.agent, span: true});
+  $('#sy-b').innerHTML = `<header><h1>Calendrier des projets</h1><div class="muted">Qui est staffé sur quoi, et avec quelle charge, projet par projet.</div>${ctl('cal', st, P)}
+    <div class="fl noprint" style="margin-top:8px">${SY_STAT.map(s => `<button class="fchip ${st.hide.has(s) ? '' : 'on'}" data-a="cal-s" data-v="${s}">${s}</button>`).join('')}
+      <select data-ch="cal-ag" aria-label="Agent"><option value="0">Tous les agents</option>${activeAgents().map(a => `<option value="${a.id}" ${a.id === st.agent ? 'selected' : ''}>${esc(agentName(a))}</option>`).join('')}</select>
+      <label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="cal-det" ${st.detail ? 'checked' : ''}>Détail par agent</label></div></header>
+  <div class="card"><div class="hint">Chaque case indique les jours de travail (réalisés ou prévus) du projet sur la période. Passez la souris sur une case pour le détail, les phases et les jalons.</div>${LEGEND}${calTable(m, {g: st.g, detail: st.detail})}</div>
+  <div class="card"><h2>Charge cumulée par agent</h2><div class="hint">${HEATLEG}</div>${agentTable(m, {g: st.g, detail: false})}</div>${nofinCard(m)}`;
+}
+const wState = w => w === 'cal' ? S.sy.cal : S.sy.ch, wRender = w => w === 'cal' ? synCalendrier() : synCharge();
+['cal', 'ch'].forEach(w => {
+  ACT[w + '-g'] = el => { const st = wState(w); st.g = el.dataset.v; st.off = 0; wRender(w); };
+  ACT[w + '-off'] = el => { const st = wState(w), v = +el.dataset.v; st.off = v === 0 ? 0 : st.off + v; wRender(w); };
+});
+ACT['cal-s'] = el => { const h = S.sy.cal.hide, s = el.dataset.v; h.has(s) ? h.delete(s) : h.add(s); synCalendrier(); };
+CH['cal-ag'] = el => { S.sy.cal.agent = +el.value; synCalendrier(); };
+CH['cal-det'] = el => { S.sy.cal.detail = el.checked; synCalendrier(); };
+CH['ch-det'] = el => { S.sy.ch.detail = el.checked; synCharge(); };
+function csvModel(name, m, byProject) {
+  const r = [['Projet', 'Agent', 'Période', 'Réalisé (j)', 'Prévu (j)']], rd = x => Math.round(x * 10) / 10;
+  m.agents.forEach(a => a.byP.forEach(({p, c}) => m.P.forEach((q, i) => { if (c[i][0] || c[i][1]) r.push([projLabel(p), a.name, q.lab + (q.tip && q.tip !== q.lab ? ' (' + q.tip + ')' : ''), rd(c[i][0]), rd(c[i][1])]); })));
+  downloadCsv(name, csvRows(r));
+}
+ACT['cal-csv'] = () => { const st = S.sy.cal; csvModel('calendrier-' + st.g, chargeModel(periodsOf(st), {hide: st.hide, agent: st.agent})); };
+ACT['ch-csv'] = () => { const st = S.sy.ch; csvModel('charge-par-agent-' + st.g, chargeModel(periodsOf(st), {hide: st.hide})); };
+
+/* ---------- Charge par agent ---------- */
+function synCharge() {
+  const st = S.sy.ch, P = periodsOf(st), m = chargeModel(P, {hide: st.hide});
+  $('#sy-b').innerHTML = `<header><h1>Charge par agent</h1><div class="muted">Temps réalisé (passé) et reste à faire réparti sur les jours ouvrés (futur), agent par agent.</div>${ctl('ch', st, P)}
+    <div class="fl noprint" style="margin-top:8px"><label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="ch-det" ${st.detail ? 'checked' : ''}>Détail par projet</label></div></header>
+  <div class="card"><div class="hint">Charge d’un projet à venir = charge prévue − jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés jusqu’à la fin prévue (pour un projet en retard : sur les deux semaines qui viennent). ${HEATLEG}.</div><div class="lg">${LEG0}</div>${agentTable(m, {g: st.g, detail: st.detail})}</div>${nofinCard(m)}`;
+}
 
 /* ---------- Rapport annuel pour la hiérarchie ---------- */
 const raKey = y => 'app-rapport-' + y;
@@ -1327,17 +1446,24 @@ function raYears() {
   const ys = new Set(D.projets.map(p => p.Annee).filter(Boolean).map(Number)); D.temps.forEach(t => typeof t.d === 'number' && ys.add(new Date(t.d * 1000).getUTCFullYear()));
   ys.add(new Date().getFullYear()); return [...ys].sort((a, b) => b - a);
 }
+function raModel(y) { return chargeModel(buildPeriods('mois', Date.UTC(y, 0, 1) / 1000, 12), {hide: new Set(), span: true}); }
+function raCal(y) {
+  const m = raModel(y);
+  return `<div class="card"><h2>Calendrier de l’année ${y} : projets, charge et jalons</h2><div class="hint">Jours de travail par projet et par mois (réalisé pour les mois passés, prévisionnel pour les mois à venir).</div>${LEGEND}${calTable(m, {g: 'mois', detail: false, totalCol: true})}</div>
+  <div class="card"><h2>Charge par agent en ${y}</h2><div class="hint">${HEATLEG}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>`;
+}
 function synRapport() {
   const ys = raYears(); if (!S.sy.ra.year || !ys.includes(S.sy.ra.year)) S.sy.ra.year = new Date().getFullYear();
   const y = S.sy.ra.year, r = raData(y);
   const tbl = (l, rows) => `<table class="st2"><tr><th>${l}</th><th>Projets</th><th>Terminés</th><th>Prévu (j)</th><th>Réalisé (j)</th><th>Conso</th></tr>${rows.map(x => `<tr><td>${esc(x.n)}</td><td>${x.nb}</td><td>${x.ter}</td><td>${fmt1(x.prev)}</td><td>${fmt1(x.reel)}</td><td>${x.prev ? Math.round(x.reel / x.prev * 100) + ' %' : '—'}</td></tr>`).join('')}</table>`;
   $('#sy-b').innerHTML = `<header><h1>Bilan d’activité du bureau ${y}</h1><div class="muted">Édité le ${nowStr()}</div>
     <div class="acts noprint" style="margin-top:8px"><select data-ch="ra-yr" aria-label="Année">${ys.map(v => `<option ${v === y ? 'selected' : ''}>${v}</option>`).join('')}</select>
-      <button class="fchip" data-a="ra-csv">Exporter en CSV</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
+      <button class="fchip" data-a="ra-csv">Exporter les projets (CSV)</button><button class="fchip" data-a="ra-csv2">Exporter la charge (CSV)</button><button class="fchip" data-a="print">Imprimer / PDF</button></div></header>
   <div class="card"><p style="margin:0 0 12px">En ${y}, le bureau a conduit <b>${plural(r.P.length, 'projet')}</b> : <b>${r.done.length}</b> terminé${r.done.length > 1 ? 's' : ''} dans l’année et <b>${r.open.length}</b> en cours ou à venir.
     L’équipe a consacré <b>${fmt1(r.jours)} jours</b> à ces activités${r.cap ? ` (${Math.round(r.jours / r.cap * 100)} % de la capacité annuelle de ${fmt1(r.cap)} jours)` : ''}.</p>
     <div class="facts"><div><b>${r.P.length}</b><span>projets rattachés à ${y}</span></div><div><b>${r.done.length}</b><span>projets terminés</span></div><div><b>${fmt1(r.prev)} j</b><span>charge prévue</span></div>
     <div><b>${fmt1(r.reel)} j</b><span>charge réalisée (${r.prev ? Math.round(r.reel / r.prev * 100) : 0} %)</span></div><div><b class="${r.late ? 'ko' : ''}">${r.late}</b><span>en retard</span></div></div></div>
+  ${raCal(y)}
   <div class="card"><h2>Par type de projet</h2>${r.byType.length ? tbl('Type', r.byType) : '<div class="muted">Aucun projet.</div>'}</div>
   <div class="card"><h2>Par niveau de commanditaire</h2>${r.byNiv.length ? tbl('Commanditaire', r.byNiv) : '<div class="muted">Aucun projet.</div>'}</div>
   <div class="card"><h2>Projets terminés en ${y}</h2>${r.done.length ? `<table class="st2 l"><tr><th>Projet</th><th>Type</th><th>Commanditaire</th><th>Fin réelle</th><th>Prévu</th><th>Réalisé</th></tr>${r.done.map(p => `<tr><td>${lkp(p)}</td><td>${esc(p.Type_nom || '—')}</td><td>${esc([p.Niveau_commanditaire, p.Commanditaire].filter(Boolean).join(' – ') || '—')}</td><td>${fmtD(p.Date_fin_reelle) || '—'}</td><td>${fmt1(p.Charge_prevue)} j</td><td>${fmt1(p.Charge_reelle)} j</td></tr>`).join('')}</table>` : '<div class="muted">Aucun projet terminé.</div>'}</div>
@@ -1347,6 +1473,7 @@ function synRapport() {
 }
 CH['ra-yr'] = el => { S.sy.ra.year = +el.value; synRapport(); };
 IN['ra-c'] = el => { store.set(raKey(S.sy.ra.year), el.value); const p = $('#ra-p'); if (p) p.textContent = el.value; };
+ACT['ra-csv2'] = () => csvModel('charge-' + S.sy.ra.year, raModel(S.sy.ra.year));
 ACT['ra-csv'] = () => {
   const y = S.sy.ra.year;
   downloadCsv('bilan-' + y, csvRows([['Référence', 'Titre', 'Type', 'Statut', 'Niveau commanditaire', 'Commanditaire', 'Agents', 'Début', 'Fin prévue', 'Fin réelle', 'Charge prévue', 'Charge réelle', 'En retard']]
