@@ -319,6 +319,8 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 /* ----- Types de projet ----- */
 .ty-r{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,2fr) 92px 38px;gap:6px;align-items:center;margin-bottom:6px}.ty-u{font-size:12px;white-space:nowrap}
 @media (max-width:760px){.ty-r{grid-template-columns:1fr 1fr}}
+/* ----- Message « tutoriel » sur l’Accueil ----- */
+.tutob{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--field);border-left:3px solid var(--acc);border-radius:8px;padding:8px 12px;margin:12px 0}.tutob .sp{flex:1}
 /* ----- Tutoriel ----- */
 .tuto{max-width:1100px;margin:0 auto;padding:18px 18px 60px}
 .tuto-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 10px}.tuto-bar .sp{flex:1}
@@ -675,6 +677,7 @@ function vHome() {
   $('#view').innerHTML = `<div class="home">
     <h1 class="hello">${now.getHours() < 18 ? 'Bonjour' : 'Bonsoir'}${me ? ' ' + esc(me.Prenom || agentName(me)) : ''}</h1>
     <div class="muted">${me ? 'Que souhaitez-vous faire ?' : 'Choisissez votre nom en haut à droite pour personnaliser l’accueil et saisir votre temps.'}</div>
+    ${tutoBanner()}
     <div class="bigs">
       <button class="big btn" data-a="go" data-v="temps"><b>⏱ Saisir mon temps</b><span>${me ? `Semaine ${isoWeek(ws)} : ${fmtN(wk)} j saisis` : 'Quelques secondes par semaine'}</span></button>
       <button class="big" data-a="home-mine"><b>📁 Mes projets</b><span>${me ? plural(myActive, 'projet') + ' en cours' : 'Projets qui me sont affectés'}</span></button>
@@ -2444,17 +2447,20 @@ ACT['pres-x'] = () => { document.body.classList.remove('pres'); const b = $('#pr
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('pres')) ACT['pres-x'](); });
 
 /* ---------- visite guidée ---------- */
-const TOUR = [['Bienvenue 👋', 'Cet outil regroupe les projets du bureau, le temps de chacun et le suivi pour la cheffe de bureau. Quelques secondes suffisent pour l’essentiel.'],
+const TOUR = [['Bienvenue 👋', 'Cet outil regroupe les projets du bureau, le temps de chacun et le suivi pour la cheffe de bureau. Une visite de 30 secondes suffit ; un tutoriel avec vidéos reste disponible à tout moment.'],
   ['1. Choisissez votre nom', 'En haut à droite, « Je suis » : l’outil se souvient de vous sur cet ordinateur et personnalise l’accueil.'],
-  ['2. Saisissez votre temps', 'Onglet « Mon temps » : cliquez sur ½ ou 1 sous une case, ou utilisez le bouton « Semaine complète ». Pensez à « Enregistrer ».'],
-  ['3. Suivez vos projets', 'Onglet « Projets » : la pastille de couleur montre l’état de chaque projet. Dans la fiche, changez le statut ou une date directement et ajoutez une note d’avancement.'],
-  ['4. Retrouvez tout', 'La recherche en haut (touche / ) trouve un projet, un agent ou un jalon. Le bouton ? rappelle l’aide, et 💬 permet d’envoyer une idée ou un souci.']];
+  ['2. Saisissez votre temps', 'Onglet « Mon temps » : tapez un nombre de jours dans une case (1 ou 0,5), ou gagnez du temps avec « 5 × 1 j » et « Recopier la semaine précédente ». Puis « Enregistrer » (Ctrl + S).'],
+  ['3. Suivez et créez vos projets', 'Onglet « Projets » : la pastille de couleur montre l’état de chaque projet. Dans la fiche, changez le statut ou une date directement et ajoutez une note d’avancement. « ➕ Nouveau projet » crée un projet avec ses phases et jalons types.'],
+  ['4. Préparez le point de bureau', 'Onglet « Synthèse » : Point hebdo, calendrier, charge par agent, rapport annuel. Chaque écran s’exporte en Word ou en PDF sur la trame du ministère.'],
+  ['5. Retrouvez tout', 'La recherche en haut (touche / ) trouve un projet, un agent ou un jalon. ⚙ règle l’affichage, les types et les modèles de projet ; 💬 envoie une idée ou un souci.'],
+  ['Besoin d’aide ? 📘', 'L’onglet « Tutoriel » explique chaque écran par écrit, avec une courte vidéo de démonstration. Vous pouvez y revenir quand vous voulez.', true]];
 let TS = 0;
 function tourShow() {
   const [h, t] = TOUR[TS];
   dlg('tour', `<h2>${h}</h2><p style="margin:0 0 6px">${t}</p><div class="muted">Étape ${TS + 1} sur ${TOUR.length}</div>
-    <div class="dacts"><button class="btn s" data-a="tour-x">Passer</button>${TS ? '<button class="btn s" data-a="tour-p">Précédent</button>' : ''}<button class="btn" data-a="${TS < TOUR.length - 1 ? 'tour-n' : 'tour-x'}">${TS < TOUR.length - 1 ? 'Suivant' : 'Terminer'}</button></div>`);
+    <div class="dacts"><button class="btn s" data-a="tour-x">Passer</button>${TS ? '<button class="btn s" data-a="tour-p">Précédent</button>' : ''}${TOUR[TS][2] ? '<button class="btn s" data-a="tour-tuto">📘 Ouvrir le tutoriel</button>' : ''}<button class="btn" data-a="${TS < TOUR.length - 1 ? 'tour-n' : 'tour-x'}">${TS < TOUR.length - 1 ? 'Suivant' : 'Terminer'}</button></div>`);
 }
+ACT['tour-tuto'] = () => { ACT['tour-x'](); go('tuto'); };
 ACT['tour-n'] = () => { TS++; tourShow(); }; ACT['tour-p'] = () => { TS--; tourShow(); };
 ACT['tour-x'] = () => { store.set('app-tour', '1'); const d = $('#tour'); if (d) d.close(); };
 ACT.tour = () => { const g = $('#gd'); if (g && g.open) g.close(); TS = 0; tourShow(); };
@@ -2549,6 +2555,7 @@ const TUTO_FAQ = [
 ];
 const tutoSeen = () => { try { return new Set(JSON.parse(store.get('app-tuto-seen') || '[]')); } catch (e) { return new Set(); } };
 function vTuto() {
+  store.set('app-tuto-msg', '1');
   const seen = tutoSeen();
   const chap = (c, i) => `<section class="tc card" id="tc-${c.k}" aria-labelledby="tc-h-${c.k}">
     <div class="tc-h"><span class="tc-n">${i + 1}</span><div><h2 id="tc-h-${c.k}">${c.t}</h2><div class="muted">${c.but}</div></div>
@@ -2638,6 +2645,13 @@ ACT['ty-save'] = async () => {
   } catch (e) { return; }
   $('#typ').close(); flash('✓ Types enregistrés'); refreshView();
 };
+
+/* ---------- Message d’accueil qui signale le tutoriel (jusqu’à ce qu’il soit ouvert ou masqué) ---------- */
+function tutoBanner() {
+  if (store.get('app-tuto-msg')) return '';
+  return `<div class="tutob noprint" role="note"><span>📘 <b>Nouveau :</b> un tutoriel avec des vidéos explique l’outil pas à pas.</span><span class="sp"></span><button class="btn" data-a="go" data-v="tuto">Ouvrir le tutoriel</button><button class="btn s" data-a="tuto-hide" aria-label="Masquer ce message">Masquer</button></div>`;
+}
+ACT['tuto-hide'] = () => { store.set('app-tuto-msg', '1'); renderView(); };
 /* =====================================================================
    Démarrage
    ===================================================================== */
