@@ -71,6 +71,24 @@ a{color:var(--acc)}
 #lh{display:none}
 .setp button.full{width:100%;text-align:left}
 
+
+.ptabs>[data-tab]{display:none}.ptabs.t-resume>[data-tab=resume],.ptabs.t-planning>[data-tab=planning],.ptabs.t-temps>[data-tab=temps],.ptabs.t-suivi>[data-tab=suivi]{display:block}
+.ptb{margin:10px 0 12px;position:sticky;top:0;z-index:5;background:var(--bg);flex-wrap:wrap}
+.tbg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.tb{background:var(--field);border-radius:10px;padding:10px 12px}.tbh{font-size:12px;color:var(--mut);font-weight:600;margin-bottom:4px}
+.mini{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin:6px 0 14px}
+.stk{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--field)}.stk i{display:block}
+.hb2{display:grid;grid-template-columns:130px 1fr 44px;gap:8px;align-items:center;font-size:12px;margin:3px 0}.hb2>div{background:var(--field);border-radius:5px;height:10px;overflow:hidden}.hb2 i{display:block;height:100%}
+.hbk{background:var(--ok)}.hbw{background:var(--warn)}.hbb{background:var(--bad)}.hb2 b{text-align:right}
+.mo-r{display:grid;grid-template-columns:1fr 70px 70px 34px;gap:6px;margin-bottom:6px}
+#mod{width:min(720px,96vw)}#mod .mo-r:has(select){grid-template-columns:1fr 70px 150px 34px}
+.hi{display:grid;grid-template-columns:80px 150px 1fr auto;gap:8px;padding:6px 0;border-top:1px solid var(--line);align-items:center}
+.qb{display:flex;gap:3px;justify-content:center;margin-top:3px;visibility:hidden}.qb button{padding:0 7px;font-size:11px;border-radius:6px;line-height:18px}
+td:hover>.qb,td:focus-within>.qb{visibility:visible}@media (hover:none){.qb{visibility:visible}}
+.adv{margin:6px 0}.adv summary{cursor:pointer;color:var(--acc);font-size:12px;font-weight:600}.adl{display:block;font-size:12px;color:var(--mut);margin:6px 0 0}.adl select{width:100%}
+.adr{display:flex;gap:6px;margin-top:8px}.adr input{flex:1;min-width:0}
+.svc{display:inline-flex}.svx{border:0;background:none;padding:0 4px;color:var(--mut)}
+.pres #nav{display:none}.pres #view{zoom:calc(var(--z,1) * 1.25)}#presx{position:fixed;right:14px;top:10px;z-index:80}
+
 /* ----- accueil ----- */
 .home{max-width:980px;margin:0 auto;padding:22px 18px 40px}
 .hello{font:700 30px/1.2 Georgia,"Times New Roman",serif;margin:0 0 4px}
@@ -300,6 +318,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 @page{margin:12mm 14mm 16mm;@bottom-right{content:counter(page) ' / ' counter(pages);font-size:8pt;color:#777}}
 @media print{
 
+ .ptabs>[data-tab]{display:block!important}.qb{display:none}
  #lh{display:block;margin:0 0 14px}
  .lh-top{display:flex;justify-content:space-between;align-items:flex-start}.lh-top img{width:34mm;height:auto}
  .lh-sv{text-align:right;font-size:12pt;line-height:1.3;max-width:95mm;margin-top:6mm}
@@ -338,7 +357,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 <h3>Raccourcis utiles</h3><ul><li><b>/</b> ou <b>Ctrl + K</b> : rechercher un projet, un agent ou un jalon.</li><li>Dans « Mon temps » : flèches du clavier pour passer d’une case à l’autre, <b>Ctrl + S</b> pour enregistrer.</li><li><b>← Retour</b> : revient à l’écran précédent.</li></ul>
 <h3>Lire les couleurs</h3><ul><li><span style="color:var(--bad)">●</span> Rouge : retard ou charge supérieure à 100 %.</li><li><span style="color:var(--warn)">●</span> Orange : à surveiller (charge 80–100 %, élément manquant).</li><li><span style="color:var(--ok)">●</span> Vert : tout va bien.</li></ul>
 <h3>Réglages</h3><p>Le bouton ⚙ permet de choisir le thème (clair/sombre) et la taille du texte.</p>
-<div class="dacts"><button type="button" class="btn" data-a="guide-x">Fermer</button></div></div></dialog>
+<div class="dacts"><button type="button" class="btn s" data-a="tour">Revoir la visite guidée</button><button type="button" class="btn" data-a="guide-x">Fermer</button></div></div></dialog>
 <dialog id="np"><form id="npf" novalidate>
 <h2>Nouveau projet</h2>
 <div class="f"><label for="np-t">Titre *</label><input class="fi" id="np-t" maxlength="200" autocomplete="off"><div class="msg" id="np-m"></div></div>
@@ -440,7 +459,10 @@ async function meta() {
 
 async function loadAll() {
   await meta();
-  const [A, P, J, T, Ph, Ab, No] = await Promise.all([g('Agents'), g('Projets'), g('Jalons'), g('Temps'), g('Phases'), g('Absences'), g('Notes')]);
+  const [A, P, J, T, Ph, Ab, No, Rg, Re, Hi] = await Promise.all([g('Agents'), g('Projets'), g('Jalons'), g('Temps'), g('Phases'), g('Absences'), g('Notes'), g('Reglages'), g('Retours'), g('Historique')]);
+  D.hasReg = !!(Rg && Rg.id); D.reg = {}; rowsOf(Rg).forEach(r => D.reg[r.Cle] = {id: r.id, v: r.Valeur});
+  D.hasRet = !!(Re && Re.id); D.ret = rowsOf(Re).map(r => ({id: r.id, d: toSec(r.Date), a: r.Auteur || 0, pg: r.Page || '', k: r.Type || '', t: r.Texte || ''}));
+  D.hasHist = !!(Hi && Hi.id); D.hist = rowsOf(Hi).map(r => ({id: r.id, d: toSec(r.Date), a: r.Auteur || 0, p: r.Projet, t: r.Tbl, r: r.Rec, c: r.Col, l: r.Libelle || '', av: r.Avant, ap: r.Apres}));
   D.hasNotes = !!(No && No.id); D.notes = rowsOf(No).map(r => ({id: r.id, p: r.Projet, d: toSec(r.Date), t: r.Texte || '', a: r.Auteur || 0}));
   let Ty = null;
   for (const n of [META.types, 'Types', 'Table1'].filter(Boolean)) { Ty = await g(n); if (Ty && Ty.id && Ty.id.length) break; }
@@ -453,7 +475,7 @@ async function loadAll() {
   D.temps = rowsOf(T).map(t => ({id: t.id, d: t.Date, p: t.Projet, a: t.Agent, j: +t.Jours || 0}));
   D.types = rowsOf(Ty).map(t => ({id: t.id, n: t.Libelle || t.Nom || ('Type ' + t.id)}));
   D.by = {agent: new Map(D.agents.map(a => [a.id, a])), projet: new Map(D.projets.map(p => [p.id, p])), type: new Map(D.types.map(t => [t.id, t]))};
-  D.at = new Date(); loaded = true;
+  applyReg(); D.at = new Date(); loaded = true;
 }
 const agentName = a => (a && (a.Nom_complet || ((a.Prenom || '') + ' ' + (a.Nom || '')).trim())) || 'Agent ' + (a ? a.id : '?');
 const activeAgents = () => D.agents.filter(a => a.Actif !== false);
@@ -501,7 +523,7 @@ function renderNav() {
   $('#nav').innerHTML = (HIST.length ? `<button class="bk" data-a="back" title="Revenir à l’écran précédent">← Retour</button>` : '') + `<span class="brand">Activité du bureau</span>` +
     Object.entries(VIEWS).map(([k, v]) => `<button class="tab ${S.view === k ? 'on' : ''}" data-a="go" data-v="${k}" ${S.view === k ? 'aria-current="page"' : ''}>${v.label}${k === 'temps' && kp ? `<span class="pastille" title="${esc(kp)}">!</span>` : ''}</button>`).join('') +
     `<span class="gs"><input id="gs" type="search" placeholder="🔍 Rechercher (/)" autocomplete="off" data-in="gs" aria-label="Recherche globale"><div class="gsr" id="gsr" hidden></div></span>` +
-    `<span class="sp"></span><button id="rfb" data-a="refresh" title="Actualiser les données" aria-label="Actualiser les données">↻</button><button id="setb" data-a="set-open" title="Thème et taille du texte" aria-label="Réglages d’affichage">⚙</button><button class="qm" data-a="guide" title="Comment ça marche ?" aria-label="Aide">?</button><span class="who"><label for="who" style="margin:0">Je suis</label><select id="who" data-ch="who" aria-label="Choisir mon nom"><option value="">— Choisir —</option>` +
+    `<span class="sp"></span><button data-a="fb" title="Une idée ou un souci ?" aria-label="Une idée ou un souci ?">💬</button><button data-a="pres" title="Mode présentation (plein écran de lecture)" aria-label="Mode présentation">🖥</button><button id="rfb" data-a="refresh" title="Actualiser les données" aria-label="Actualiser les données">↻</button><button id="setb" data-a="set-open" title="Thème et taille du texte" aria-label="Réglages d’affichage">⚙</button><button class="qm" data-a="guide" title="Comment ça marche ?" aria-label="Aide">?</button><span class="who"><label for="who" style="margin:0">Je suis</label><select id="who" data-ch="who" aria-label="Choisir mon nom"><option value="">— Choisir —</option>` +
     list.map(a => `<option value="${a.id}" ${a.id === S.agentId ? 'selected' : ''}>${esc(agentName(a))}</option>`).join('') + `</select></span>`;
 }
 /* pastille « Mon temps » : semaine précédente vide, ou cette semaine vide à partir du mercredi */
@@ -569,7 +591,7 @@ ACT['set-open'] = () => {
   const th = store.get('app-theme') || 'auto', z = store.get('app-zoom') || '1';
   const seg = (k, cur, arr) => `<div class="seg">${arr.map(([v, l]) => `<button class="${cur === v ? 'on' : ''}" data-a="set-v" data-k="${k}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const d = document.createElement('div'); d.className = 'setp';
-  d.innerHTML = `<div><label>Thème</label>${seg('theme', th, [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']])}</div><div><label>Taille du texte</label>${seg('zoom', z, [['1', 'Normal'], ['1.15', 'Grand'], ['1.3', 'Très grand']])}</div><div><label>Données</label><button class="full" data-a="backup">💾 Sauvegarder les données (JSON)</button><button class="full" data-a="imp-open" style="margin-top:6px">📥 Importer des projets (CSV)</button></div>`;
+  d.innerHTML = `<div><label>Thème</label>${seg('theme', th, [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']])}</div><div><label>Taille du texte</label>${seg('zoom', z, [['1', 'Normal'], ['1.15', 'Grand'], ['1.3', 'Très grand']])}</div><div><label>Données</label><button class="full" data-a="backup">💾 Sauvegarder les données (JSON)</button><button class="full" data-a="imp-open" style="margin-top:6px">📥 Importer des projets (CSV)</button><button class="full" data-a="cfg-open" style="margin-top:6px">⚙️ Réglages du bureau (seuils, modèles)</button><button class="full" data-a="tour" style="margin-top:6px">🧭 Revoir la visite guidée</button></div>`;
   $('#nav').appendChild(d);
 };
 ACT['set-v'] = el => { store.set(el.dataset.k === 'theme' ? 'app-theme' : 'app-zoom', el.dataset.v); applyPrefs(); const s = $('.setp'); if (s) s.remove(); ACT['set-open'](); };
@@ -595,21 +617,21 @@ function alertsFor(scope) {
     const w = [], js = jBy[p.id] || [];
     if (p.Retard && typeof p.Date_fin_prevue === 'number') w.push({sev: 2, txt: `En retard de ${plural(Math.max(1, Math.round((today - p.Date_fin_prevue) / DAY)), 'jour')}`});
     const tc = num(p.Taux_conso);
-    if (tc > 1) w.push({sev: 2, txt: `Charge supérieure à 100 % (${pct(tc)} %)`}); else if (tc >= .8) w.push({sev: 1, txt: `Charge à ${pct(tc)} %`});
+    if (tc > 1) w.push({sev: 2, txt: `Charge supérieure à 100 % (${pct(tc)} %)`}); else if (tc >= CFG.warn) w.push({sev: 1, txt: `Charge à ${pct(tc)} %`});
     D.phases.filter(ph => ph.Projet === p.id && typeof ph.Date_fin === 'number' && ph.Date_fin < today && ph.Statut !== 'Terminée').forEach(ph => w.push({sev: 2, txt: `Phase « ${(ph.Libelle || '').trim() || 'sans nom'} » dépassée`}));
     const late = js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date < today);
     if (late.length) w.push({sev: 2, txt: late.length === 1 ? `Jalon « ${late[0].Libelle || 'sans libellé'} » dépassé` : `${late.length} jalons dépassés`});
     const real = w.length;
     if (typeof p.Date_debut === 'number' && typeof p.Date_fin_prevue === 'number' && p.Date_fin_prevue < p.Date_debut) w.push({sev: 1, txt: 'Fin prévue avant le début', todo: 1});
     if (typeof p.Date_fin_prevue === 'number' && D.phases.some(ph => ph.Projet === p.id && typeof ph.Date_fin === 'number' && ph.Date_fin > p.Date_fin_prevue + 86400)) w.push({sev: 0, txt: 'Une phase finit après la fin du projet', todo: 1});
-    if (D.hasNotes && typeof p.Date_debut === 'number' && p.Date_debut < today - 30 * DAY && !D.notes.some(n => n.p === p.id && n.d >= today - 30 * DAY)) w.push({sev: 0, txt: 'Pas de note d’avancement depuis 30 jours', todo: 1});
+    if (D.hasNotes && typeof p.Date_debut === 'number' && p.Date_debut < today - CFG.note * DAY && !D.notes.some(n => n.p === p.id && n.d >= today - CFG.note * DAY)) w.push({sev: 0, txt: `Pas de note d’avancement depuis ${CFG.note} jours`, todo: 1});
     if (!ids(p.Agent).length) w.push({sev: 1, txt: 'Aucun agent affecté', todo: 1});
     if (!p.Date_fin_prevue) w.push({sev: 1, txt: 'Sans date de fin', todo: 1});
     if (!js.some(j => j.Libelle || j.Date)) w.push({sev: 1, txt: 'Sans jalon', todo: 1});
     if (!num(p.Charge_prevue)) w.push({sev: 0, txt: 'Charge prévue à renseigner', todo: 1});
     if (w.length) res.watch.push({p, w, sev: Math.max(...w.map(x => x.sev)), onlyTodo: !real});
     if (w.some(x => x.todo)) res.todo.push({p, t: w.filter(x => x.todo).map(x => x.txt)});
-    js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date >= today && j.Date <= today + 14 * DAY).forEach(j => res.next.push({p, j}));
+    js.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date >= today && j.Date <= today + CFG.jal * DAY).forEach(j => res.next.push({p, j}));
   });
   res.watch.sort((a, b) => b.sev - a.sev || projLabel(a.p).localeCompare(projLabel(b.p), 'fr')); res.next.sort((a, b) => a.j.Date - b.j.Date);
   return res;
@@ -631,6 +653,7 @@ function vHome() {
       <button class="big" data-a="home-mine"><b>📁 Mes projets</b><span>${me ? plural(myActive, 'projet') + ' en cours' : 'Projets qui me sont affectés'}</span></button>
       <button class="big" data-a="new-project"><b>➕ Nouveau projet</b><span>Titre, type, agents et jalons types</span></button>
     </div>
+    ${todayBand()}
     ${ref ? `<div class="refbox"><div class="reft">Espace référent·e de suivi</div>${keyFacts()}<div class="bigs">
       <button class="big" data-a="home-suivis"><b>👁 Projets que je suis</b><span>${plural(mySuivis.length, 'projet')} en cours${suivisAl ? ' · ' + suivisAl + ' à surveiller' : ''}</span></button>
       <button class="big" data-a="go-sy" data-t="hebdo"><b>📋 Point hebdo</b><span>Alertes, jalons, absences</span></button>
@@ -641,8 +664,8 @@ function vHome() {
     <div class="card"><div class="cal-h"><h2>À surveiller</h2>
       <div class="seg" role="group" aria-label="Périmètre"><button class="${scope === 'tous' ? 'on' : ''}" data-a="ac-scope" data-v="tous">Tous les projets</button><button class="${scope === 'mes' ? 'on' : ''}" data-a="ac-scope" data-v="mes">Mes projets</button>${ref ? `<button class="${scope === 'suivis' ? 'on' : ''}" data-a="ac-scope" data-v="suivis">Projets que je suis</button>` : ''}</div></div>
       ${al.watch.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="${x.onlyTodo ? 'modifier' : 'consulter'}"><span><b>${esc(projLabel(x.p))}</b><small>${esc(x.p.Agent_nom || 'Sans agent')}</small></span><span style="text-align:right">${x.w.map(i => `<span class="tag ${i.sev > 1 ? 'bad' : i.sev ? 'warn' : ''}">${esc(i.txt)}</span>`).join('')}</span></button>`).join('') || '<div class="muted">✓ Rien à signaler : aucun retard, dépassement ou projet incomplet.</div>'}${more(al.watch.length)}</div>
-    <div class="card"><h2>Prochains jalons (14 jours)</h2>
-        ${al.next.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="consulter"><span><b>${esc(x.j.Libelle || 'Jalon sans libellé')}</b><small>${esc(projLabel(x.p))}</small></span><span class="muted">${fmtD(x.j.Date)}</span></button>`).join('') || '<div class="muted">Aucun jalon dans les 14 prochains jours.</div>'}${al.next.length > lim ? `<div class="muted" style="padding:6px 4px">+ ${al.next.length - lim} autre(s)</div>` : ''}</div></div>`;
+    <div class="card"><h2>Prochains jalons (${CFG.jal} jours)</h2>
+        ${al.next.slice(0, lim).map(x => `<button class="al" data-a="open-p" data-id="${x.p.id}" data-m="consulter"><span><b>${esc(x.j.Libelle || 'Jalon sans libellé')}</b><small>${esc(projLabel(x.p))}</small></span><span class="muted">${fmtD(x.j.Date)}</span></button>`).join('') || `<div class="muted">Aucun jalon dans les ${CFG.jal} prochains jours.</div>`}${al.next.length > lim ? `<div class="muted" style="padding:6px 4px">+ ${al.next.length - lim} autre(s)</div>` : ''}</div></div>`;
 }
 ACT['home-suivis'] = () => go('projets', {pj: {filter: 'suivis', q: '', old: false}});
 ACT['go-sy'] = el => { S.sy.tab = el.dataset.t; go('synthese'); };
@@ -669,6 +692,7 @@ const MD_PJ = {
       if (S.pj.filter === 'mes' && !mine(p)) return false;
       if (S.pj.filter === 'suivis' && isRef() && !suivi(p)) return false;
       if (S.pj.filter === 'fav' && !favs().has(p.id)) return false;
+      { const f = S.pj.f; if (f.agent && !ids(p.Agent).includes(f.agent)) return false; if (f.type && p.Type !== f.type) return false; if (f.niv && p.Niveau_commanditaire !== f.niv) return false; if (f.year && p.Annee != f.year) return false; }
       return !q || norm([p.Titre, p.Reference, p.Agent_nom, p.Type_nom, p.Statut].join(' ')).includes(q);
     }).sort(pjSort);
   },
@@ -677,6 +701,7 @@ const MD_PJ = {
   sub: p => [(p.Reference || '').trim(), p.Statut].filter(Boolean).join(' · ') + (p.Retard ? ' · ⚠ retard' : ''),
   top: () => `<div class="fl" role="group" aria-label="Filtre"><button class="fchip ${S.pj.filter === 'tous' ? 'on' : ''}" data-a="md-filter" data-v="tous">Tous</button><button class="fchip ${S.pj.filter === 'mes' ? 'on' : ''}" data-a="md-filter" data-v="mes">Mes projets</button>${isRef() ? `<button class="fchip ${S.pj.filter === 'suivis' ? 'on' : ''}" data-a="md-filter" data-v="suivis">Que je suis</button>` : ''}<button class="fchip ${S.pj.filter === 'fav' ? 'on' : ''}" data-a="md-filter" data-v="fav">⭐ Favoris</button></div>
     <div class="fl" role="group" aria-label="Tri"><span class="muted" style="font-size:12px">Tri :</span><button class="fchip ${S.pj.sort !== 'urgence' ? 'on' : ''}" data-a="pj-sort" data-v="statut">Statut</button><button class="fchip ${S.pj.sort === 'urgence' ? 'on' : ''}" data-a="pj-sort" data-v="urgence">Urgence</button></div>
+    ${advTop()}
     <label class="cb"><input type="checkbox" data-ch="md-old" ${S.pj.old ? 'checked' : ''}>Afficher les archivés</label>`,
   consult: r => consultProjet(r), modify: r => formProjet(r),
   consultActions: r => favBtn(r) + `<button data-a="dup-p" data-id="${r.id}" title="Crée une copie : mêmes agents, phases et jalons, dates décalées à partir d’aujourd’hui">Dupliquer</button><button data-a="word" data-n="fiche-projet">Exporter en Word</button>`,
@@ -717,7 +742,7 @@ function mdShow(c) {
 function mdList() {
   const c = MDC, items = c.items();
   if (!items.some(x => x.id === c.st.sel)) c.st.sel = items.length ? items[0].id : null;
-  $('#md-l').innerHTML = items.map(x => `<button class="it ${x.id === c.st.sel ? 'sel' : ''}" data-a="md-sel" data-id="${x.id}"><b>${c.dot ? c.dot(x) : ''}${esc(c.label(x))}</b><small>${esc(c.sub(x))}</small></button>`).join('') || '<div class="empty">Aucun résultat</div>';
+  $('#md-l').innerHTML = items.map(x => `<button class="it ${x.id === c.st.sel ? 'sel' : ''}" data-a="md-sel" data-id="${x.id}"><b>${c.dot ? c.dot(x) : ''}${esc(c.label(x))}</b><small>${esc(c.sub(x))}</small></button>`).join('') || emptyList();
 }
 function mdDetail() {
   const c = MDC, r = c.byId(c.st.sel), box = $('#md-d');
@@ -886,18 +911,18 @@ function consultProjet(r) {
   const tpa = Object.entries(byA).sort((a, b) => b[1] - a[1]).map(([a, j]) => `<div class="row"><span class="k" style="flex-basis:220px">${esc(agentName(D.by.agent.get(+a)))}</span><span class="v">${fmtN(j)} j</span></div>`).join('');
   return `<div class="eyebrow">${esc((r.Reference || '').trim())}</div><h1 id="md-title">${esc(projLabel(r))}</h1>
   <div class="chips">${r.Type_nom ? `<span class="chip">${esc(r.Type_nom)}</span>` : ''}${r.Statut ? `<span class="chip">${esc(r.Statut)}</span>` : ''}${r.Retard ? '<span class="chip bad">En retard</span>' : ''}</div>
-  ${quickEdit(r)}
-  ${notesCard(r)}
-  ${calendrier(r)}
-  ${driftCard(r)}
+  ${pjTabs()}<div class="ptabs t-${S.pj.ptab}"><div data-tab="resume">${quickEdit(r)}
   <div class="card"><h2>Charge de travail</h2>
     ${prev ? `<div style="margin-bottom:10px">${fmtN(reel)} j réalisés sur ${fmtN(prev)} j prévus (${pct(taux)} %)
       <span class="chip ${lv === 'bad' ? 'bad' : lv === '' ? 'ok' : 'warn'}" style="margin-left:8px">${etat}</span></div><div class="bar"><i class="${lv}" style="width:${clamp(taux) * 100}%"></i></div>`
       : `<span class="muted">Charge prévue non renseignée (${fmtN(reel)} j réalisés)</span>`}
-    ${tpa ? `<div style="margin-top:12px" class="muted">Temps saisi par agent</div>${tpa}` : ''}</div>
+</div>
   <div class="card"><h2>Intervenants</h2>${line('Commanditaire', comm)}${line('Bénéficiaire', r.Beneficiaire)}${line('Agents BET', r.Agent_nom)}${line('Suivi', r.Suivi_nom)}</div>
+  <div class="card"><h2>Description</h2>${r.Description ? `<div class="desc">${esc(r.Description)}</div>` : '<span class="muted">Aucune description</span>'}</div>
+</div><div data-tab="planning">${calendrier(r)}
+  ${driftCard(r)}
   <div class="card"><h2>${phs.length ? 'Phases et jalons' : 'Jalons'} (${jal.length ? Math.round(done / jal.length * 100) : 0} % de jalons atteints)</h2>${jalHtml}</div>
-  <div class="card"><h2>Description</h2>${r.Description ? `<div class="desc">${esc(r.Description)}</div>` : '<span class="muted">Aucune description</span>'}</div>`;
+</div><div data-tab="temps">${tempsCard(r, tpa)}</div><div data-tab="suivi">${notesCard(r)}${histCard(r)}</div></div>`;
 }
 function csvProjet(r) {
   const c = calData(r);
@@ -1082,8 +1107,8 @@ CH.field = async el => {
   el.classList.toggle('bad', !!err); if (m) m.textContent = err; if (err) return flash(err, 1);
   const f = {[k]: v};
   if (c.key === 'pj' && k === 'Statut' && v === 'Terminé' && !r.Date_fin_reelle) f.Date_fin_reelle = todaySec();
-  try { await write([['UpdateRecord', c.tbl, r.id, f]]); } catch (e) { return; }
-  mdList(); formPatch();
+  try { await write([['UpdateRecord', c.tbl, r.id, f], ...(c.key === 'pj' ? histActs(r.id, 'Projets', r.id, f, r) : [])]); } catch (e) { return; }
+  HM = null; mdList(); formPatch();
 };
 CH['add-multi'] = el => { if (!el.value) return; const r = MDC.byId(MDC.st.sel); setMulti(el.dataset.k, [...ids(r[el.dataset.k]), +el.value]); };
 ACT['rm-multi'] = el => { const r = MDC.byId(MDC.st.sel); setMulti(el.dataset.k, ids(r[el.dataset.k]).filter(i => i !== +el.dataset.i)); };
@@ -1203,7 +1228,8 @@ function mtRows() {
   D.temps.filter(t => t.a === S.agentId && t.d >= lo && t.d <= hi).forEach(t => set.add(t.p));
   mtPend().forEach((val, k) => { const [p, d] = k.split('|').map(Number); if (d >= lo && d <= hi) set.add(p); });
   MT.extra.forEach(x => set.add(x));
-  return D.projets.filter(p => set.has(p.id)).sort((a, b) => (a.Statut === 'En cours' ? 0 : 1) - (b.Statut === 'En cours' ? 0 : 1) || projLabel(a).localeCompare(projLabel(b), 'fr'));
+  const fv = favs();
+  return D.projets.filter(p => set.has(p.id)).sort((a, b) => (fv.has(b.id) ? 1 : 0) - (fv.has(a.id) ? 1 : 0) || (a.Statut === 'En cours' ? 0 : 1) - (b.Statut === 'En cours' ? 0 : 1) || projLabel(a).localeCompare(projLabel(b), 'fr'));
 }
 function vTemps() {
   $('#view').innerHTML = `<div class="mt"><h1 style="font-size:24px;margin-bottom:12px">Mon temps</h1>
@@ -1230,7 +1256,7 @@ function mtRender() {
   MT.sig = [S.agentId, MT.ws, rows.map(r => r.id).join(',')].join('|');
   const head = ds.map(d => `<th class="${d === today ? 'today' : ''}" ${!isWd(d) && new Date(d * 1000).getUTCDay() % 6 ? 'title="Jour férié"' : absFrac(S.agentId, d) ? 'title="Absence enregistrée"' : ''}>${esc(dShort(d))}${!isWd(d) ? ' <small>férié</small>' : absFrac(S.agentId, d) >= 1 ? ' <small>absent·e</small>' : absFrac(S.agentId, d) ? ' <small>½ abs.</small>' : ''}</th>`).join('');
   const body = rows.map(r => `<tr><td class="p"><b>${esc(projLabel(r))}</b><small>${esc((r.Reference || '').trim())}${r.Reference && r.Statut ? ' · ' : ''}${esc(r.Statut)}</small></td>` +
-    ds.map(d => `<td class="${d === today ? 'today' : ''} ${!isWd(d) || absFrac(S.agentId, d) >= 1 ? 'off' : ''}"><input class="c" inputmode="decimal" autocomplete="off" data-ch="mt-cell" data-p="${r.id}" data-d="${d}" placeholder="·" aria-label="${esc(projLabel(r))} – ${esc(dShort(d))} (jours)"></td>`).join('') +
+    ds.map(d => `<td class="${d === today ? 'today' : ''} ${!isWd(d) || absFrac(S.agentId, d) >= 1 ? 'off' : ''}"><input class="c" inputmode="decimal" autocomplete="off" data-ch="mt-cell" data-p="${r.id}" data-d="${d}" placeholder="·" aria-label="${esc(projLabel(r))} – ${esc(dShort(d))} (jours)">${qbHtml(r.id, d)}</td>`).join('') +
     `<td class="q"><button data-a="mt-fill" data-p="${r.id}" title="Met 1 j dans les jours vides de la semaine">5 × 1 j</button></td></tr>`).join('');
   grid.innerHTML = rows.length ? `<table><thead><tr><th class="p">Projet</th>${head}<th></th></tr></thead><tbody>${body}</tbody>
     <tfoot><tr><td class="p">Total du jour</td>${ds.map(d => `<td data-tot="${d}"></td>`).join('')}<td class="q" id="mt-wt"></td></tr></tfoot></table>`
@@ -1394,13 +1420,13 @@ const sum = (a, k) => a.reduce((s, x) => s + (+x[k] || 0), 0);
 const grp = (a, k) => { const m = {}; a.forEach(x => { const g = x[k] || 'Non renseigné'; (m[g] = m[g] || []).push(x); }); return Object.entries(m).sort((p, q) => q[1].length - p[1].length); };
 const csvRows = rows => rows.map(r => r.map(c => typeof c === 'number' ? String(c).replace('.', ',') : c));
 
-const SY_TABS = [['hebdo', 'Point hebdo'], ['calendrier', 'Calendrier'], ['charge', 'Charge par agent'], ['rapport', 'Rapport annuel'], ['projets', 'Projets'], ['equipe', 'Équipe']];
+const SY_TABS = [['hebdo', 'Point hebdo'], ['calendrier', 'Calendrier'], ['charge', 'Charge par agent'], ['rapport', 'Rapport annuel'], ['projets', 'Projets'], ['equipe', 'Équipe'], ['commanditaires', 'Commanditaires']];
 function vSyn() {
   if (!SY_TABS.some(t => t[0] === S.sy.tab)) S.sy.tab = 'hebdo';
   $('#view').innerHTML = `<div class="syn"><div class="seg noprint" style="margin-bottom:14px;flex-wrap:wrap" role="group" aria-label="Synthèse">
     ${SY_TABS.map(([k, l]) => `<button class="${S.sy.tab === k ? 'on' : ''}" data-a="sy-tab" data-v="${k}">${l}</button>`).join('')}</div><div id="sy-b"></div></div>`;
   landscape(S.sy.tab === 'calendrier' || S.sy.tab === 'charge');
-  ({hebdo: synHebdo, calendrier: synCalendrier, charge: synCharge, rapport: synRapport, projets: synProjets, equipe: synEquipe})[S.sy.tab]();
+  ({hebdo: synHebdo, calendrier: synCalendrier, charge: synCharge, rapport: synRapport, projets: synProjets, equipe: synEquipe, commanditaires: synCommanditaires})[S.sy.tab]();
 }
 ACT['sy-tab'] = el => { S.sy.tab = el.dataset.v; vSyn(); };
 
@@ -1528,7 +1554,7 @@ function synHebdo() {
   ${avanceCard()}
   ${staffCard(h)}
   ${absCard30()}
-  ${mailCard(h)}${checksCard()}
+  ${mailCard(h)}${checksCard()}${retoursCard()}
   <div class="card"><h2>Saisie du temps</h2><div class="hint">Jours saisis la semaine dernière (S${isoWeek(h.ws - 7 * DAY)}) et cette semaine (S${isoWeek(h.ws)}).</div>
     <table class="st2 l"><tr><th>Agent</th><th>Semaine dernière</th><th>Cette semaine</th></tr>${h.saisie.map(x => `<tr><td>${esc(agentName(x.a))}</td><td class="${x.prev ? '' : 'wn'}">${x.prev ? fmtN(x.prev) + ' j' : 'Rien saisi'}</td><td>${x.cur ? fmtN(x.cur) + ' j' : '—'}</td></tr>`).join('')}</table></div>`;
 }
@@ -1540,7 +1566,7 @@ function absCard30() {
 function staffData() { const P = buildPeriods('semaine', mondayOf(todaySec()), 4); return chargeModel(P, {hide: new Set(['Archivé', 'Terminé'])}); }
 function staffCard() {
   const m = staffData(), P = m.P, rows = m.agents.filter(a => a.id);
-  return `<div class="card"><h2>Staffing et charge : cette semaine et les trois suivantes</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Jours réalisés ou prévus par agent. ${HEATLEG}.</div></details>
+  return `<div class="card"><h2>Staffing et charge : cette semaine et les trois suivantes</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Jours réalisés ou prévus par agent. ${heatleg()}.</div></details>
     <table class="st2 l heat"><tr><th>Agent</th><th>Sur quoi cette semaine</th>${P.map(p => `<th title="${esc(p.tip)}">${p.lab}</th>`).join('')}</tr>
     ${rows.map(a => `<tr><td>${esc(a.name)}</td><td style="text-align:left!important">${a.byP.filter(x => x.c[0][0] + x.c[0][1] > 0).map(x => `${lkp(x.p)} <span class="muted">${fmtC(x.c[0][0] + x.c[0][1])} j</span>`).join('<br>') || '<span class="muted">Aucune charge</span>'}</td>
       ${P.map((p, i) => { const v = sumC([a.tot[i]]), cp = a.capP[i], ab = a.ab[i]; return `<td class="${hcls(v, cp)}" title="${esc(tipC(a.tot[i]))}">${v ? fmtC(v) + (cp ? `<small>${Math.round(v / cp * 100)} %</small>` : '') : '·'}${ab ? `<small class="ab">abs. ${fmtC(ab)} j</small>` : ''}</td>`; }).join('')}</tr>`).join('')}</table>
@@ -1561,7 +1587,7 @@ ACT['hb-csv'] = () => {
 const GRAN = {jour: 'Quotidien', semaine: 'Hebdomadaire', mois: 'Mensuel', annee: 'Annuel'};
 const GSPAN = {jour: 20, semaine: 12, mois: 12, annee: 4};
 const fmtC = v => (Math.round(v * 10) / 10).toLocaleString('fr-FR');
-const hcls = (v, cap) => !cap ? (v ? 'hw' : '') : v / cap > 1 ? 'hb' : v / cap >= .8 ? 'hw' : v ? 'hk' : '';
+const hcls = (v, cap) => !cap ? (v ? 'hw' : '') : v / cap > 1 ? 'hb' : v / cap >= CFG.warn ? 'hw' : v ? 'hk' : '';
 function landscape(on) {
   let s = $('#pgs'); if (!s) { s = document.createElement('style'); s.id = 'pgs'; document.head.appendChild(s); }
   s.textContent = on ? '@page{size:landscape;margin:10mm}' : '';
@@ -1673,7 +1699,7 @@ function agentTable(m, opt) {
 }
 const LEG0 = '<span><i class="lgb re"></i>Réalisé (temps saisi)</span><span><i class="lgb pl"></i>Prévisionnel (reste à faire)</span><span><i class="lgb mx"></i>Réalisé et prévu (période en cours)</span>';
 const LEGEND = `<div class="lg">${LEG0}<span><i class="jl">◆</i>Jalon</span><span><i class="lgb sp"></i>Durée du projet</span></div>`;
-const HEATLEG = '<span class="tag ok">vert</span> sous 80 % · <span class="tag warn">orange</span> de 80 à 100 % · <span class="tag bad">rouge</span> au-delà de la capacité de la période (capacité annuelle répartie sur les jours ouvrés, hors congés, absences et jours fériés)';
+const heatleg = () => `<span class="tag ok">vert</span> sous ${Math.round(CFG.warn * 100)} % · <span class="tag warn">orange</span> de ${Math.round(CFG.warn * 100)} à 100 % · <span class="tag bad">rouge</span> au-delà de la capacité de la période (capacité annuelle répartie sur les jours ouvrés, hors congés, absences et jours fériés)`;
 function ctl(w, st, P) {
   return `<div class="acts noprint" style="margin-top:8px">${Object.entries(GRAN).map(([k, l]) => `<button class="fchip ${st.g === k ? 'on' : ''}" data-a="${w}-g" data-v="${k}">${l}</button>`).join('')}
     <span class="seg"><button data-a="${w}-off" data-v="-1" aria-label="Période précédente">◀</button><button data-a="${w}-off" data-v="0">Aujourd’hui</button><button data-a="${w}-off" data-v="1" aria-label="Période suivante">▶</button></span>
@@ -1690,7 +1716,7 @@ function synCalendrier() {
       <select data-ch="cal-ag" aria-label="Agent"><option value="0">Tous les agents</option>${activeAgents().map(a => `<option value="${a.id}" ${a.id === st.agent ? 'selected' : ''}>${esc(agentName(a))}</option>`).join('')}</select>
       <label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="cal-det" ${st.detail ? 'checked' : ''}>Vue détaillée (par agent)</label></div></header>
   <div class="card"><div class="hint">Chaque case indique les jours de travail (réalisés ou prévus) du projet sur la période. Passez la souris sur une case pour le détail, les phases et les jalons.</div>${LEGEND}${calTable(m, {g: st.g, detail: st.detail})}</div>
-  <div class="card"><h2>Charge cumulée par agent</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${HEATLEG}</div></details>${agentTable(m, {g: st.g, detail: false})}</div>${nofinCard(m)}`;
+  <div class="card"><h2>Charge cumulée par agent</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${heatleg()}</div></details>${agentTable(m, {g: st.g, detail: false})}</div>${nofinCard(m)}`;
 }
 const wState = w => w === 'cal' ? S.sy.cal : S.sy.ch, wRender = w => w === 'cal' ? synCalendrier() : synCharge();
 ['cal', 'ch'].forEach(w => {
@@ -1714,7 +1740,7 @@ function synCharge() {
   const st = S.sy.ch, P = periodsOf(st), m = chargeModel(P, {hide: st.hide});
   $('#sy-b').innerHTML = `<header><h1>Charge par agent</h1><div class="muted">Temps réalisé (passé) et reste à faire réparti sur les jours ouvrés (futur), agent par agent.</div>${ctl('ch', st, P)}
     <div class="fl noprint" style="margin-top:8px"><label class="cb" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-ch="ch-det" ${st.detail ? 'checked' : ''}>Vue détaillée (par projet)</label></div></header>
-  <div class="card"><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Charge d’un projet à venir = charge prévue − jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés jusqu’à la fin prévue (pour un projet en retard : sur les deux semaines qui viennent). ${HEATLEG}.</div></details><div class="lg">${LEG0}</div>${agentTable(m, {g: st.g, detail: st.detail})}</div>${nofinCard(m)}`;
+  <div class="card"><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">Charge d’un projet à venir = charge prévue − jours déjà saisis, répartie à parts égales entre ses agents et sur les jours ouvrés jusqu’à la fin prévue (pour un projet en retard : sur les deux semaines qui viennent). ${heatleg()}.</div></details><div class="lg">${LEG0}</div>${agentTable(m, {g: st.g, detail: st.detail})}</div>${nofinCard(m)}`;
 }
 
 /* ---------- Rapport annuel pour la hiérarchie ---------- */
@@ -1751,7 +1777,7 @@ function raAbs(y) {
 function raCal(y) {
   const m = raModel(y);
   return `<div class="card"><h2>Calendrier de l’année ${y} : projets, charge et jalons</h2><div class="hint">Jours de travail par projet et par mois (réalisé pour les mois passés, prévisionnel pour les mois à venir).</div>${LEGEND}${calTable(m, {g: 'mois', detail: false, totalCol: true})}</div>
-  <div class="card"><h2>Charge par agent en ${y}</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${HEATLEG}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div></details>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>${raAbs(y)}`;
+  <div class="card"><h2>Charge par agent en ${y}</h2><details class="aide noprint"><summary>Comment lire ce tableau ?</summary><div class="hint">${heatleg()}. La dernière colonne donne le total de l’année et sa part de la capacité annuelle.</div></details>${agentTable(m, {g: 'mois', detail: false, totalCol: true})}${nofinCard(m)}</div>${raAbs(y)}`;
 }
 function synRapport() {
   const ys = raYears(); if (!S.sy.ra.year || !ys.includes(S.sy.ra.year)) S.sy.ra.year = new Date().getFullYear();
@@ -1788,7 +1814,7 @@ ACT['ra-csv'] = () => {
 function keyFacts() {
   const h = hebdoData();
   return `<div class="facts keyf"><div><b>${h.cur.length}</b><span>projets en cours</span></div><div><b class="${h.nLate ? 'ko' : ''}">${h.nLate}</b><span>en retard</span></div>
-    <div><b class="${h.nOver ? 'ko' : ''}">${h.nOver}</b><span>surcharge (> 100 %)</span></div><div><b class="${h.nInc ? 'wn' : ''}">${h.nInc}</b><span>incomplets</span></div><div><b>${h.jal.length}</b><span>jalons à 30 jours</span></div></div>`;
+    <div><b class="${h.nOver ? 'ko' : ''}">${h.nOver}</b><span>surcharge (> 100 %)</span></div><div><b class="${h.nInc ? 'wn' : ''}">${h.nInc}</b><span>incomplets</span></div><div><b>${h.jal.length}</b><span>jalons à 30 jours</span></div></div>${miniCharts()}`;
 }
 
 /* ----- résumé à copier dans un mail ----- */
@@ -1931,6 +1957,7 @@ function quickEdit(r) {
     <div><label>Début</label><input class="fi" type="date" data-ch="qe" data-k="Date_debut" value="${iso(r.Date_debut)}"></div>
     <div><label>Fin prévue</label><input class="fi" type="date" data-ch="qe" data-k="Date_fin_prevue" value="${iso(r.Date_fin_prevue)}"></div>
     <div><label>Charge prévue (j)</label><input class="fi" type="number" step="0.5" min="0" data-ch="qe" data-k="Charge_prevue" value="${r.Charge_prevue ?? ''}"></div></div>
+    <div class="nt-f" style="align-items:center"><span>Décaler tout le projet (dates, phases, jalons à venir) de</span><input class="fi" id="sh-n" type="number" value="7" style="width:80px" aria-label="Nombre de jours"><span>jours</span><button data-a="shift-p">Décaler</button></div>
     <div class="hint">Les changements sont enregistrés tout de suite. Pour les agents, la description ou les phases : bouton « Modifier ».</div></div>`;
 }
 CH.qe = async el => {
@@ -1939,12 +1966,13 @@ CH.qe = async el => {
   const d0 = k === 'Date_debut' ? v : r.Date_debut, d1 = k === 'Date_fin_prevue' ? v : r.Date_fin_prevue;
   if (typeof d0 === 'number' && typeof d1 === 'number' && d1 < d0) { flash('La fin ne peut pas précéder le début.', 1); return mdDetail(); }
   const f = {[k]: v}; if (k === 'Statut' && v === 'Terminé' && !r.Date_fin_reelle) f.Date_fin_reelle = todaySec();
-  try { await write([['UpdateRecord', 'Projets', r.id, f]]); } catch (e) { return mdDetail(); }
+  try { await write([['UpdateRecord', 'Projets', r.id, f], ...histActs(r.id, 'Projets', r.id, f, r)]); } catch (e) { return mdDetail(); }
   HM = null; mdList(); mdDetail();
 };
 CH.qj = async el => {
   const jk = el.dataset.jk, v = jk === 'Date' ? secOf(el.value) : el.value;
-  try { await write([['UpdateRecord', 'Jalons', +el.dataset.j, {[jk]: v}]]); } catch (e) { return mdDetail(); }
+  const jl = D.jalons.find(x => x.id === +el.dataset.j), hx = D.hasHist && jl && JSON.stringify(jl[jk] ?? null) !== JSON.stringify(v ?? null) ? [histRow(jl.Projet, 'Jalons', jl.id, jk, `Jalon « ${jl.Libelle || 'sans libellé'} » – ${jk === 'Date' ? 'date' : 'statut'}`, JSON.stringify(jl[jk] ?? null), JSON.stringify(v ?? null))] : [];
+  try { await write([['UpdateRecord', 'Jalons', +el.dataset.j, {[jk]: v}], ...hx]); } catch (e) { return mdDetail(); }
   HM = null; mdList(); mdDetail();
 };
 
@@ -1973,7 +2001,7 @@ ACT['del-note'] = async el => { try { await write([['RemoveRecord', 'Notes', +el
 function avanceCard() {
   if (!D.hasNotes) return '';
   const cur = D.projets.filter(p => p.Statut === 'En cours').sort((a, b) => ((lastNote(a.id) || {}).d || 0) - ((lastNote(b.id) || {}).d || 0)), t = todaySec();
-  return `<div class="card"><h2>Avancement des projets en cours</h2><div class="hint noprint">Dernière note d’avancement de chaque projet, les moins récentes d’abord.</div>${cur.length ? `<table class="st2 l"><tr><th>Projet</th><th>Dernière note</th><th>Date</th></tr>${cur.map(p => { const n = lastNote(p.id), old = !n || (n.d && t - n.d > 30 * DAY); return `<tr><td>${lkp(p)}</td><td>${n ? esc(n.t.length > 160 ? n.t.slice(0, 160) + '…' : n.t) : '<span class="muted">Aucune note</span>'}</td><td class="${old ? 'wn' : ''}">${n ? fmtD(n.d) : '—'}</td></tr>`; }).join('')}</table>` : '<div class="muted">Aucun projet en cours.</div>'}</div>`;
+  return `<div class="card"><h2>Avancement des projets en cours</h2><div class="hint noprint">Dernière note d’avancement de chaque projet, les moins récentes d’abord.</div>${cur.length ? `<table class="st2 l"><tr><th>Projet</th><th>Dernière note</th><th>Date</th></tr>${cur.map(p => { const n = lastNote(p.id), old = !n || (n.d && t - n.d > CFG.note * DAY); return `<tr><td>${lkp(p)}</td><td>${n ? esc(n.t.length > 160 ? n.t.slice(0, 160) + '…' : n.t) : '<span class="muted">Aucune note</span>'}</td><td class="${old ? 'wn' : ''}">${n ? fmtD(n.d) : '—'}</td></tr>`; }).join('')}</table>` : '<div class="muted">Aucun projet en cours.</div>'}</div>`;
 }
 
 /* ---------- « Ma semaine » (accueil) et saisie de la journée en un clic ---------- */
@@ -2163,6 +2191,227 @@ ACT.word = async el => {
   } catch (e) { flash('Export Word impossible : ' + (e.message || e), 1); }
 };
 /* =====================================================================
+   Lot 4 : bandeau « Aujourd'hui », saisie en un clic, décalage de projet,
+   mini-graphiques, vue par commanditaire, réglages partagés, modèles éditables,
+   filtres enregistrables, visite guidée, retours, historique, présentation,
+   fiche projet en onglets
+   ===================================================================== */
+const CFG = {warn: .8, note: 30, jal: 14};
+const MODELES0 = JSON.parse(JSON.stringify(MODELES));
+D.reg = {}; D.hasReg = false; D.ret = []; D.hasRet = false; D.hist = []; D.hasHist = false;
+S.pj.f = {agent: 0, type: 0, niv: '', year: ''}; S.pj.ptab = 'resume';
+function dlg(id, html) { let d = $('#' + id); if (!d) { d = document.createElement('dialog'); d.id = id; document.body.appendChild(d); } d.innerHTML = html; if (!d.open) d.showModal(); return d; }
+ACT['dlg-x'] = el => { const d = el.closest('dialog'); if (d) d.close(); };
+
+/* ---------- réglages partagés (table Reglages) ---------- */
+function applyReg() {
+  try { const s = D.reg.seuils && JSON.parse(D.reg.seuils.v); if (s) { CFG.warn = Math.min(1, Math.max(.3, +s.warn || .8)); CFG.note = Math.max(7, +s.note || 30); CFG.jal = Math.max(3, +s.jal || 14); } } catch (e) {}
+  try { const m = D.reg.modeles && JSON.parse(D.reg.modeles.v); Object.keys(MODELES0).forEach(k => { const x = m && m[k]; MODELES[k].ph = x && x.ph ? x.ph : MODELES0[k].ph; MODELES[k].j = x && x.j ? x.j : MODELES0[k].j; }); } catch (e) {}
+}
+async function setReg(key, val) {
+  const cur = D.reg[key]; await write([cur ? ['UpdateRecord', 'Reglages', cur.id, {Valeur: val}] : ['AddRecord', 'Reglages', null, {Cle: key, Valeur: val}]], '✓ Réglages enregistrés'); applyReg();
+}
+ACT['reg-enable'] = async () => { try { await write([['AddTable', 'Reglages', [{id: 'Cle', type: 'Text'}, {id: 'Valeur', type: 'Text'}]]], '✓ Réglages partagés activés'); } catch (e) { return; } ACT['cfg-open'](); };
+ACT['cfg-open'] = () => {
+  const s = $('.setp'); if (s) s.remove();
+  dlg('cfg', `<h2>Réglages du bureau</h2>` + (D.hasReg ? `<div class="muted" style="margin-bottom:10px">Ces réglages sont partagés par toute l’équipe.</div>
+    <div class="g4"><div><label for="cf-w">Alerte de charge à (%)</label><input class="fi" id="cf-w" type="number" min="30" max="100" value="${Math.round(CFG.warn * 100)}"></div>
+    <div><label for="cf-n">Note d’avancement attendue tous les (jours)</label><input class="fi" id="cf-n" type="number" min="7" max="180" value="${CFG.note}"></div>
+    <div><label for="cf-j">Jalons « à venir » sur (jours)</label><input class="fi" id="cf-j" type="number" min="3" max="90" value="${CFG.jal}"></div></div>
+    <div style="margin-top:12px"><button class="btn s" data-a="mod-open">✏️ Modifier les modèles de projet (phases et jalons types)</button></div>`
+    : `<p>Pour régler les seuils d’alerte et les modèles de projet pour toute l’équipe, activez d’abord les réglages partagés (une petite table est ajoutée au document).</p><button class="btn" data-a="reg-enable">Activer les réglages partagés</button>`) +
+    `<div class="dacts"><button type="button" class="btn s" data-a="dlg-x">Fermer</button>${D.hasReg ? '<button type="button" class="btn" data-a="cfg-save">Enregistrer</button>' : ''}</div>`);
+};
+ACT['cfg-save'] = async () => {
+  const v = {warn: Math.min(100, Math.max(30, +$('#cf-w').value || 80)) / 100, note: Math.max(7, +$('#cf-n').value || 30), jal: Math.max(3, +$('#cf-j').value || 14)};
+  try { await setReg('seuils', JSON.stringify(v)); } catch (e) { return; }
+  $('#cfg').close(); HM = null; refreshView();
+};
+
+/* ---------- modèles de projet modifiables ---------- */
+const MODLAB = {ditp: 'Projet DITP', diag: 'Diagnostic', pp: 'Politique publique', def: 'Projet générique'};
+let MODED = null, MODK = 'ditp';
+function modRender() {
+  const m = MODED[MODK];
+  dlg('mod', `<h2>Modèles de projet</h2><div class="muted" style="margin-bottom:8px">Phases et jalons créés automatiquement avec un nouveau projet. Les positions sont en % de la durée du projet (0 = début, 100 = fin).</div>
+    <div class="f"><label for="mo-k">Modèle</label><select class="fi" id="mo-k" data-ch="mo-k">${Object.keys(MODLAB).map(k => `<option value="${k}" ${k === MODK ? 'selected' : ''}>${MODLAB[k]}${MODELES0[k].cle.length ? ' (types contenant « ' + MODELES0[k].cle.join(', ') + ' »)' : ' (autres types)'}</option>`).join('')}</select></div>
+    <h3 style="font-size:14px;margin:10px 0 4px">Phases</h3>${m.ph.map((p, i) => `<div class="mo-r"><input class="fi" data-in="mo" data-t="ph" data-i="${i}" data-f="0" value="${esc(p[0])}" aria-label="Nom de la phase"><input class="fi" type="number" min="0" max="100" data-in="mo" data-t="ph" data-i="${i}" data-f="1" value="${p[1]}" aria-label="Début en %"><input class="fi" type="number" min="0" max="100" data-in="mo" data-t="ph" data-i="${i}" data-f="2" value="${p[2]}" aria-label="Fin en %"><button class="btn s" data-a="mo-del" data-t="ph" data-i="${i}" aria-label="Supprimer">×</button></div>`).join('')}
+    <button class="btn s" data-a="mo-add" data-t="ph">+ Phase</button>
+    <h3 style="font-size:14px;margin:12px 0 4px">Jalons</h3>${m.j.map((j, i) => `<div class="mo-r"><input class="fi" data-in="mo" data-t="j" data-i="${i}" data-f="0" value="${esc(j[0])}" aria-label="Nom du jalon"><input class="fi" type="number" min="0" max="100" data-in="mo" data-t="j" data-i="${i}" data-f="1" value="${j[1]}" aria-label="Position en %"><select class="fi" data-ch="mo-ph" data-i="${i}" aria-label="Phase du jalon">${m.ph.map((p, k) => `<option value="${k}" ${k === j[2] ? 'selected' : ''}>${esc(p[0])}</option>`).join('')}</select><button class="btn s" data-a="mo-del" data-t="j" data-i="${i}" aria-label="Supprimer">×</button></div>`).join('')}
+    <button class="btn s" data-a="mo-add" data-t="j">+ Jalon</button>
+    <div class="dacts"><button class="btn s" data-a="mo-reset">Rétablir les modèles d’origine</button><button class="btn s" data-a="dlg-x">Annuler</button><button class="btn" data-a="mo-save">Enregistrer</button></div>`);
+}
+ACT['mod-open'] = () => { const c = $('#cfg'); if (c) c.close(); MODED = JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(MODLAB).map(k => [k, {ph: MODELES[k].ph, j: MODELES[k].j}])))); modRender(); };
+CH['mo-k'] = el => { MODK = el.value; modRender(); };
+IN.mo = el => { const l = MODED[MODK][el.dataset.t === 'ph' ? 'ph' : 'j'][+el.dataset.i], f = +el.dataset.f; l[f] = f ? Math.min(100, Math.max(0, +el.value || 0)) : el.value; };
+CH['mo-ph'] = el => { MODED[MODK].j[+el.dataset.i][2] = +el.value; };
+ACT['mo-add'] = el => { const m = MODED[MODK]; if (el.dataset.t === 'ph') m.ph.push(['Nouvelle phase', 0, 100]); else m.j.push(['Nouveau jalon', 50, 0]); modRender(); };
+ACT['mo-del'] = el => { const m = MODED[MODK]; (el.dataset.t === 'ph' ? m.ph : m.j).splice(+el.dataset.i, 1); if (el.dataset.t === 'ph') m.j.forEach(j => { if (j[2] >= m.ph.length) j[2] = Math.max(0, m.ph.length - 1); }); modRender(); };
+ACT['mo-reset'] = () => { MODED = Object.fromEntries(Object.keys(MODLAB).map(k => [k, {ph: JSON.parse(JSON.stringify(MODELES0[k].ph)), j: JSON.parse(JSON.stringify(MODELES0[k].j))}])); modRender(); };
+ACT['mo-save'] = async () => { try { await setReg('modeles', JSON.stringify(MODED)); } catch (e) { return; } $('#mod').close(); };
+
+/* ---------- bandeau « Aujourd'hui » ---------- */
+function todayBand() {
+  const t = todaySec(), ok = isWd(t), nm = a => agentName(D.by.agent.get(a));
+  const abs = D.hasAbs ? D.absences.filter(x => x.a && x.d1 != null && D.by.agent.get(x.a)) : [];
+  const now = abs.filter(x => x.d1 <= t && x.d2 >= t).map(x => nm(x.a) + (x.q < 1 ? ' (½ j)' : '')), wk = mondayOf(t) + 4 * DAY;
+  const soon = abs.filter(x => x.d2 > t && x.d1 <= wk && !(x.d1 <= t)).map(x => `${nm(x.a)} (dès le ${dShort(x.d1)})`);
+  const jl = D.jalons.filter(j => j.Statut !== 'Atteint' && typeof j.Date === 'number' && j.Date >= t && j.Date <= t + DAY && D.by.projet.get(j.Projet) && D.by.projet.get(j.Projet).Statut === 'En cours');
+  if (!HM) HM = healthMap(); const risk = [...HM.values()].filter(v => v === 'bad').length;
+  const blk = (ic, h, body) => `<div class="tb"><div class="tbh">${ic} ${h}</div><div>${body}</div></div>`;
+  return `<div class="card tband"><h2>Aujourd’hui · ${new Date(t * 1000).toLocaleDateString('fr-FR', {timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long'})}${ok ? '' : ' <span class="chip">jour non ouvré</span>'}</h2><div class="tbg">
+    ${blk('🏖', 'Absent·es aujourd’hui', now.length ? esc(now.join(', ')) : '<span class="muted">Personne</span>')}
+    ${blk('📅', 'Absences à venir cette semaine', soon.length ? esc(soon.join(', ')) : '<span class="muted">Aucune</span>')}
+    ${blk('◆', 'Jalons aujourd’hui et demain', jl.length ? jl.slice(0, 4).map(j => `<button class="lkp" data-a="open-p" data-id="${j.Projet}" data-m="consulter">${esc(j.Libelle || 'Jalon')}</button> <span class="muted">${esc(projLabel(D.by.projet.get(j.Projet)))}</span>`).join('<br>') : '<span class="muted">Aucun</span>')}
+    ${blk('⚠', 'Projets à risque', risk ? `<button class="lkp" data-a="go-risk">${plural(risk, 'projet')} à examiner</button>` : '<span class="muted">Aucun</span>')}</div></div>`;
+}
+ACT['go-risk'] = () => { S.pj.sort = 'urgence'; HM = null; go('projets', {pj: {filter: 'tous', q: '', old: false}}); };
+
+/* ---------- mini-graphiques (espace référent·e) ---------- */
+function miniCharts() {
+  const cnt = {}; D.projets.forEach(p => { if (p.Statut && p.Statut !== 'Archivé') cnt[p.Statut] = (cnt[p.Statut] || 0) + 1; });
+  const tot = Object.values(cnt).reduce((a, b) => a + b, 0) || 1, col = {'En cours': 'var(--acc)', 'À cadrer': 'var(--warn)', 'En pause': 'var(--mut)', 'Terminé': 'var(--ok)'};
+  const m = staffData(), rows = m.agents.filter(a => a.id).map(a => ({n: a.name, v: sumC([a.tot[0]]), c: a.capP[0]})).filter(x => x.c).map(x => ({...x, r: x.v / x.c})).sort((a, b) => b.r - a.r).slice(0, 8);
+  return `<div class="mini"><div><div class="muted" style="font-size:12px;margin-bottom:4px">Projets par statut</div><div class="stk" role="img" aria-label="Répartition des projets par statut">${Object.entries(cnt).map(([k, v]) => `<i style="flex:${v};background:${col[k] || 'var(--acc2)'}" title="${esc(k)} : ${v}"></i>`).join('')}</div>
+    <div class="lg">${Object.entries(cnt).map(([k, v]) => `<span><i class="lgb" style="background:${col[k] || 'var(--acc2)'}"></i>${esc(k)} ${v}</span>`).join('')}</div></div>
+    <div><div class="muted" style="font-size:12px;margin-bottom:4px">Charge de la semaine par agent</div>${rows.map(x => `<div class="hb2"><span>${esc(x.n)}</span><div><i class="${x.r > 1 ? 'hbb' : x.r >= CFG.warn ? 'hbw' : 'hbk'}" style="width:${Math.min(100, x.r * 100)}%"></i></div><b>${Math.round(x.r * 100)} %</b></div>`).join('') || '<span class="muted">Pas de charge calculable.</span>'}</div></div>`;
+}
+
+/* ---------- vue par commanditaire ---------- */
+S.sy.cm = {year: 'all'};
+function synCommanditaires() {
+  const st = S.sy.cm, years = [...new Set(D.projets.map(p => p.Annee).filter(Boolean))].sort();
+  const P = D.projets.filter(p => p.Statut !== 'Archivé' && (st.year === 'all' || p.Annee == st.year));
+  const grp = key => { const m = new Map(); P.forEach(p => { const k = (key(p) || 'Non précisé').trim(); const g = m.get(k) || {n: k, nb: 0, cur: 0, late: 0, prev: 0, reel: 0}; g.nb++; if (p.Statut === 'En cours') g.cur++; if (p.Retard) g.late++; g.prev += num(p.Charge_prevue); g.reel += num(p.Charge_reelle); m.set(k, g); }); return [...m.values()].sort((a, b) => b.reel - a.reel || b.nb - a.nb); };
+  const tbl = (l, rows) => `<table class="st2 l"><tr><th>${l}</th><th>Projets</th><th>En cours</th><th>En retard</th><th>Prévu (j)</th><th>Réalisé (j)</th><th>Conso</th></tr>${rows.map(x => `<tr><td>${esc(x.n)}</td><td>${x.nb}</td><td>${x.cur}</td><td class="${x.late ? 'ko' : ''}">${x.late}</td><td>${fmt1(x.prev)}</td><td>${fmt1(x.reel)}</td><td>${x.prev ? Math.round(x.reel / x.prev * 100) + ' %' : '—'}</td></tr>`).join('')}</table>`;
+  $('#sy-b').innerHTML = `<header><h1>Pour qui travaille-t-on ?</h1><div class="muted">${plural(P.length, 'projet')} hors archives · édité le ${nowStr()}</div>
+    <div class="acts noprint" style="margin-top:8px"><select data-ch="cm-yr" aria-label="Année"><option value="all">Toutes les années</option>${years.map(y => `<option ${String(st.year) === String(y) ? 'selected' : ''}>${y}</option>`).join('')}</select><button class="fchip" data-a="print">Imprimer / PDF</button><button class="fchip" data-a="word" data-n="par-commanditaire">Exporter en Word</button></div></header>
+  <div class="card"><h2>Par niveau de commanditaire</h2>${tbl('Niveau', grp(p => p.Niveau_commanditaire))}</div>
+  <div class="card"><h2>Par commanditaire</h2>${tbl('Commanditaire', grp(p => p.Commanditaire).slice(0, 25))}</div>`;
+}
+CH['cm-yr'] = el => { S.sy.cm.year = el.value; synCommanditaires(); };
+
+/* ---------- Mon temps : boutons ½ j / 1 j ---------- */
+const qbHtml = (p, d) => `<span class="qb"><button type="button" tabindex="-1" data-a="mt-q" data-p="${p}" data-d="${d}" data-v="0.5" title="Mettre ½ journée">½</button><button type="button" tabindex="-1" data-a="mt-q" data-p="${p}" data-d="${d}" data-v="1" title="Mettre 1 journée">1</button></span>`;
+ACT['mt-q'] = el => { const p = +el.dataset.p, d = +el.dataset.d, v = +el.dataset.v; setPending(p, d, Math.abs(cellVal(p, d) - v) < 1e-9 ? 0 : v); mtPatch(); };
+
+/* ---------- Fiche projet : saisie rapide du temps, décalage ---------- */
+function tempsCard(r, tpa) {
+  const t = todaySec(), mine_ = S.agentId ? D.temps.filter(x => x.a === S.agentId && x.p === r.id && x.d === t).reduce((s, x) => s + x.j, 0) : 0;
+  return `<div class="card"><h2>Temps passé</h2>${tpa || '<span class="muted">Aucun temps saisi sur ce projet.</span>'}
+    ${S.agentId ? `<div class="noprint nt-f" style="margin-top:12px"><span>J’ai travaillé</span><input class="fi" id="pt-v" type="number" step="0.5" min="0.5" value="0.5" style="width:90px" aria-label="Jours"><span>j aujourd’hui sur ce projet</span><button class="btn" data-a="pj-time" data-id="${r.id}">Ajouter</button></div>
+      <div class="hint noprint">${mine_ ? `Déjà ${fmtN(mine_)} j saisi aujourd’hui sur ce projet : le temps s’ajoute.` : 'Le temps s’ajoute à ma saisie du jour (visible aussi dans « Mon temps »).'}</div>` : '<div class="hint noprint">Choisissez votre nom en haut à droite pour saisir du temps ici.</div>'}</div>`;
+}
+ACT['pj-time'] = async el => {
+  const v = Math.max(0, +$('#pt-v').value || 0); if (!v || !S.agentId) return; const t = todaySec(), pid = +el.dataset.id;
+  const ex = D.temps.filter(x => x.a === S.agentId && x.p === pid && x.d === t), day = D.temps.filter(x => x.a === S.agentId && x.d === t).reduce((s, x) => s + x.j, 0);
+  const act = ex.length ? [['UpdateRecord', 'Temps', ex[0].id, {Jours: ex[0].j + v}]] : [['AddRecord', 'Temps', null, {Projet: pid, Agent: S.agentId, Date: t, Jours: v}]];
+  try { await write(act, `✓ ${fmtN(v)} j ajouté${v > 1 ? 's' : ''}` + (day + v > 1.001 ? ' (attention : plus d’une journée aujourd’hui)' : '')); } catch (e) { return; }
+  HM = null; mdDetail();
+};
+ACT['shift-p'] = async el => {
+  const n = Math.round(+$('#sh-n').value || 0); if (!n) return flash('Indiquez un nombre de jours (négatif pour avancer).', 1);
+  if (el.dataset.ok !== '1') { el.dataset.ok = '1'; el.textContent = `Confirmer : décaler de ${n} j ?`; el.classList.add('warn'); return; }
+  const r = D.by.projet.get(S.pj.sel), d = n * DAY, acts = [], f = {}; if (typeof r.Date_debut === 'number') f.Date_debut = r.Date_debut + d; if (typeof r.Date_fin_prevue === 'number') f.Date_fin_prevue = r.Date_fin_prevue + d;
+  acts.push(['UpdateRecord', 'Projets', r.id, f]);
+  D.phases.filter(p => p.Projet === r.id).forEach(p => { const x = {}; if (typeof p.Date_debut === 'number') x.Date_debut = p.Date_debut + d; if (typeof p.Date_fin === 'number') x.Date_fin = p.Date_fin + d; acts.push(['UpdateRecord', 'Phases', p.id, x]); });
+  D.jalons.filter(j => j.Projet === r.id && j.Statut !== 'Atteint' && typeof j.Date === 'number').forEach(j => acts.push(['UpdateRecord', 'Jalons', j.id, {Date: j.Date + d}]));
+  if (D.hasHist) acts.push(histRow(r.id, 'Projets', r.id, '', `Décalage du projet de ${n} jour${Math.abs(n) > 1 ? 's' : ''}`, '', ''));
+  try { await write(acts, '✓ Projet décalé'); } catch (e) { return; }
+  HM = null; mdList(); mdDetail();
+};
+
+/* ---------- historique des modifications ---------- */
+const FLAB = {Statut: 'Statut', Date_debut: 'Début', Date_fin_prevue: 'Fin prévue', Date_fin_reelle: 'Fin réelle', Charge_prevue: 'Charge prévue', Titre: 'Titre', Reference: 'Référence', Niveau_commanditaire: 'Niveau du commanditaire', Commanditaire: 'Commanditaire', Beneficiaire: 'Bénéficiaire', Type: 'Type', Description: 'Description'};
+const histRow = (pid, tbl, rec, col, lib, avant, apres) => ['AddRecord', 'Historique', null, {Date: todaySec(), Auteur: S.agentId || 0, Projet: pid, Tbl: tbl, Rec: rec, Col: col, Libelle: lib, Avant: avant, Apres: apres}];
+function histActs(pid, tbl, rec, fields, before, prefix) {
+  if (!D.hasHist) return [];
+  return Object.keys(fields).filter(k => FLAB[k] && JSON.stringify(before[k] ?? null) !== JSON.stringify(fields[k] ?? null)).map(k => histRow(pid, tbl, rec, k, (prefix || '') + FLAB[k], JSON.stringify(before[k] ?? null), JSON.stringify(fields[k] ?? null)));
+}
+const hv = (col, js) => { let v; try { v = JSON.parse(js); } catch (e) { v = js; } if (v == null || v === '') return '—'; if (/^Date/.test(col)) return fmtD(v) || '—'; if (col === 'Type') return (D.by.type.get(v) || {}).n || '—'; v = String(v); return v.length > 50 ? v.slice(0, 50) + '…' : v; };
+function histCard(r) {
+  if (!D.hasHist) return `<div class="card noprint"><h2>Historique des modifications</h2><div class="muted">Garde la trace de qui a changé quoi (statut, dates, charge…) et permet d’annuler une erreur.</div><div style="margin-top:8px"><button class="btn" data-a="enable-hist">Activer l’historique</button></div></div>`;
+  const hs = D.hist.filter(h => h.p === r.id).sort((a, b) => b.id - a.id).slice(0, 8);
+  return `<div class="card"><h2>Historique des modifications</h2>${hs.length ? hs.map(h => `<div class="hi"><span class="muted">${fmtD(h.d)}</span><span>${esc(h.a && D.by.agent.get(h.a) ? agentName(D.by.agent.get(h.a)) : '—')}</span><span><b>${esc(h.l)}</b>${h.c ? ` : ${esc(hv(h.c, h.av))} → ${esc(hv(h.c, h.ap))}` : ''}</span>${h.c && h.t ? `<button class="btn s noprint" data-a="hist-undo" data-id="${h.id}" title="Remettre l’ancienne valeur">↩ Annuler</button>` : '<span></span>'}</div>`).join('') : '<div class="muted">Aucune modification enregistrée depuis l’activation.</div>'}</div>`;
+}
+ACT['enable-hist'] = async () => {
+  try { await write([['AddTable', 'Historique', [{id: 'Date', type: 'Date'}, {id: 'Auteur', type: 'Ref:Agents'}, {id: 'Projet', type: 'Ref:Projets'}, {id: 'Tbl', type: 'Text'}, {id: 'Rec', type: 'Int'}, {id: 'Col', type: 'Text'}, {id: 'Libelle', type: 'Text'}, {id: 'Avant', type: 'Text'}, {id: 'Apres', type: 'Text'}]]], '✓ Historique activé'); } catch (e) { return; }
+  mdDetail();
+};
+ACT['hist-undo'] = async el => {
+  const h = D.hist.find(x => x.id === +el.dataset.id); if (!h || !h.c) return; let v; try { v = JSON.parse(h.av); } catch (e) { return; }
+  const cur = (h.t === 'Projets' ? D.by.projet.get(h.r) : D.jalons.find(j => j.id === h.r)); if (!cur) return flash('Élément introuvable', 1);
+  try { await write([['UpdateRecord', h.t, h.r, {[h.c]: v}], histRow(h.p, h.t, h.r, h.c, 'Annulation : ' + h.l, h.ap, h.av)], '↩ Modification annulée'); } catch (e) { return; }
+  HM = null; mdList(); mdDetail();
+};
+
+/* ---------- fiche projet en onglets ---------- */
+const PTABS = [['resume', 'Résumé'], ['planning', 'Planning'], ['temps', 'Temps'], ['suivi', 'Suivi']];
+const pjTabs = () => `<div class="seg ptb noprint" role="tablist" aria-label="Sections de la fiche">${PTABS.map(([k, l]) => `<button role="tab" aria-selected="${S.pj.ptab === k}" class="${S.pj.ptab === k ? 'on' : ''}" data-a="pj-tab" data-v="${k}">${l}</button>`).join('')}</div>`;
+ACT['pj-tab'] = el => { S.pj.ptab = el.dataset.v; mdDetail(); };
+
+/* ---------- filtres avancés enregistrables ---------- */
+const svGet = () => { try { return JSON.parse(store.get('app-sv') || '[]'); } catch (e) { return []; } };
+const advOn = () => { const f = S.pj.f; return !!(f.agent || f.type || f.niv || f.year); };
+function advTop() {
+  const f = S.pj.f, yrs = [...new Set(D.projets.map(p => p.Annee).filter(Boolean))].sort(), sv = svGet();
+  const sel = (k, lab, opts) => `<label class="adl">${lab}<select class="fi" data-ch="adv" data-k="${k}"><option value="">Tous</option>${opts.map(([v, l]) => `<option value="${esc(v)}" ${String(f[k]) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+  return `${sv.length ? `<div class="fl" role="group" aria-label="Filtres enregistrés">${sv.map((s, i) => `<span class="svc"><button class="fchip" data-a="sv-apply" data-i="${i}">${esc(s.n)}</button><button class="svx" data-a="sv-del" data-i="${i}" title="Supprimer ce filtre" aria-label="Supprimer le filtre ${esc(s.n)}">×</button></span>`).join('')}</div>` : ''}
+  <details class="adv" ${advOn() ? 'open' : ''}><summary>Filtres avancés${advOn() ? ' (actifs)' : ''}</summary>
+    ${sel('agent', 'Agent', activeAgents().map(a => [a.id, agentName(a)]))}${sel('type', 'Type', D.types.map(t => [t.id, t.n]))}${sel('niv', 'Commanditaire', (META.Niveau_commanditaire || []).map(n => [n, n]))}${sel('year', 'Année', yrs.map(y => [y, String(y)]))}
+    <div class="adr"><input class="fi" id="sv-n" placeholder="Nom pour enregistrer ce filtre" aria-label="Nom du filtre"><button class="btn s" data-a="sv-save">Enregistrer</button>${advOn() ? '<button class="btn s" data-a="adv-clear">Effacer</button>' : ''}</div></details>`;
+}
+CH.adv = el => { S.pj.f[el.dataset.k] = el.dataset.k === 'niv' ? el.value : (+el.value || 0); mdList(); };
+ACT['adv-clear'] = () => { S.pj.f = {agent: 0, type: 0, niv: '', year: ''}; mdShow(MD_PJ); };
+ACT['sv-save'] = () => { const n = ($('#sv-n').value || '').trim(); if (!n) return flash('Donnez un nom au filtre.', 1); const l = svGet(); l.push({n, f: {...S.pj.f}, fl: S.pj.filter}); store.set('app-sv', JSON.stringify(l)); flash('✓ Filtre enregistré'); mdShow(MD_PJ); };
+ACT['sv-apply'] = el => { const s = svGet()[+el.dataset.i]; if (!s) return; S.pj.f = {agent: 0, type: 0, niv: '', year: '', ...s.f}; S.pj.filter = s.fl || 'tous'; mdShow(MD_PJ); };
+ACT['sv-del'] = el => { const l = svGet(); l.splice(+el.dataset.i, 1); store.set('app-sv', JSON.stringify(l)); mdShow(MD_PJ); };
+function emptyList() {
+  if (S.pj.filter === 'fav') return '<div class="empty"><b>Aucun favori</b>Ouvrez un projet et cliquez sur « ☆ Favori » pour l’épingler ici.</div>';
+  if (MDC && MDC.st.q) return `<div class="empty"><b>Aucun résultat</b>Aucun élément ne correspond à « ${esc(MDC.st.q)} ».</div>`;
+  if (advOn()) return '<div class="empty"><b>Aucun projet</b>Les filtres avancés sont trop restrictifs : ouvrez-les pour les effacer.</div>';
+  return '<div class="empty"><b>Rien à afficher</b>Essayez un autre filtre.</div>';
+}
+
+/* ---------- retours sur l'outil ---------- */
+ACT.fb = () => dlg('fb', `<h2>Une idée ou un souci ?</h2><div class="muted" style="margin-bottom:10px">Votre remarque est enregistrée dans le document et sera lue par le bureau.</div>
+  <div class="f"><label for="fb-k">Type</label><select class="fi" id="fb-k"><option>Idée</option><option>Souci</option><option>Question</option></select></div>
+  <div class="f"><label for="fb-t">Votre message</label><textarea class="fi" id="fb-t" rows="4" placeholder="Ce qui ne marche pas, ce qui serait plus simple…"></textarea></div>
+  <div class="dacts"><button class="btn s" data-a="dlg-x">Annuler</button><button class="btn" data-a="fb-send">Envoyer</button></div>`);
+ACT['fb-send'] = async () => {
+  const t = ($('#fb-t').value || '').trim(); if (!t) return flash('Écrivez votre message.', 1);
+  const rec = ['AddRecord', 'Retours', null, {Date: todaySec(), Auteur: S.agentId || 0, Page: VIEWS[S.view].label, Type: $('#fb-k').value, Texte: t}];
+  try { await write(D.hasRet ? [rec] : [['AddTable', 'Retours', [{id: 'Date', type: 'Date'}, {id: 'Auteur', type: 'Ref:Agents'}, {id: 'Page', type: 'Text'}, {id: 'Type', type: 'Text'}, {id: 'Texte', type: 'Text'}]], rec], '✓ Merci, remarque enregistrée'); } catch (e) { return; }
+  $('#fb').close();
+};
+function retoursCard() {
+  if (!D.hasRet) return '';
+  const rs = D.ret.slice().sort((a, b) => b.id - a.id).slice(0, 10);
+  return `<div class="card noprint"><h2>Remarques sur l’outil</h2>${rs.length ? rs.map(x => `<div class="nt"><div class="nt-h"><b>${fmtD(x.d)}</b><span class="chip">${esc(x.k)}</span><span class="muted">${esc(x.a && D.by.agent.get(x.a) ? agentName(D.by.agent.get(x.a)) : 'Anonyme')} · ${esc(x.pg)}</span></div><div>${esc(x.t)}</div></div>`).join('') : '<div class="muted">Aucune remarque.</div>'}</div>`;
+}
+
+/* ---------- mode présentation ---------- */
+ACT.pres = () => { document.body.classList.add('pres'); let b = $('#presx'); if (!b) { b = document.createElement('button'); b.id = 'presx'; b.className = 'btn s'; b.dataset.a = 'pres-x'; b.textContent = '✕ Quitter la présentation (Échap)'; document.body.appendChild(b); } };
+ACT['pres-x'] = () => { document.body.classList.remove('pres'); const b = $('#presx'); if (b) b.remove(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.body.classList.contains('pres')) ACT['pres-x'](); });
+
+/* ---------- visite guidée ---------- */
+const TOUR = [['Bienvenue 👋', 'Cet outil regroupe les projets du bureau, le temps de chacun et le suivi pour la cheffe de bureau. Quelques secondes suffisent pour l’essentiel.'],
+  ['1. Choisissez votre nom', 'En haut à droite, « Je suis » : l’outil se souvient de vous sur cet ordinateur et personnalise l’accueil.'],
+  ['2. Saisissez votre temps', 'Onglet « Mon temps » : cliquez sur ½ ou 1 sous une case, ou utilisez le bouton « Semaine complète ». Pensez à « Enregistrer ».'],
+  ['3. Suivez vos projets', 'Onglet « Projets » : la pastille de couleur montre l’état de chaque projet. Dans la fiche, changez le statut ou une date directement et ajoutez une note d’avancement.'],
+  ['4. Retrouvez tout', 'La recherche en haut (touche / ) trouve un projet, un agent ou un jalon. Le bouton ? rappelle l’aide, et 💬 permet d’envoyer une idée ou un souci.']];
+let TS = 0;
+function tourShow() {
+  const [h, t] = TOUR[TS];
+  dlg('tour', `<h2>${h}</h2><p style="margin:0 0 6px">${t}</p><div class="muted">Étape ${TS + 1} sur ${TOUR.length}</div>
+    <div class="dacts"><button class="btn s" data-a="tour-x">Passer</button>${TS ? '<button class="btn s" data-a="tour-p">Précédent</button>' : ''}<button class="btn" data-a="${TS < TOUR.length - 1 ? 'tour-n' : 'tour-x'}">${TS < TOUR.length - 1 ? 'Suivant' : 'Terminer'}</button></div>`);
+}
+ACT['tour-n'] = () => { TS++; tourShow(); }; ACT['tour-p'] = () => { TS--; tourShow(); };
+ACT['tour-x'] = () => { store.set('app-tour', '1'); const d = $('#tour'); if (d) d.close(); };
+ACT.tour = () => { const g = $('#gd'); if (g && g.open) g.close(); TS = 0; tourShow(); };
+function maybeTour() { if (!store.get('app-tour')) { TS = 0; tourShow(); } }
+/* =====================================================================
    Démarrage
    ===================================================================== */
 grist.ready({requiredAccess: 'full'});
@@ -2174,7 +2423,7 @@ grist.onRecords(() => {
 (async () => {
   try { await loadAll(); } catch (e) { $('#view').innerHTML = `<div class="empty"><b>Impossible de lire les données</b>${esc(e.message || e)}<br>Vérifiez que le widget a l’accès complet au document.</div>`; return; }
   const a = +store.get('app-agent'); if (a && D.by.agent.has(a)) S.agentId = a;
-  restorePrefs(); renderNav(); renderView();
+  restorePrefs(); renderNav(); renderView(); maybeTour();
 })();
 </script>
 </body>
