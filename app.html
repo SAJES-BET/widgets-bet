@@ -316,6 +316,9 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .st2 th,.st2 td{padding:5px 6px}.mt .top{flex-wrap:wrap}
 }
 @page{margin:12mm 14mm 16mm;@bottom-right{content:counter(page) ' / ' counter(pages);font-size:8pt;color:#777}}
+/* ----- Types de projet ----- */
+.ty-r{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,2fr) 92px 38px;gap:6px;align-items:center;margin-bottom:6px}.ty-u{font-size:12px;white-space:nowrap}
+@media (max-width:760px){.ty-r{grid-template-columns:1fr 1fr}}
 /* ----- Tutoriel ----- */
 .tuto{max-width:1100px;margin:0 auto;padding:18px 18px 60px}
 .tuto-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 10px}.tuto-bar .sp{flex:1}
@@ -382,7 +385,8 @@ kbd{background:var(--field);border:1px solid var(--line);border-bottom-width:2px
 <dialog id="np"><form id="npf" novalidate>
 <h2>Nouveau projet</h2>
 <div class="f"><label for="np-t">Titre *</label><input class="fi" id="np-t" maxlength="200" autocomplete="off"><div class="msg" id="np-m"></div></div>
-<div class="f"><label for="np-ty">Type</label><select class="fi" id="np-ty"></select></div>
+<div class="f"><div style="display:flex;justify-content:space-between;align-items:baseline"><label for="np-ty">Type</label><button type="button" class="btn s" data-a="np-nt" style="padding:0 8px;font-size:12px">+ Nouveau type</button></div><select class="fi" id="np-ty"></select>
+<div id="np-nt" hidden style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><input class="fi" id="np-nt-n" maxlength="80" placeholder="Nom du nouveau type" aria-label="Nom du nouveau type" style="flex:2;min-width:170px"><select class="fi" id="np-nt-m" aria-label="Modèle de phases et jalons associé" style="flex:2;min-width:170px"></select><button type="button" class="btn" data-a="np-nt-ok">Ajouter</button><button type="button" class="btn s" data-a="np-nt-x">Annuler</button></div></div>
 <div class="f"><div style="display:flex;justify-content:space-between;align-items:baseline"><label for="np-mo">Modèle de phases et jalons</label><button type="button" class="btn s" data-a="np-mod" style="padding:0 8px;font-size:12px">Gérer les modèles</button></div><select class="fi" id="np-mo"></select></div>
 <div class="f"><label>Agents BET en charge</label><div class="ck" id="np-ag"></div></div>
 <div class="g2"><div><label for="np-d">Début</label><input class="fi" type="date" id="np-d"></div><div><label for="np-f">Fin prévue</label><input class="fi" type="date" id="np-f"></div></div>
@@ -495,6 +499,7 @@ async function loadAll() {
     for (let t = x.d1, n = 0; t <= x.d2 && n < 800; t += DAY, n++) if (isWd(t)) m.set(t, Math.min(1, (m.get(t) || 0) + x.q)); });
   D.agents = rowsOf(A); D.projets = rowsOf(P); D.jalons = rowsOf(J);
   D.temps = rowsOf(T).map(t => ({id: t.id, d: t.Date, p: t.Projet, a: t.Agent, j: +t.Jours || 0}));
+  META.tcol = Ty && 'Libelle' in Ty ? 'Libelle' : Ty && 'Nom' in Ty ? 'Nom' : 'Libelle';
   D.types = rowsOf(Ty).map(t => ({id: t.id, n: t.Libelle || t.Nom || ('Type ' + t.id)}));
   D.by = {agent: new Map(D.agents.map(a => [a.id, a])), projet: new Map(D.projets.map(p => [p.id, p])), type: new Map(D.types.map(t => [t.id, t]))};
   applyReg(); D.at = new Date(); loaded = true;
@@ -613,7 +618,7 @@ ACT['set-open'] = () => {
   const th = store.get('app-theme') || 'auto', z = store.get('app-zoom') || '1';
   const seg = (k, cur, arr) => `<div class="seg">${arr.map(([v, l]) => `<button class="${cur === v ? 'on' : ''}" data-a="set-v" data-k="${k}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const d = document.createElement('div'); d.className = 'setp';
-  d.innerHTML = `<div><label>Thème</label>${seg('theme', th, [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']])}</div><div><label>Taille du texte</label>${seg('zoom', z, [['1', 'Normal'], ['1.15', 'Grand'], ['1.3', 'Très grand']])}</div><div><label>Données</label><button class="full" data-a="backup">💾 Sauvegarder les données (JSON)</button><button class="full" data-a="imp-open" style="margin-top:6px">📥 Importer des projets (CSV)</button><button class="full" data-a="mod-open" style="margin-top:6px">📋 Modèles de projet (phases et jalons)</button><button class="full" data-a="cfg-open" style="margin-top:6px">⚙️ Réglages du bureau (seuils d’alerte)</button><button class="full" data-a="tour" style="margin-top:6px">🧭 Revoir la visite guidée</button></div>`;
+  d.innerHTML = `<div><label>Thème</label>${seg('theme', th, [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']])}</div><div><label>Taille du texte</label>${seg('zoom', z, [['1', 'Normal'], ['1.15', 'Grand'], ['1.3', 'Très grand']])}</div><div><label>Données</label><button class="full" data-a="backup">💾 Sauvegarder les données (JSON)</button><button class="full" data-a="imp-open" style="margin-top:6px">📥 Importer des projets (CSV)</button><button class="full" data-a="typ-open" style="margin-top:6px">🏷️ Types de projet</button><button class="full" data-a="mod-open" style="margin-top:6px">📋 Modèles de projet (phases et jalons)</button><button class="full" data-a="cfg-open" style="margin-top:6px">⚙️ Réglages du bureau (seuils d’alerte)</button><button class="full" data-a="tour" style="margin-top:6px">🧭 Revoir la visite guidée</button></div>`;
   $('#nav').appendChild(d);
 };
 ACT['set-v'] = el => { store.set(el.dataset.k === 'theme' ? 'app-theme' : 'app-zoom', el.dataset.v); applyPrefs(); const s = $('.setp'); if (s) s.remove(); ACT['set-open'](); };
@@ -1192,7 +1197,8 @@ function nextRef() {
   return y + '-' + String(m + 1).padStart(3, '0');
 }
 /* modèle choisi dans « Nouveau projet » : automatique selon le type, ou imposé */
-const pickMod = ty => { const k = $('#np-mo') && $('#np-mo').value; return k && MODELES[k] ? MODELES[k] : modele(ty && ty.n); };
+const pickMod = ty => { const k = $('#np-mo') && $('#np-mo').value; if (k && MODELES[k]) return MODELES[k]; const t = ty && TYPMOD[ty.id]; return t && MODELES[t] ? MODELES[t] : modele(ty && ty.n); };
+const npTypes = sel => { const el = $('#np-ty'); el.innerHTML = '<option value="0">— Non précisé —</option>' + D.types.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join(''); if (sel != null) el.value = String(sel); };
 function npModFill() { const el = $('#np-mo'); if (el) el.innerHTML = '<option value="">Automatique selon le type</option>' + Object.keys(MODELES).map(k => `<option value="${k}">${esc(modName(k))}</option>`).join(''); }
 function npPrev() {
   const m = pickMod(D.by.type.get(+$('#np-ty').value)), dated = $('#np-d').value && $('#np-f').value;
@@ -1201,7 +1207,7 @@ function npPrev() {
 async function openNewProject() {
   if (!loaded) await loadAll();
   $('#np-t').value = ''; $('#np-m').textContent = '';
-  $('#np-ty').innerHTML = '<option value="0">— Non précisé —</option>' + D.types.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join('');
+  npTypes(); const nt = $('#np-nt'); if (nt) nt.hidden = true;
   $('#np-ag').innerHTML = activeAgents().map(a => `<label><input type="checkbox" value="${a.id}" ${a.id === S.agentId ? 'checked' : ''}>${esc(agentName(a))}</label>`).join('') || '<span class="muted">Aucun agent actif</span>';
   $('#np-d').value = new Date().toISOString().slice(0, 10); $('#np-f').value = ''; $('#np-j').checked = true;
   npModFill(); npPrev(); $('#np').showModal(); $('#np-t').focus();
@@ -2224,6 +2230,7 @@ ACT.word = async el => {
    ===================================================================== */
 const CFG = {warn: .8, note: 30, jal: 14};
 const MODELES0 = JSON.parse(JSON.stringify(MODELES));
+let TYPMOD = {};
 D.reg = {}; D.hasReg = false; D.ret = []; D.hasRet = false; D.hist = []; D.hasHist = false;
 S.pj.f = {agent: 0, type: 0, niv: '', year: ''}; S.pj.ptab = 'resume';
 function dlg(id, html) { let d = $('#' + id); if (!d) { d = document.createElement('dialog'); d.id = id; document.body.appendChild(d); } d.innerHTML = html; if (!d.open) d.showModal(); return d; }
@@ -2232,6 +2239,7 @@ ACT['dlg-x'] = el => { const d = el.closest('dialog'); if (d) d.close(); };
 /* ---------- réglages partagés (table Reglages) ---------- */
 function applyReg() {
   try { const s = D.reg.seuils && JSON.parse(D.reg.seuils.v); if (s) { CFG.warn = Math.min(1, Math.max(.3, +s.warn || .8)); CFG.note = Math.max(7, +s.note || 30); CFG.jal = Math.max(3, +s.jal || 14); } } catch (e) {}
+  try { const t = D.reg.typmod && JSON.parse(D.reg.typmod.v); TYPMOD = t && typeof t === 'object' ? t : {}; } catch (e) { TYPMOD = {}; }
   try {
     const m = D.reg.modeles && JSON.parse(D.reg.modeles.v); Object.keys(MODELES0).forEach(k => { const x = m && m[k]; MODELES[k].ph = x && x.ph ? x.ph : MODELES0[k].ph; MODELES[k].j = x && x.j ? x.j : MODELES0[k].j; });
     Object.keys(MODELES).forEach(k => { if (MODELES[k].custom) delete MODELES[k]; });
@@ -2488,12 +2496,12 @@ const TUTO = [
   {k: 'creer', t: 'Créer, dupliquer, décaler', v: '04-creer-un-projet', go: 'projets', goL: 'Ouvrir « Projets »',
    but: 'Lancer un projet avec ses phases et ses jalons types, ou repartir d’un projet existant.',
    steps: ['Cliquez sur <b>« ➕ Nouveau projet »</b> (Accueil) ou sur <b>« + Nouveau projet »</b> (onglet Projets).',
-     'Renseignez le <b>titre</b>, le <b>type</b>, les <b>agents</b> en charge et les dates. Le champ <b>« Modèle de phases et jalons »</b> est sur « Automatique selon le type » : changez-le pour imposer un autre modèle, ou cliquez sur <b>« Gérer les modèles »</b> pour les modifier. Laissez cochée <b>« Créer les jalons types »</b> : les phases et jalons du modèle sont créés d’un coup.',
+     'Renseignez le <b>titre</b>, le <b>type</b>, les <b>agents</b> en charge et les dates. Un type manque ? <b>« + Nouveau type »</b>, à côté du champ Type, l’ajoute sans quitter la fenêtre (avec un modèle associé si vous le souhaitez). Le champ <b>« Modèle de phases et jalons »</b> est sur « Automatique selon le type » : changez-le pour imposer un autre modèle, ou cliquez sur <b>« Gérer les modèles »</b> pour les modifier. Laissez cochée <b>« Créer les jalons types »</b> : les phases et jalons du modèle sont créés d’un coup.',
      '<b>Dupliquer</b> crée une copie (mêmes agents, phases et jalons) avec des dates décalées à partir d’aujourd’hui.',
      '<b>Décaler</b> déplace en une fois le projet, ses phases et ses jalons à venir : pratique quand un lancement glisse.',
      'Un projet terminé peut être <b>archivé</b> : il disparaît des listes courantes sans être supprimé.',
      'Beaucoup de projets à saisir ? <b>⚙ → « Importer des projets (CSV) »</b> les crée depuis un tableau.'],
-   tip: 'Les modèles (phases et jalons types) se modifient dans ⚙ → « Modèles de projet », où « + Nouveau modèle » en crée un nouveau. Dans « Nouveau projet », le champ « Modèle de phases et jalons » permet de le choisir.'},
+   tip: 'Les types se gèrent aussi dans ⚙ → « Types de projet ». Les modèles (phases et jalons types) se modifient dans ⚙ → « Modèles de projet », où « + Nouveau modèle » en crée un nouveau. Dans « Nouveau projet », le champ « Modèle de phases et jalons » permet de le choisir.'},
   {k: 'equipe', t: 'L’équipe et les absences', v: '05-equipe-et-absences', go: 'equipe', goL: 'Ouvrir « Équipe »',
    but: 'Voir qui travaille sur quoi, la charge de chacun et déclarer une absence.',
    steps: ['Onglet <b>Équipe</b> : la liste des agents à gauche, la fiche à droite (projets suivis, charge prévue et réalisée).',
@@ -2521,6 +2529,7 @@ const TUTO = [
   {k: 'regler', t: 'Régler l’outil (cheffe et référents)', v: '08-regler-l-outil', go: 'accueil', goL: 'Ouvrir l’Accueil',
    but: 'Adapter les seuils et les modèles, sauvegarder et recueillir les remarques.',
    steps: ['<b>⚙ → « Réglages du bureau »</b> : seuil de charge (80 %), ancienneté d’une note (30 jours), fenêtre des jalons à venir (14 jours). Un clic sur <b>« Activer »</b> la première fois suffit.',
+     '<b>⚙ → « Types de projet »</b> : ajoutez, renommez ou supprimez les types, et associez un modèle de phases et jalons à chacun. Un type utilisé par des projets ne peut pas être supprimé.',
      '<b>⚙ → « Modèles de projet »</b> : modifiez les phases et jalons types créés avec chaque nouveau projet, ou créez le vôtre avec <b>« + Nouveau modèle »</b> (nom, mots-clés facultatifs pour l’appliquer automatiquement à certains types), puis enregistrez.',
      '<b>« Sauvegarder les données (JSON) »</b> télécharge une copie de tout le contenu : à faire avant une grosse manipulation.',
      'Le bouton <b>💬 « Une idée ou un souci ? »</b> permet à chacun de signaler une remarque ; elles s’affichent ensuite dans le Point hebdo.',
@@ -2535,6 +2544,7 @@ const TUTO_FAQ = [
   ['Mon total d’une journée dépasse 1 jour', 'L’outil refuse plus d’une journée par jour. Répartissez entre vos projets (0,5 + 0,5) ou corrigez la case en rouge.'],
   ['Un projet n’apparaît pas dans ma liste', 'Il faut qu’il soit « En cours » et que vous soyez agent du projet. Sinon, utilisez « + Ajouter un autre projet… » sous le tableau de « Mon temps ».'],
   ['Les données semblent anciennes', 'Utilisez ↻. L’outil se met aussi à jour tout seul quand le document change, avec quelques secondes de délai.'],
+  ['Je ne peux pas supprimer un type', 'Un type utilisé par au moins un projet est protégé (le bouton × est grisé). Changez d’abord le type de ces projets, ou renommez-le plutôt que le supprimer.'],
   ['J’ai fait une erreur', 'Dans « Mon temps », « ↩ Annuler le dernier enregistrement ». Sur un projet, onglet Suivi → historique → « Annuler ». Pour le reste, une sauvegarde JSON permet de repartir d’une copie.']
 ];
 const tutoSeen = () => { try { return new Set(JSON.parse(store.get('app-tuto-seen') || '[]')); } catch (e) { return new Set(); } };
@@ -2578,6 +2588,56 @@ ACT['tuto-seen'] = el => {
 };
 VIEWS.tuto = {label: 'Tutoriel', render: () => vTuto(), refresh: () => {}};
 ACT['guide-tuto'] = () => { $('#gd').close(); go('tuto'); };
+
+/* ---------- Types de projet : création depuis « Nouveau projet » et gestion dans ⚙ ---------- */
+const typTable = () => META.types || 'Types', typCol = () => META.tcol || 'Libelle';
+async function ensureReg() { if (!D.hasReg) await regCreate(); }
+const modOpts = (first, cur) => `<option value="">${first}</option>` + Object.keys(MODELES).map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${esc(modName(k))}</option>`).join('');
+ACT['np-nt'] = () => { const r = $('#np-nt'); r.hidden = !r.hidden; if (!r.hidden) { $('#np-nt-m').innerHTML = modOpts('Modèle : automatique'); $('#np-nt-n').value = ''; $('#np-nt-n').focus(); } };
+ACT['np-nt-x'] = () => { $('#np-nt').hidden = true; };
+ACT['np-nt-ok'] = async () => {
+  const nom = $('#np-nt-n').value.trim(), msg = $('#np-m');
+  if (!nom) { msg.textContent = 'Indiquez le nom du nouveau type.'; $('#np-nt-n').focus(); return; }
+  const ex = D.types.find(t => norm(t.n) === norm(nom)); let id = ex ? ex.id : null;
+  if (!ex) { try { const r = await write([['AddRecord', typTable(), null, {[typCol()]: nom}]], null); id = r.retValues[0]; } catch (e) { return; } }
+  const mk = $('#np-nt-m').value;
+  if (mk) { try { await ensureReg(); await setReg('typmod', JSON.stringify({...TYPMOD, [id]: mk})); } catch (e) {} }
+  npTypes(id); $('#np-nt').hidden = true; msg.textContent = ''; npPrev(); flash(ex ? 'Ce type existe déjà : il est sélectionné.' : '✓ Type ajouté');
+};
+$('#np-nt-n').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ACT['np-nt-ok'](); } });
+
+let TYED = [];
+const typUse = id => D.projets.filter(p => p.Type === id).length;
+function typRender() {
+  dlg('typ', `<h2>Types de projet</h2><div class="muted" style="margin-bottom:8px">Les types classent les projets. Chacun peut déclencher un modèle de phases et jalons à la création.</div>
+    ${TYED.filter(r => !r.del).map(r => { const i = TYED.indexOf(r), u = r.id ? typUse(r.id) : 0; return `<div class="ty-r"><input class="fi" data-in="ty-n" data-i="${i}" value="${esc(r.n)}" maxlength="80" aria-label="Nom du type"><select class="fi" data-ch="ty-m" data-i="${i}" aria-label="Modèle associé">${modOpts('Modèle : automatique', r.m)}</select><span class="muted ty-u">${u ? plural(u, 'projet') : 'aucun projet'}</span><button class="btn s" data-a="ty-del" data-i="${i}" ${u ? 'disabled title="Ce type est utilisé par des projets : il ne peut pas être supprimé"' : 'title="Supprimer ce type" aria-label="Supprimer ce type"'}>×</button></div>`; }).join('') || '<div class="muted">Aucun type pour l’instant.</div>'}
+    <div style="margin-top:8px"><button class="btn s" data-a="ty-add">+ Nouveau type</button></div><div class="msg" id="ty-m" style="margin-top:6px"></div>
+    <div class="dacts"><button type="button" class="btn s" data-a="dlg-x">Annuler</button><button type="button" class="btn" data-a="ty-save">Enregistrer</button></div>`);
+}
+ACT['typ-open'] = () => {
+  const sp = $('.setp'); if (sp) sp.remove();
+  TYED = D.types.map(t => ({id: t.id, n: t.n, n0: t.n, m: MODELES[TYPMOD[t.id]] ? TYPMOD[t.id] : '', m0: MODELES[TYPMOD[t.id]] ? TYPMOD[t.id] : '', del: false}));
+  typRender();
+};
+ACT['ty-add'] = () => { TYED.push({id: null, n: '', n0: '', m: '', m0: '', del: false}); typRender(); const l = $$('#typ [data-in=ty-n]'); if (l.length) l[l.length - 1].focus(); };
+ACT['ty-del'] = el => { const r = TYED[+el.dataset.i]; if (r && !(r.id && typUse(r.id))) { r.del = true; typRender(); } };
+IN['ty-n'] = el => { TYED[+el.dataset.i].n = el.value; };
+CH['ty-m'] = el => { TYED[+el.dataset.i].m = el.value; };
+ACT['ty-save'] = async () => {
+  const msg = $('#ty-m'), live = TYED.filter(r => !r.del);
+  if (live.some(r => !r.n.trim())) { msg.textContent = 'Un type n’a pas de nom : donnez-lui un nom ou supprimez-le.'; return; }
+  const seen = new Set(); for (const r of live) { const k = norm(r.n.trim()); if (seen.has(k)) { msg.textContent = 'Deux types portent le même nom : « ' + r.n.trim() + ' ».'; return; } seen.add(k); }
+  const acts = [], news = [];
+  TYED.forEach(r => { if (r.del) { if (r.id) acts.push(['RemoveRecord', typTable(), r.id]); } else if (!r.id) news.push(r); else if (r.n.trim() !== r.n0) acts.push(['UpdateRecord', typTable(), r.id, {[typCol()]: r.n.trim()}]); });
+  const off = acts.length; news.forEach(r => acts.push(['AddRecord', typTable(), null, {[typCol()]: r.n.trim()}]));
+  try {
+    const res = acts.length ? await write(acts, null) : null;
+    news.forEach((r, i) => { r.id = res.retValues[off + i]; });
+    const map = {...TYPMOD}; TYED.forEach(r => { if (r.del) { if (r.id) delete map[r.id]; } else if (r.m) map[r.id] = r.m; else delete map[r.id]; });
+    if (JSON.stringify(map) !== JSON.stringify(TYPMOD)) { await ensureReg(); await setReg('typmod', JSON.stringify(map)); }
+  } catch (e) { return; }
+  $('#typ').close(); flash('✓ Types enregistrés'); refreshView();
+};
 /* =====================================================================
    Démarrage
    ===================================================================== */
