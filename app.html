@@ -383,7 +383,7 @@ kbd{background:var(--field);border:1px solid var(--line);border-bottom-width:2px
 <h2>Nouveau projet</h2>
 <div class="f"><label for="np-t">Titre *</label><input class="fi" id="np-t" maxlength="200" autocomplete="off"><div class="msg" id="np-m"></div></div>
 <div class="f"><label for="np-ty">Type</label><select class="fi" id="np-ty"></select></div>
-<div class="f"><label for="np-mo">Modèle de phases et jalons</label><select class="fi" id="np-mo"></select></div>
+<div class="f"><div style="display:flex;justify-content:space-between;align-items:baseline"><label for="np-mo">Modèle de phases et jalons</label><button type="button" class="btn s" data-a="np-mod" style="padding:0 8px;font-size:12px">Gérer les modèles</button></div><select class="fi" id="np-mo"></select></div>
 <div class="f"><label>Agents BET en charge</label><div class="ck" id="np-ag"></div></div>
 <div class="g2"><div><label for="np-d">Début</label><input class="fi" type="date" id="np-d"></div><div><label for="np-f">Fin prévue</label><input class="fi" type="date" id="np-f"></div></div>
 <label class="cb"><input type="checkbox" id="np-j" checked>Créer les jalons types</label><div class="muted" id="np-jl" style="margin-top:4px;font-size:12px"></div>
@@ -613,7 +613,7 @@ ACT['set-open'] = () => {
   const th = store.get('app-theme') || 'auto', z = store.get('app-zoom') || '1';
   const seg = (k, cur, arr) => `<div class="seg">${arr.map(([v, l]) => `<button class="${cur === v ? 'on' : ''}" data-a="set-v" data-k="${k}" data-v="${v}">${l}</button>`).join('')}</div>`;
   const d = document.createElement('div'); d.className = 'setp';
-  d.innerHTML = `<div><label>Thème</label>${seg('theme', th, [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']])}</div><div><label>Taille du texte</label>${seg('zoom', z, [['1', 'Normal'], ['1.15', 'Grand'], ['1.3', 'Très grand']])}</div><div><label>Données</label><button class="full" data-a="backup">💾 Sauvegarder les données (JSON)</button><button class="full" data-a="imp-open" style="margin-top:6px">📥 Importer des projets (CSV)</button><button class="full" data-a="cfg-open" style="margin-top:6px">⚙️ Réglages du bureau (seuils, modèles)</button><button class="full" data-a="tour" style="margin-top:6px">🧭 Revoir la visite guidée</button></div>`;
+  d.innerHTML = `<div><label>Thème</label>${seg('theme', th, [['auto', 'Auto'], ['light', 'Clair'], ['dark', 'Sombre']])}</div><div><label>Taille du texte</label>${seg('zoom', z, [['1', 'Normal'], ['1.15', 'Grand'], ['1.3', 'Très grand']])}</div><div><label>Données</label><button class="full" data-a="backup">💾 Sauvegarder les données (JSON)</button><button class="full" data-a="imp-open" style="margin-top:6px">📥 Importer des projets (CSV)</button><button class="full" data-a="mod-open" style="margin-top:6px">📋 Modèles de projet (phases et jalons)</button><button class="full" data-a="cfg-open" style="margin-top:6px">⚙️ Réglages du bureau (seuils d’alerte)</button><button class="full" data-a="tour" style="margin-top:6px">🧭 Revoir la visite guidée</button></div>`;
   $('#nav').appendChild(d);
 };
 ACT['set-v'] = el => { store.set(el.dataset.k === 'theme' ? 'app-theme' : 'app-zoom', el.dataset.v); applyPrefs(); const s = $('.setp'); if (s) s.remove(); ACT['set-open'](); };
@@ -2241,14 +2241,16 @@ function applyReg() {
 async function setReg(key, val) {
   const cur = D.reg[key]; await write([cur ? ['UpdateRecord', 'Reglages', cur.id, {Valeur: val}] : ['AddRecord', 'Reglages', null, {Cle: key, Valeur: val}]], '✓ Réglages enregistrés'); applyReg();
 }
-ACT['reg-enable'] = async () => { try { await write([['AddTable', 'Reglages', [{id: 'Cle', type: 'Text'}, {id: 'Valeur', type: 'Text'}]]], '✓ Réglages partagés activés'); } catch (e) { return; } ACT['cfg-open'](); };
+const regCreate = () => write([['AddTable', 'Reglages', [{id: 'Cle', type: 'Text'}, {id: 'Valeur', type: 'Text'}]]], '✓ Réglages partagés activés');
+ACT['reg-enable'] = async () => { try { await regCreate(); } catch (e) { return; } ACT['cfg-open'](); };
+ACT['reg-enable-mod'] = async () => { try { await regCreate(); } catch (e) { return; } ACT['mod-open'](); };
+ACT['np-mod'] = () => { const d = $('#np'); if (d && d.open) d.close(); ACT['mod-open'](); };
 ACT['cfg-open'] = () => {
   const s = $('.setp'); if (s) s.remove();
   dlg('cfg', `<h2>Réglages du bureau</h2>` + (D.hasReg ? `<div class="muted" style="margin-bottom:10px">Ces réglages sont partagés par toute l’équipe.</div>
     <div class="g4"><div><label for="cf-w">Alerte de charge à (%)</label><input class="fi" id="cf-w" type="number" min="30" max="100" value="${Math.round(CFG.warn * 100)}"></div>
     <div><label for="cf-n">Note d’avancement attendue tous les (jours)</label><input class="fi" id="cf-n" type="number" min="7" max="180" value="${CFG.note}"></div>
-    <div><label for="cf-j">Jalons « à venir » sur (jours)</label><input class="fi" id="cf-j" type="number" min="3" max="90" value="${CFG.jal}"></div></div>
-    <div style="margin-top:12px"><button class="btn s" data-a="mod-open">✏️ Modifier les modèles de projet (phases et jalons types)</button></div>`
+    <div><label for="cf-j">Jalons « à venir » sur (jours)</label><input class="fi" id="cf-j" type="number" min="3" max="90" value="${CFG.jal}"></div></div>`
     : `<p>Pour régler les seuils d’alerte et les modèles de projet pour toute l’équipe, activez d’abord les réglages partagés (une petite table est ajoutée au document).</p><button class="btn" data-a="reg-enable">Activer les réglages partagés</button>`) +
     `<div class="dacts"><button type="button" class="btn s" data-a="dlg-x">Fermer</button>${D.hasReg ? '<button type="button" class="btn" data-a="cfg-save">Enregistrer</button>' : ''}</div>`);
 };
@@ -2265,7 +2267,7 @@ let MODED = null, MODK = 'ditp';
 function modRender() {
   const m = MODED[MODK];
   dlg('mod', `<h2>Modèles de projet</h2><div class="muted" style="margin-bottom:8px">Phases et jalons créés automatiquement avec un nouveau projet. Les positions sont en % de la durée du projet (0 = début, 100 = fin).</div>
-    <div class="f"><label for="mo-k">Modèle</label><div style="display:flex;gap:8px"><select class="fi" id="mo-k" data-ch="mo-k" style="flex:1">${Object.keys(MODED).map(k => { const c = MODED[k].custom ? MODED[k].cle : MODELES0[k].cle; return `<option value="${k}" ${k === MODK ? 'selected' : ''}>${esc(MODED[k].custom ? MODED[k].nom : MODLAB[k])}${c.length ? ' (types contenant « ' + esc(c.join(', ')) + ' »)' : MODED[k].custom ? ' (à choisir à la création du projet)' : ' (autres types)'}</option>`; }).join('')}</select><button class="btn s" data-a="mo-new" title="Crée un nouveau modèle à partir de celui qui est affiché">+ Nouveau modèle</button></div></div>
+    <div class="f"><label for="mo-k">Modèle</label><div style="display:flex;gap:8px"><select class="fi" id="mo-k" data-ch="mo-k" style="flex:1">${Object.keys(MODED).map(k => { const c = MODED[k].custom ? MODED[k].cle : MODELES0[k].cle; return `<option value="${k}" ${k === MODK ? 'selected' : ''}>${esc(MODED[k].custom ? MODED[k].nom : MODLAB[k])}${c.length ? ' (types contenant « ' + esc(c.join(', ')) + ' »)' : MODED[k].custom ? '' : ' (autres types)'}</option>`; }).join('')}</select><button class="btn s" data-a="mo-new" title="Crée un nouveau modèle à partir de celui qui est affiché">+ Nouveau modèle</button></div></div>
     ${m.custom ? `<div class="g2" style="margin-top:8px"><div><label for="mo-nom">Nom du modèle</label><input class="fi" id="mo-nom" data-in="mo-nom" maxlength="60" value="${esc(m.nom)}"></div><div><label for="mo-cle">Appliquer automatiquement aux types contenant…</label><input class="fi" id="mo-cle" data-in="mo-cle" placeholder="mots séparés par des virgules (facultatif)" value="${esc(m.cle.join(', '))}"></div></div><div class="muted" style="font-size:12px;margin-top:4px">Sans mot-clé, le modèle se choisit dans la fenêtre « Nouveau projet ». <button class="btn s" data-a="mo-del-model" style="margin-left:6px">Supprimer ce modèle</button></div>` : ''}
     <h3 style="font-size:14px;margin:10px 0 4px">Phases</h3>${m.ph.map((p, i) => `<div class="mo-r"><input class="fi" data-in="mo" data-t="ph" data-i="${i}" data-f="0" value="${esc(p[0])}" aria-label="Nom de la phase"><input class="fi" type="number" min="0" max="100" data-in="mo" data-t="ph" data-i="${i}" data-f="1" value="${p[1]}" aria-label="Début en %"><input class="fi" type="number" min="0" max="100" data-in="mo" data-t="ph" data-i="${i}" data-f="2" value="${p[2]}" aria-label="Fin en %"><button class="btn s" data-a="mo-del" data-t="ph" data-i="${i}" aria-label="Supprimer">×</button></div>`).join('')}
     <button class="btn s" data-a="mo-add" data-t="ph">+ Phase</button>
@@ -2273,11 +2275,13 @@ function modRender() {
     <button class="btn s" data-a="mo-add" data-t="j">+ Jalon</button>
     <div class="dacts"><button class="btn s" data-a="mo-reset">Rétablir les modèles d’origine (hors modèles créés)</button><button class="btn s" data-a="dlg-x">Annuler</button><button class="btn" data-a="mo-save">Enregistrer</button></div>`);
 }
-ACT['mod-open'] = () => { const c = $('#cfg'); if (c) c.close(); MODED = JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(MODELES).map(k => [k, MODELES[k].custom ? {custom: true, nom: MODELES[k].nom, cle: MODELES[k].cle, ph: MODELES[k].ph, j: MODELES[k].j} : {ph: MODELES[k].ph, j: MODELES[k].j}])))); if (!MODED[MODK]) MODK = 'ditp'; modRender(); };
+ACT['mod-open'] = () => { const c = $('#cfg'); if (c) c.close(); const sp = $('.setp'); if (sp) sp.remove();
+  if (!D.hasReg) { dlg('mod', `<h2>Modèles de projet</h2><p>Pour créer ou modifier des modèles partagés par toute l’équipe, activez d’abord les réglages partagés (une petite table est ajoutée au document).</p><div class="dacts"><button type="button" class="btn s" data-a="dlg-x">Fermer</button><button type="button" class="btn" data-a="reg-enable-mod">Activer les réglages partagés</button></div>`); return; } MODED = JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(MODELES).map(k => [k, MODELES[k].custom ? {custom: true, nom: MODELES[k].nom, cle: MODELES[k].cle, ph: MODELES[k].ph, j: MODELES[k].j} : {ph: MODELES[k].ph, j: MODELES[k].j}])))); if (!MODED[MODK]) MODK = 'ditp'; modRender(); };
 ACT['mo-new'] = () => { const s = MODED[MODK]; const k = 'cu' + Date.now().toString(36); MODED[k] = {custom: true, nom: 'Nouveau modèle', cle: [], ph: JSON.parse(JSON.stringify(s.ph)), j: JSON.parse(JSON.stringify(s.j))}; MODK = k; modRender(); const n = $('#mo-nom'); if (n) { n.focus(); n.select(); } };
 ACT['mo-del-model'] = () => { if (!MODED[MODK] || !MODED[MODK].custom) return; delete MODED[MODK]; MODK = 'ditp'; modRender(); };
-IN['mo-nom'] = el => { if (MODED[MODK]) MODED[MODK].nom = el.value; };
-IN['mo-cle'] = el => { if (MODED[MODK]) MODED[MODK].cle = el.value.split(',').map(x => x.trim()).filter(Boolean); };
+const modOptLab = () => { const o = $('#mo-k option:checked'), m = MODED[MODK]; if (o && m && m.custom) o.textContent = (m.nom || 'Modèle sans nom') + (m.cle.length ? ' (types contenant « ' + m.cle.join(', ') + ' »)' : ''); };
+IN['mo-nom'] = el => { if (MODED[MODK]) { MODED[MODK].nom = el.value; modOptLab(); } };
+IN['mo-cle'] = el => { if (MODED[MODK]) { MODED[MODK].cle = el.value.split(',').map(x => x.trim()).filter(Boolean); modOptLab(); } };
 CH['mo-k'] = el => { MODK = el.value; modRender(); };
 IN.mo = el => { const l = MODED[MODK][el.dataset.t === 'ph' ? 'ph' : 'j'][+el.dataset.i], f = +el.dataset.f; l[f] = f ? Math.min(100, Math.max(0, +el.value || 0)) : el.value; };
 CH['mo-ph'] = el => { MODED[MODK].j[+el.dataset.i][2] = +el.value; };
@@ -2484,12 +2488,12 @@ const TUTO = [
   {k: 'creer', t: 'Créer, dupliquer, décaler', v: '04-creer-un-projet', go: 'projets', goL: 'Ouvrir « Projets »',
    but: 'Lancer un projet avec ses phases et ses jalons types, ou repartir d’un projet existant.',
    steps: ['Cliquez sur <b>« ➕ Nouveau projet »</b> (Accueil) ou sur <b>« + Nouveau projet »</b> (onglet Projets).',
-     'Renseignez le <b>titre</b>, le <b>type</b>, les <b>agents</b> en charge et les dates. Le champ <b>« Modèle de phases et jalons »</b> est sur « Automatique selon le type » : changez-le pour imposer un autre modèle. Laissez cochée <b>« Créer les jalons types »</b> : les phases et jalons du modèle sont créés d’un coup.',
+     'Renseignez le <b>titre</b>, le <b>type</b>, les <b>agents</b> en charge et les dates. Le champ <b>« Modèle de phases et jalons »</b> est sur « Automatique selon le type » : changez-le pour imposer un autre modèle, ou cliquez sur <b>« Gérer les modèles »</b> pour les modifier. Laissez cochée <b>« Créer les jalons types »</b> : les phases et jalons du modèle sont créés d’un coup.',
      '<b>Dupliquer</b> crée une copie (mêmes agents, phases et jalons) avec des dates décalées à partir d’aujourd’hui.',
      '<b>Décaler</b> déplace en une fois le projet, ses phases et ses jalons à venir : pratique quand un lancement glisse.',
      'Un projet terminé peut être <b>archivé</b> : il disparaît des listes courantes sans être supprimé.',
      'Beaucoup de projets à saisir ? <b>⚙ → « Importer des projets (CSV) »</b> les crée depuis un tableau.'],
-   tip: 'Les modèles (phases et jalons types) se modifient dans ⚙ → « Réglages du bureau » → « Modèles de projet », où « + Nouveau modèle » en crée un nouveau. Dans « Nouveau projet », le champ « Modèle de phases et jalons » permet de le choisir.'},
+   tip: 'Les modèles (phases et jalons types) se modifient dans ⚙ → « Modèles de projet », où « + Nouveau modèle » en crée un nouveau. Dans « Nouveau projet », le champ « Modèle de phases et jalons » permet de le choisir.'},
   {k: 'equipe', t: 'L’équipe et les absences', v: '05-equipe-et-absences', go: 'equipe', goL: 'Ouvrir « Équipe »',
    but: 'Voir qui travaille sur quoi, la charge de chacun et déclarer une absence.',
    steps: ['Onglet <b>Équipe</b> : la liste des agents à gauche, la fiche à droite (projets suivis, charge prévue et réalisée).',
@@ -2517,7 +2521,7 @@ const TUTO = [
   {k: 'regler', t: 'Régler l’outil (cheffe et référents)', v: '08-regler-l-outil', go: 'accueil', goL: 'Ouvrir l’Accueil',
    but: 'Adapter les seuils et les modèles, sauvegarder et recueillir les remarques.',
    steps: ['<b>⚙ → « Réglages du bureau »</b> : seuil de charge (80 %), ancienneté d’une note (30 jours), fenêtre des jalons à venir (14 jours). Un clic sur <b>« Activer »</b> la première fois suffit.',
-     '<b>« Modèles de projet »</b> : modifiez les phases et jalons types créés avec chaque nouveau projet, ou créez le vôtre avec <b>« + Nouveau modèle »</b> (nom, mots-clés facultatifs pour l’appliquer automatiquement à certains types), puis enregistrez.',
+     '<b>⚙ → « Modèles de projet »</b> : modifiez les phases et jalons types créés avec chaque nouveau projet, ou créez le vôtre avec <b>« + Nouveau modèle »</b> (nom, mots-clés facultatifs pour l’appliquer automatiquement à certains types), puis enregistrez.',
      '<b>« Sauvegarder les données (JSON) »</b> télécharge une copie de tout le contenu : à faire avant une grosse manipulation.',
      'Le bouton <b>💬 « Une idée ou un souci ? »</b> permet à chacun de signaler une remarque ; elles s’affichent ensuite dans le Point hebdo.',
      'Sur la fiche d’un projet, l’<b>historique</b> montre qui a changé quoi, avec un bouton pour annuler une modification.',
