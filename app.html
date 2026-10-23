@@ -383,6 +383,7 @@ kbd{background:var(--field);border:1px solid var(--line);border-bottom-width:2px
 <h2>Nouveau projet</h2>
 <div class="f"><label for="np-t">Titre *</label><input class="fi" id="np-t" maxlength="200" autocomplete="off"><div class="msg" id="np-m"></div></div>
 <div class="f"><label for="np-ty">Type</label><select class="fi" id="np-ty"></select></div>
+<div class="f"><label for="np-mo">Modèle de phases et jalons</label><select class="fi" id="np-mo"></select></div>
 <div class="f"><label>Agents BET en charge</label><div class="ck" id="np-ag"></div></div>
 <div class="g2"><div><label for="np-d">Début</label><input class="fi" type="date" id="np-d"></div><div><label for="np-f">Fin prévue</label><input class="fi" type="date" id="np-f"></div></div>
 <label class="cb"><input type="checkbox" id="np-j" checked>Créer les jalons types</label><div class="muted" id="np-jl" style="margin-top:4px;font-size:12px"></div>
@@ -455,7 +456,7 @@ const MODELES = {
  diag: {cle: ['diagnostic'], ph: [['Cadrage', 0, 15], ['Collecte et analyse', 15, 65], ['Restitution', 65, 90], ['Plan d’action', 90, 100]], j: [['Lettre de mission et cadrage', 0, 0], ['Entretiens et collecte', 30, 1], ['Diagnostic provisoire', 60, 1], ['Restitution du diagnostic', 85, 2], ['Plan d’action validé', 100, 3]]},
  pp: {cle: ['politique'], ph: [['Cadrage', 0, 20], ['Analyse', 20, 60], ['Rédaction et validation', 60, 100]], j: [['Cadrage et commande', 0, 0], ['Comité de pilotage de lancement', 15, 0], ['Analyse et collecte', 45, 1], ['Rapport provisoire', 75, 2], ['Rapport final', 100, 2]]},
  def: {cle: [], ph: [['Cadrage', 0, 20], ['Réalisation', 20, 80], ['Finalisation', 80, 100]], j: [['Cadrage validé', 0, 0], ['Point d’étape', 50, 1], ['Livrable final', 100, 2]]}};
-const modele = lab => { const n = norm(lab); return Object.values(MODELES).find(m => m.cle.some(k => n.includes(k))) || MODELES.def; };
+const modele = lab => { const n = norm(lab), all = Object.values(MODELES); return all.filter(m => m.custom).concat(all.filter(m => !m.custom)).find(m => m.cle.some(k => k && n.includes(norm(k)))) || MODELES.def; };
 
 /* ---------- Données ---------- */
 const D = {notes: [], hasNotes: false, at: null, agents: [], projets: [], jalons: [], phases: [], absences: [], absMap: new Map(), hasAbs: false, temps: [], types: [], by: {}};
@@ -1190,8 +1191,11 @@ function nextRef() {
   D.projets.forEach(r => { const x = /^(\d{4})-(\d+)$/.exec(String(r.Reference || '').trim()); if (x && +x[1] === y) m = Math.max(m, +x[2]); });
   return y + '-' + String(m + 1).padStart(3, '0');
 }
+/* modèle choisi dans « Nouveau projet » : automatique selon le type, ou imposé */
+const pickMod = ty => { const k = $('#np-mo') && $('#np-mo').value; return k && MODELES[k] ? MODELES[k] : modele(ty && ty.n); };
+function npModFill() { const el = $('#np-mo'); if (el) el.innerHTML = '<option value="">Automatique selon le type</option>' + Object.keys(MODELES).map(k => `<option value="${k}">${esc(modName(k))}</option>`).join(''); }
 function npPrev() {
-  const ty = D.by.type.get(+$('#np-ty').value), m = modele(ty && ty.n), dated = $('#np-d').value && $('#np-f').value;
+  const m = pickMod(D.by.type.get(+$('#np-ty').value)), dated = $('#np-d').value && $('#np-f').value;
   $('#np-jl').textContent = (D.hasPh && m.ph ? 'Phases : ' + m.ph.map(x => x[0]).join(' › ') + '. ' : '') + 'Jalons : ' + m.j.map(x => x[0]).join(' · ') + (dated ? ' (dates réparties entre le début et la fin)' : ' (sans date : renseignez le début et la fin pour les placer automatiquement)');
 }
 async function openNewProject() {
@@ -1200,7 +1204,7 @@ async function openNewProject() {
   $('#np-ty').innerHTML = '<option value="0">— Non précisé —</option>' + D.types.map(x => `<option value="${x.id}">${esc(x.n)}</option>`).join('');
   $('#np-ag').innerHTML = activeAgents().map(a => `<label><input type="checkbox" value="${a.id}" ${a.id === S.agentId ? 'checked' : ''}>${esc(agentName(a))}</label>`).join('') || '<span class="muted">Aucun agent actif</span>';
   $('#np-d').value = new Date().toISOString().slice(0, 10); $('#np-f').value = ''; $('#np-j').checked = true;
-  npPrev(); $('#np').showModal(); $('#np-t').focus();
+  npModFill(); npPrev(); $('#np').showModal(); $('#np-t').focus();
 }
 ACT['new-project'] = () => openNewProject();
 async function createProject(ev) {
@@ -1215,7 +1219,7 @@ async function createProject(ev) {
     if (ag.length) rec.Agent = ['L', ...ag];
     const r = await write([['AddRecord', 'Projets', null, rec]], null), id = r.retValues[0];
     if ($('#np-j').checked) {
-      const mo = modele((D.by.type.get(ty) || {}).n), at = p => d && f ? d + Math.round(p / 100 * (f - d) / DAY) * DAY : null;
+      const mo = pickMod(D.by.type.get(ty)), at = p => d && f ? d + Math.round(p / 100 * (f - d) / DAY) * DAY : null;
       let phIds = [];
       if (D.hasPh && mo.ph) { const rp = await write(mo.ph.map(([l, a, b]) => ['AddRecord', 'Phases', null, {Projet: id, Libelle: l, Statut: 'À venir', Date_debut: at(a), Date_fin: at(b)}]), null); phIds = rp.retValues; }
       await write(mo.j.map(([l, p, k]) => { const rec = {Projet: id, Libelle: l, Statut: 'À venir', Date: at(p)}; if (phIds.length && phIds[k]) rec.Phase = phIds[k]; return ['AddRecord', 'Jalons', null, rec]; }), null);
@@ -1227,7 +1231,7 @@ async function createProject(ev) {
 }
 $('#npf').addEventListener('submit', createProject);
 $('#np-x').addEventListener('click', () => $('#np').close());
-['#np-ty', '#np-d', '#np-f'].forEach(s => $(s).addEventListener('change', () => { $('#np-m').textContent = ''; npPrev(); }));
+['#np-ty', '#np-mo', '#np-d', '#np-f'].forEach(s => $(s).addEventListener('change', () => { $('#np-m').textContent = ''; npPrev(); }));
 $('#np-t').addEventListener('input', () => $('#np-m').textContent = '');
 
 /* =====================================================================
@@ -2228,7 +2232,11 @@ ACT['dlg-x'] = el => { const d = el.closest('dialog'); if (d) d.close(); };
 /* ---------- réglages partagés (table Reglages) ---------- */
 function applyReg() {
   try { const s = D.reg.seuils && JSON.parse(D.reg.seuils.v); if (s) { CFG.warn = Math.min(1, Math.max(.3, +s.warn || .8)); CFG.note = Math.max(7, +s.note || 30); CFG.jal = Math.max(3, +s.jal || 14); } } catch (e) {}
-  try { const m = D.reg.modeles && JSON.parse(D.reg.modeles.v); Object.keys(MODELES0).forEach(k => { const x = m && m[k]; MODELES[k].ph = x && x.ph ? x.ph : MODELES0[k].ph; MODELES[k].j = x && x.j ? x.j : MODELES0[k].j; }); } catch (e) {}
+  try {
+    const m = D.reg.modeles && JSON.parse(D.reg.modeles.v); Object.keys(MODELES0).forEach(k => { const x = m && m[k]; MODELES[k].ph = x && x.ph ? x.ph : MODELES0[k].ph; MODELES[k].j = x && x.j ? x.j : MODELES0[k].j; });
+    Object.keys(MODELES).forEach(k => { if (MODELES[k].custom) delete MODELES[k]; });
+    if (m) Object.keys(m).forEach(k => { const x = m[k]; if (!MODELES0[k] && x && Array.isArray(x.ph) && Array.isArray(x.j)) MODELES[k] = {custom: true, nom: String(x.nom || 'Modèle'), cle: Array.isArray(x.cle) ? x.cle.map(String) : [], ph: x.ph, j: x.j}; });
+  } catch (e) {}
 }
 async function setReg(key, val) {
   const cur = D.reg[key]; await write([cur ? ['UpdateRecord', 'Reglages', cur.id, {Valeur: val}] : ['AddRecord', 'Reglages', null, {Cle: key, Valeur: val}]], '✓ Réglages enregistrés'); applyReg();
@@ -2252,25 +2260,31 @@ ACT['cfg-save'] = async () => {
 
 /* ---------- modèles de projet modifiables ---------- */
 const MODLAB = {ditp: 'Projet DITP', diag: 'Diagnostic', pp: 'Politique publique', def: 'Projet générique'};
+const modName = k => (MODELES[k] && MODELES[k].custom ? MODELES[k].nom : MODLAB[k]) || k;
 let MODED = null, MODK = 'ditp';
 function modRender() {
   const m = MODED[MODK];
   dlg('mod', `<h2>Modèles de projet</h2><div class="muted" style="margin-bottom:8px">Phases et jalons créés automatiquement avec un nouveau projet. Les positions sont en % de la durée du projet (0 = début, 100 = fin).</div>
-    <div class="f"><label for="mo-k">Modèle</label><select class="fi" id="mo-k" data-ch="mo-k">${Object.keys(MODLAB).map(k => `<option value="${k}" ${k === MODK ? 'selected' : ''}>${MODLAB[k]}${MODELES0[k].cle.length ? ' (types contenant « ' + MODELES0[k].cle.join(', ') + ' »)' : ' (autres types)'}</option>`).join('')}</select></div>
+    <div class="f"><label for="mo-k">Modèle</label><div style="display:flex;gap:8px"><select class="fi" id="mo-k" data-ch="mo-k" style="flex:1">${Object.keys(MODED).map(k => { const c = MODED[k].custom ? MODED[k].cle : MODELES0[k].cle; return `<option value="${k}" ${k === MODK ? 'selected' : ''}>${esc(MODED[k].custom ? MODED[k].nom : MODLAB[k])}${c.length ? ' (types contenant « ' + esc(c.join(', ')) + ' »)' : MODED[k].custom ? ' (à choisir à la création du projet)' : ' (autres types)'}</option>`; }).join('')}</select><button class="btn s" data-a="mo-new" title="Crée un nouveau modèle à partir de celui qui est affiché">+ Nouveau modèle</button></div></div>
+    ${m.custom ? `<div class="g2" style="margin-top:8px"><div><label for="mo-nom">Nom du modèle</label><input class="fi" id="mo-nom" data-in="mo-nom" maxlength="60" value="${esc(m.nom)}"></div><div><label for="mo-cle">Appliquer automatiquement aux types contenant…</label><input class="fi" id="mo-cle" data-in="mo-cle" placeholder="mots séparés par des virgules (facultatif)" value="${esc(m.cle.join(', '))}"></div></div><div class="muted" style="font-size:12px;margin-top:4px">Sans mot-clé, le modèle se choisit dans la fenêtre « Nouveau projet ». <button class="btn s" data-a="mo-del-model" style="margin-left:6px">Supprimer ce modèle</button></div>` : ''}
     <h3 style="font-size:14px;margin:10px 0 4px">Phases</h3>${m.ph.map((p, i) => `<div class="mo-r"><input class="fi" data-in="mo" data-t="ph" data-i="${i}" data-f="0" value="${esc(p[0])}" aria-label="Nom de la phase"><input class="fi" type="number" min="0" max="100" data-in="mo" data-t="ph" data-i="${i}" data-f="1" value="${p[1]}" aria-label="Début en %"><input class="fi" type="number" min="0" max="100" data-in="mo" data-t="ph" data-i="${i}" data-f="2" value="${p[2]}" aria-label="Fin en %"><button class="btn s" data-a="mo-del" data-t="ph" data-i="${i}" aria-label="Supprimer">×</button></div>`).join('')}
     <button class="btn s" data-a="mo-add" data-t="ph">+ Phase</button>
     <h3 style="font-size:14px;margin:12px 0 4px">Jalons</h3>${m.j.map((j, i) => `<div class="mo-r"><input class="fi" data-in="mo" data-t="j" data-i="${i}" data-f="0" value="${esc(j[0])}" aria-label="Nom du jalon"><input class="fi" type="number" min="0" max="100" data-in="mo" data-t="j" data-i="${i}" data-f="1" value="${j[1]}" aria-label="Position en %"><select class="fi" data-ch="mo-ph" data-i="${i}" aria-label="Phase du jalon">${m.ph.map((p, k) => `<option value="${k}" ${k === j[2] ? 'selected' : ''}>${esc(p[0])}</option>`).join('')}</select><button class="btn s" data-a="mo-del" data-t="j" data-i="${i}" aria-label="Supprimer">×</button></div>`).join('')}
     <button class="btn s" data-a="mo-add" data-t="j">+ Jalon</button>
-    <div class="dacts"><button class="btn s" data-a="mo-reset">Rétablir les modèles d’origine</button><button class="btn s" data-a="dlg-x">Annuler</button><button class="btn" data-a="mo-save">Enregistrer</button></div>`);
+    <div class="dacts"><button class="btn s" data-a="mo-reset">Rétablir les modèles d’origine (hors modèles créés)</button><button class="btn s" data-a="dlg-x">Annuler</button><button class="btn" data-a="mo-save">Enregistrer</button></div>`);
 }
-ACT['mod-open'] = () => { const c = $('#cfg'); if (c) c.close(); MODED = JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(MODLAB).map(k => [k, {ph: MODELES[k].ph, j: MODELES[k].j}])))); modRender(); };
+ACT['mod-open'] = () => { const c = $('#cfg'); if (c) c.close(); MODED = JSON.parse(JSON.stringify(Object.fromEntries(Object.keys(MODELES).map(k => [k, MODELES[k].custom ? {custom: true, nom: MODELES[k].nom, cle: MODELES[k].cle, ph: MODELES[k].ph, j: MODELES[k].j} : {ph: MODELES[k].ph, j: MODELES[k].j}])))); if (!MODED[MODK]) MODK = 'ditp'; modRender(); };
+ACT['mo-new'] = () => { const s = MODED[MODK]; const k = 'cu' + Date.now().toString(36); MODED[k] = {custom: true, nom: 'Nouveau modèle', cle: [], ph: JSON.parse(JSON.stringify(s.ph)), j: JSON.parse(JSON.stringify(s.j))}; MODK = k; modRender(); const n = $('#mo-nom'); if (n) { n.focus(); n.select(); } };
+ACT['mo-del-model'] = () => { if (!MODED[MODK] || !MODED[MODK].custom) return; delete MODED[MODK]; MODK = 'ditp'; modRender(); };
+IN['mo-nom'] = el => { if (MODED[MODK]) MODED[MODK].nom = el.value; };
+IN['mo-cle'] = el => { if (MODED[MODK]) MODED[MODK].cle = el.value.split(',').map(x => x.trim()).filter(Boolean); };
 CH['mo-k'] = el => { MODK = el.value; modRender(); };
 IN.mo = el => { const l = MODED[MODK][el.dataset.t === 'ph' ? 'ph' : 'j'][+el.dataset.i], f = +el.dataset.f; l[f] = f ? Math.min(100, Math.max(0, +el.value || 0)) : el.value; };
 CH['mo-ph'] = el => { MODED[MODK].j[+el.dataset.i][2] = +el.value; };
 ACT['mo-add'] = el => { const m = MODED[MODK]; if (el.dataset.t === 'ph') m.ph.push(['Nouvelle phase', 0, 100]); else m.j.push(['Nouveau jalon', 50, 0]); modRender(); };
 ACT['mo-del'] = el => { const m = MODED[MODK]; (el.dataset.t === 'ph' ? m.ph : m.j).splice(+el.dataset.i, 1); if (el.dataset.t === 'ph') m.j.forEach(j => { if (j[2] >= m.ph.length) j[2] = Math.max(0, m.ph.length - 1); }); modRender(); };
-ACT['mo-reset'] = () => { MODED = Object.fromEntries(Object.keys(MODLAB).map(k => [k, {ph: JSON.parse(JSON.stringify(MODELES0[k].ph)), j: JSON.parse(JSON.stringify(MODELES0[k].j))}])); modRender(); };
-ACT['mo-save'] = async () => { try { await setReg('modeles', JSON.stringify(MODED)); } catch (e) { return; } $('#mod').close(); };
+ACT['mo-reset'] = () => { Object.keys(MODELES0).forEach(k => { MODED[k] = {ph: JSON.parse(JSON.stringify(MODELES0[k].ph)), j: JSON.parse(JSON.stringify(MODELES0[k].j))}; }); modRender(); };
+ACT['mo-save'] = async () => { Object.keys(MODED).forEach(k => { if (MODED[k].custom && !String(MODED[k].nom || '').trim()) MODED[k].nom = 'Modèle sans nom'; }); try { await setReg('modeles', JSON.stringify(MODED)); } catch (e) { return; } $('#mod').close(); };
 
 /* ---------- bandeau « Aujourd'hui » ---------- */
 function todayBand() {
@@ -2470,12 +2484,12 @@ const TUTO = [
   {k: 'creer', t: 'Créer, dupliquer, décaler', v: '04-creer-un-projet', go: 'projets', goL: 'Ouvrir « Projets »',
    but: 'Lancer un projet avec ses phases et ses jalons types, ou repartir d’un projet existant.',
    steps: ['Cliquez sur <b>« ➕ Nouveau projet »</b> (Accueil) ou sur <b>« + Nouveau projet »</b> (onglet Projets).',
-     'Renseignez le <b>titre</b>, le <b>type</b>, les <b>agents</b> en charge et les dates. Laissez cochée <b>« Créer les jalons types »</b> : les phases et jalons du modèle sont créés d’un coup.',
+     'Renseignez le <b>titre</b>, le <b>type</b>, les <b>agents</b> en charge et les dates. Le champ <b>« Modèle de phases et jalons »</b> est sur « Automatique selon le type » : changez-le pour imposer un autre modèle. Laissez cochée <b>« Créer les jalons types »</b> : les phases et jalons du modèle sont créés d’un coup.',
      '<b>Dupliquer</b> crée une copie (mêmes agents, phases et jalons) avec des dates décalées à partir d’aujourd’hui.',
      '<b>Décaler</b> déplace en une fois le projet, ses phases et ses jalons à venir : pratique quand un lancement glisse.',
      'Un projet terminé peut être <b>archivé</b> : il disparaît des listes courantes sans être supprimé.',
      'Beaucoup de projets à saisir ? <b>⚙ → « Importer des projets (CSV) »</b> les crée depuis un tableau.'],
-   tip: 'Les modèles (phases et jalons types) se modifient dans ⚙ → « Réglages du bureau » → « Modèles de projet ».'},
+   tip: 'Les modèles (phases et jalons types) se modifient dans ⚙ → « Réglages du bureau » → « Modèles de projet », où « + Nouveau modèle » en crée un nouveau. Dans « Nouveau projet », le champ « Modèle de phases et jalons » permet de le choisir.'},
   {k: 'equipe', t: 'L’équipe et les absences', v: '05-equipe-et-absences', go: 'equipe', goL: 'Ouvrir « Équipe »',
    but: 'Voir qui travaille sur quoi, la charge de chacun et déclarer une absence.',
    steps: ['Onglet <b>Équipe</b> : la liste des agents à gauche, la fiche à droite (projets suivis, charge prévue et réalisée).',
@@ -2503,7 +2517,7 @@ const TUTO = [
   {k: 'regler', t: 'Régler l’outil (cheffe et référents)', v: '08-regler-l-outil', go: 'accueil', goL: 'Ouvrir l’Accueil',
    but: 'Adapter les seuils et les modèles, sauvegarder et recueillir les remarques.',
    steps: ['<b>⚙ → « Réglages du bureau »</b> : seuil de charge (80 %), ancienneté d’une note (30 jours), fenêtre des jalons à venir (14 jours). Un clic sur <b>« Activer »</b> la première fois suffit.',
-     '<b>« Modèles de projet »</b> : modifiez les phases et jalons types créés avec chaque nouveau projet, puis enregistrez.',
+     '<b>« Modèles de projet »</b> : modifiez les phases et jalons types créés avec chaque nouveau projet, ou créez le vôtre avec <b>« + Nouveau modèle »</b> (nom, mots-clés facultatifs pour l’appliquer automatiquement à certains types), puis enregistrez.',
      '<b>« Sauvegarder les données (JSON) »</b> télécharge une copie de tout le contenu : à faire avant une grosse manipulation.',
      'Le bouton <b>💬 « Une idée ou un souci ? »</b> permet à chacun de signaler une remarque ; elles s’affichent ensuite dans le Point hebdo.',
      'Sur la fiche d’un projet, l’<b>historique</b> montre qui a changé quoi, avec un bouton pour annuler une modification.',
