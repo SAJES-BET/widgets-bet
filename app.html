@@ -316,6 +316,26 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .st2 th,.st2 td{padding:5px 6px}.mt .top{flex-wrap:wrap}
 }
 @page{margin:12mm 14mm 16mm;@bottom-right{content:counter(page) ' / ' counter(pages);font-size:8pt;color:#777}}
+/* ----- Tutoriel ----- */
+.tuto{max-width:1100px;margin:0 auto;padding:18px 18px 60px}
+.tuto-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0 10px}.tuto-bar .sp{flex:1}
+.tuto-toc{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 16px}
+.chip{border-radius:99px;padding:4px 12px;font-size:13px}
+.tc{scroll-margin-top:8px}
+.tc-h{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}.tc-h h2{margin:0 0 2px;font-size:18px}.tc-h .tc-seen{margin-left:auto;white-space:nowrap}
+.tc-seen.on{border-color:var(--ok);color:var(--ok)}
+.tc-n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--acc);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center}
+.tc-b{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:18px;align-items:start}
+.tv video{width:100%;border-radius:10px;background:#000;border:1px solid var(--line);display:block;aspect-ratio:11/7}
+.tv-miss{padding:22px 16px;border:1px dashed var(--line);border-radius:10px;color:var(--mut);font-size:13px;text-align:center}
+.tc-t ol{margin:0 0 10px;padding-left:20px}.tc-t li{margin-bottom:7px}
+.tip{background:var(--field);border-left:3px solid var(--acc);border-radius:6px;padding:8px 12px;margin:10px 0;font-size:13px}
+.tc-col{list-style:none;margin:0;padding:0}.tc-col li{margin:4px 0}
+.tc-k{border-collapse:collapse}.tc-k td{padding:4px 14px 4px 0;vertical-align:top}
+kbd{background:var(--field);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 7px;font:12px ui-monospace,Consolas,monospace}
+.faq{border-top:1px solid var(--line);padding:8px 0}.faq summary{cursor:pointer;font-weight:600}.faq p{margin:6px 0 2px;color:var(--mut)}
+@media (max-width:860px){.tc-b{grid-template-columns:1fr}.tc-h{flex-wrap:wrap}.tc-h .tc-seen{margin-left:42px}}
+
 @media print{
 
  .ptabs>[data-tab]{display:block!important}.qb{display:none}
@@ -338,6 +358,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  .rp-r{break-inside:avoid}
  .card:has(.cal2){break-inside:auto}.cal2 tr{break-inside:avoid}.cal2 thead{display:table-header-group}
  .heat-w{overflow:visible!important}.cal2 td:first-child,.cal2 th:first-child{position:static;min-width:0;width:190px}.cal2{font-size:9.5px}.cal2 th,.cal2 td{min-width:0;padding:2px 3px!important}.heat td,.heat th{padding:3px 2px;font-size:9.5px;min-width:0!important}.heat td small{font-size:8px}
+ .tuto{max-width:none;padding:0}.tc-b{display:block}.tc{break-inside:avoid}.faq p{display:block}details.faq:not([open])>p{display:block}.tuto-toc,.tuto-bar{display:none}
  .ra-p{display:block}.lkp{font-weight:600}.st2 tr{break-inside:avoid}
 }
 </style>
@@ -357,7 +378,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
 <h3>Raccourcis utiles</h3><ul><li><b>/</b> ou <b>Ctrl + K</b> : rechercher un projet, un agent ou un jalon.</li><li>Dans « Mon temps » : flèches du clavier pour passer d’une case à l’autre, <b>Ctrl + S</b> pour enregistrer.</li><li><b>← Retour</b> : revient à l’écran précédent.</li></ul>
 <h3>Lire les couleurs</h3><ul><li><span style="color:var(--bad)">●</span> Rouge : retard ou charge supérieure à 100 %.</li><li><span style="color:var(--warn)">●</span> Orange : à surveiller (charge 80–100 %, élément manquant).</li><li><span style="color:var(--ok)">●</span> Vert : tout va bien.</li></ul>
 <h3>Réglages</h3><p>Le bouton ⚙ permet de choisir le thème (clair/sombre) et la taille du texte.</p>
-<div class="dacts"><button type="button" class="btn s" data-a="tour">Revoir la visite guidée</button><button type="button" class="btn" data-a="guide-x">Fermer</button></div></div></dialog>
+<div class="dacts"><button type="button" class="btn s" data-a="tour">Revoir la visite guidée</button><button type="button" class="btn s" data-a="guide-tuto">📘 Ouvrir le tutoriel</button><button type="button" class="btn" data-a="guide-x">Fermer</button></div></div></dialog>
 <dialog id="np"><form id="npf" novalidate>
 <h2>Nouveau projet</h2>
 <div class="f"><label for="np-t">Titre *</label><input class="fi" id="np-t" maxlength="200" autocomplete="off"><div class="msg" id="np-m"></div></div>
@@ -2104,6 +2125,7 @@ function docTitle() {
   }
   if (S.view === 'projets') { const r = D.by.projet.get(S.pj.sel); return r ? 'Fiche projet – ' + projLabel(r) : 'Projets'; }
   if (S.view === 'equipe') { const r = D.by.agent.get(S.eq.sel); return r ? 'Fiche agent – ' + agentName(r) : 'Équipe'; }
+  if (S.view === 'tuto') return 'Mode d’emploi de l’outil de pilotage';
   if (S.view === 'temps') return 'Saisie du temps – semaine ' + wk;
   return 'Tableau de pilotage du bureau';
 }
@@ -2411,6 +2433,133 @@ ACT['tour-n'] = () => { TS++; tourShow(); }; ACT['tour-p'] = () => { TS--; tourS
 ACT['tour-x'] = () => { store.set('app-tour', '1'); const d = $('#tour'); if (d) d.close(); };
 ACT.tour = () => { const g = $('#gd'); if (g && g.open) g.close(); TS = 0; tourShow(); };
 function maybeTour() { if (!store.get('app-tour')) { TS = 0; tourShow(); } }
+
+/* =====================================================================
+   Lot 5 — Tutoriel : mode d’emploi écrit + capsules vidéo
+   Les vidéos sont des fichiers .mp4 placés dans le dossier « tuto/ »
+   à côté de app.html (même dossier sur GitHub Pages).
+   ===================================================================== */
+const TUTO_DIR = 'tuto/';
+const TUTO = [
+  {k: 'premiers', t: 'Premiers pas', v: '01-premiers-pas', go: 'accueil', goL: 'Ouvrir l’Accueil',
+   but: 'Choisir son nom, connaître les onglets et retrouver n’importe quoi en deux secondes.',
+   steps: ['En haut à droite, choisissez votre nom dans <b>« Je suis »</b>. Il est mémorisé sur cet ordinateur : une seule fois suffit.',
+     'Les onglets du haut : <b>Accueil</b> (votre point de départ), <b>Projets</b>, <b>Mon temps</b>, <b>Équipe</b>, <b>Synthèse</b> et <b>Tutoriel</b>.',
+     'Pour retrouver un projet, un agent ou un jalon, tapez <b>/</b> (ou <b>Ctrl + K</b>) puis quelques lettres, et validez avec Entrée.',
+     '<b>← Retour</b> ramène à l’écran précédent, comme dans un navigateur.',
+     'Les boutons ronds à droite : 💬 une idée ou un souci, 🖥 mode présentation, ↻ actualiser les données, ⚙ thème, taille du texte et outils, ? aide rapide.'],
+   tip: 'Sur l’Accueil, le bandeau « Aujourd’hui » résume en un coup d’œil les absences, les jalons proches et les projets à risque.'},
+  {k: 'temps', t: 'Saisir mon temps', v: '02-saisir-son-temps', go: 'temps', goL: 'Ouvrir « Mon temps »',
+   but: 'Remplir sa semaine en moins d’une minute.',
+   steps: ['Ouvrez l’onglet <b>Mon temps</b>. La semaine en cours s’affiche ; <b>◀ ▶</b> changent de semaine et <b>« Cette semaine »</b> revient à aujourd’hui.',
+     'Dans chaque case, tapez un nombre de jours : <b>1</b> pour une journée, <b>0,5</b> pour une demi-journée. Le total par jour est vérifié (une journée au maximum).',
+     'Gagnez du temps : <b>« 5 × 1 j »</b> remplit toute la semaine sur un projet ; <b>« Semaine complète sur mon projet principal »</b> et <b>« Recopier la semaine précédente »</b> font le reste.',
+     'Un projet manque dans la liste ? Utilisez <b>« + Ajouter un autre projet… »</b> sous le tableau.',
+     'Cliquez sur <b>Enregistrer</b> (ou <b>Ctrl + S</b>). Une erreur ? <b>« ↩ Annuler le dernier enregistrement »</b> remet les cases comme avant.',
+     'Raccourci sur l’Accueil : le bouton <b>« ⚡ Aujourd’hui »</b> enregistre la journée d’un clic sur votre projet principal.'],
+   tip: 'Une pastille <b>!</b> sur l’onglet « Mon temps » signale une semaine non saisie. Les jours fériés et vos absences sont déjà grisés.'},
+  {k: 'projets', t: 'Suivre un projet', v: '03-suivre-un-projet', go: 'projets', goL: 'Ouvrir « Projets »',
+   but: 'Retrouver un projet, lire son état et le mettre à jour sans passer en mode Modifier.',
+   steps: ['Onglet <b>Projets</b> : la liste est à gauche, la fiche du projet à droite. La <b>pastille</b> verte, orange ou rouge donne l’état du projet.',
+     'Cherchez par mot, filtrez par statut (<b>En cours</b>, <b>Terminé</b>…) ou ouvrez les <b>filtres avancés</b> ; vous pouvez enregistrer un filtre et épingler un projet avec <b>☆ Favori</b>.',
+     'La fiche s’organise en quatre onglets : <b>Résumé</b>, <b>Planning</b> (phases et jalons), <b>Temps</b> et <b>Suivi</b> (notes et historique).',
+     'La carte <b>« Mise à jour rapide »</b> change le statut, les dates ou la charge directement sur la fiche.',
+     'Dans <b>Suivi</b>, écrivez une <b>note d’avancement</b> datée (« Où en est-on ? ») puis <b>« Ajouter la note »</b> : elle remonte dans le Point hebdo.',
+     'Besoin d’un document ? <b>Exporter en Word</b> ou <b>Imprimer / PDF</b> produisent la fiche sur la trame du ministère.'],
+   tip: 'Une note ancienne de plus de 30 jours ressort dans les alertes du Point hebdo : ce seuil se règle dans « Réglages du bureau ».'},
+  {k: 'creer', t: 'Créer, dupliquer, décaler', v: '04-creer-un-projet', go: 'projets', goL: 'Ouvrir « Projets »',
+   but: 'Lancer un projet avec ses phases et ses jalons types, ou repartir d’un projet existant.',
+   steps: ['Cliquez sur <b>« ➕ Nouveau projet »</b> (Accueil) ou sur <b>« + Nouveau projet »</b> (onglet Projets).',
+     'Renseignez le <b>titre</b>, le <b>type</b>, les <b>agents</b> en charge et les dates. Laissez cochée <b>« Créer les jalons types »</b> : les phases et jalons du modèle sont créés d’un coup.',
+     '<b>Dupliquer</b> crée une copie (mêmes agents, phases et jalons) avec des dates décalées à partir d’aujourd’hui.',
+     '<b>Décaler</b> déplace en une fois le projet, ses phases et ses jalons à venir : pratique quand un lancement glisse.',
+     'Un projet terminé peut être <b>archivé</b> : il disparaît des listes courantes sans être supprimé.',
+     'Beaucoup de projets à saisir ? <b>⚙ → « Importer des projets (CSV) »</b> les crée depuis un tableau.'],
+   tip: 'Les modèles (phases et jalons types) se modifient dans ⚙ → « Réglages du bureau » → « Modèles de projet ».'},
+  {k: 'equipe', t: 'L’équipe et les absences', v: '05-equipe-et-absences', go: 'equipe', goL: 'Ouvrir « Équipe »',
+   but: 'Voir qui travaille sur quoi, la charge de chacun et déclarer une absence.',
+   steps: ['Onglet <b>Équipe</b> : la liste des agents à gauche, la fiche à droite (projets suivis, charge prévue et réalisée).',
+     'La <b>charge</b> compare le temps prévu à la capacité de l’agent : orange à partir de 80 %, rouge au-delà de 100 %.',
+     'Pour déclarer un congé : bas de la page <b>« Mon temps »</b> (ou fiche de l’agent en mode « Modifier ») → <b>« + Ajouter une absence »</b>, choisissez le type, les dates et la quotité.',
+     'Les absences alimentent automatiquement le calendrier, le Point hebdo et les jours grisés de « Mon temps ».',
+     'Si le bouton <b>« Activer les absences »</b> apparaît, cliquez-le une fois : l’outil crée lui-même la table nécessaire.'],
+   tip: 'Un agent qui a quitté le bureau se rend « inactif » sur sa fiche : il disparaît des listes sans perdre son historique.'},
+  {k: 'synthese', t: 'Les synthèses pour le point de bureau', v: '06-syntheses', go: 'synthese', goL: 'Ouvrir « Synthèse »',
+   but: 'Préparer la réunion : alertes, calendrier, charge, bilan annuel.',
+   steps: ['<b>Point hebdo</b> : projets en retard, jalons proches, absences, notes anciennes, saisies manquantes et vérifications de cohérence. <b>« Copier le résumé »</b> prépare le texte d’un mail.',
+     '<b>Calendrier</b> : la frise des projets par jour, semaine, mois ou année, avec les filtres par agent et par statut.',
+     '<b>Charge par agent</b> : qui est surchargé, qui a de la marge, sur la période choisie.',
+     '<b>Rapport annuel</b> : le bilan de l’année et sa comparaison avec la précédente. <b>Commanditaires</b> : l’activité par demandeur.',
+     'Les légendes se replient (« Comment lire ce tableau ? ») ; <b>🖥</b> passe en mode présentation pour projeter en réunion.'],
+   tip: 'Chaque synthèse a ses boutons « Exporter en Word », « Imprimer / PDF » et, selon les cas, « Exporter en CSV ».'},
+  {k: 'exports', t: 'Exporter en PDF et en Word', v: '07-exports', go: 'synthese', goL: 'Ouvrir « Synthèse »',
+   but: 'Obtenir un document propre sur la trame du ministère.',
+   steps: ['Sur la fiche ou la synthèse voulue, cliquez sur <b>« Imprimer / PDF »</b>. Dans la fenêtre d’impression, choisissez « Enregistrer au format PDF » comme imprimante.',
+     'Pour un fichier modifiable, cliquez sur <b>« Exporter en Word »</b> : un document .docx est téléchargé, construit sur la trame du service.',
+     'L’en-tête reprend le logo, « Secrétariat général / SAJES », la date et le titre du document ; les pages sont numérotées et le pied de page porte l’adresse.',
+     '<b>« Exporter en CSV »</b> fournit les données brutes à ouvrir dans un tableur.',
+     'Pour un envoi rapide par mail, préférez <b>« Copier le résumé »</b> du Point hebdo.'],
+   tip: 'Si le téléchargement Word ne démarre pas dans Grist, ouvrez l’outil dans un nouvel onglet ou utilisez « Imprimer / PDF ».'},
+  {k: 'regler', t: 'Régler l’outil (cheffe et référents)', v: '08-regler-l-outil', go: 'accueil', goL: 'Ouvrir l’Accueil',
+   but: 'Adapter les seuils et les modèles, sauvegarder et recueillir les remarques.',
+   steps: ['<b>⚙ → « Réglages du bureau »</b> : seuil de charge (80 %), ancienneté d’une note (30 jours), fenêtre des jalons à venir (14 jours). Un clic sur <b>« Activer »</b> la première fois suffit.',
+     '<b>« Modèles de projet »</b> : modifiez les phases et jalons types créés avec chaque nouveau projet, puis enregistrez.',
+     '<b>« Sauvegarder les données (JSON) »</b> télécharge une copie de tout le contenu : à faire avant une grosse manipulation.',
+     'Le bouton <b>💬 « Une idée ou un souci ? »</b> permet à chacun de signaler une remarque ; elles s’affichent ensuite dans le Point hebdo.',
+     'Sur la fiche d’un projet, l’<b>historique</b> montre qui a changé quoi, avec un bouton pour annuler une modification.',
+     '<b>🧭 « Revoir la visite guidée »</b> relance la présentation de bienvenue pour un nouvel arrivant.'],
+   tip: 'Les réglages sont partagés : une modification faite par la cheffe de bureau s’applique à tous au prochain rafraîchissement.'}
+];
+const TUTO_KEYS = [['/', 'ou Ctrl + K', 'Rechercher un projet, un agent, un jalon'], ['Ctrl + S', '', 'Enregistrer la saisie de « Mon temps »'], ['← → ↑ ↓', '', 'Passer d’une case à l’autre dans « Mon temps »'], ['Échap', '', 'Fermer une fenêtre, la recherche ou le mode présentation'], ['Tab', '', 'Passer d’un bouton à l’autre, sans souris']];
+const TUTO_FAQ = [
+  ['Je ne vois rien dans l’outil ou une table manque', 'Cliquez sur ↻ pour actualiser. Si le message demande d’« Activer » une fonction (absences, journal de suivi, historique, réglages), cliquez-le une fois : l’outil crée seul la table nécessaire.'],
+  ['« Enregistrement refusé »', 'Vérifiez que le widget a l’accès complet au document et que vous avez le droit de modifier. Réessayez ; si le message revient, notez-le et signalez-le avec 💬.'],
+  ['Mon total d’une journée dépasse 1 jour', 'L’outil refuse plus d’une journée par jour. Répartissez entre vos projets (0,5 + 0,5) ou corrigez la case en rouge.'],
+  ['Un projet n’apparaît pas dans ma liste', 'Il faut qu’il soit « En cours » et que vous soyez agent du projet. Sinon, utilisez « + Ajouter un autre projet… » sous le tableau de « Mon temps ».'],
+  ['Les données semblent anciennes', 'Utilisez ↻. L’outil se met aussi à jour tout seul quand le document change, avec quelques secondes de délai.'],
+  ['J’ai fait une erreur', 'Dans « Mon temps », « ↩ Annuler le dernier enregistrement ». Sur un projet, onglet Suivi → historique → « Annuler ». Pour le reste, une sauvegarde JSON permet de repartir d’une copie.']
+];
+const tutoSeen = () => { try { return new Set(JSON.parse(store.get('app-tuto-seen') || '[]')); } catch (e) { return new Set(); } };
+function vTuto() {
+  const seen = tutoSeen();
+  const chap = (c, i) => `<section class="tc card" id="tc-${c.k}" aria-labelledby="tc-h-${c.k}">
+    <div class="tc-h"><span class="tc-n">${i + 1}</span><div><h2 id="tc-h-${c.k}">${c.t}</h2><div class="muted">${c.but}</div></div>
+      <button class="btn s noprint tc-seen ${seen.has(c.k) ? 'on' : ''}" data-a="tuto-seen" data-k="${c.k}" aria-pressed="${seen.has(c.k)}">${seen.has(c.k) ? '✓ Lu' : 'Marquer comme lu'}</button></div>
+    <div class="tc-b">
+      <div class="tv noprint"><video controls preload="metadata" playsinline aria-label="Vidéo : ${esc(c.t)}"><source src="${TUTO_DIR}${c.v}.mp4" type="video/mp4"></video>
+        <div class="tv-miss" hidden>La vidéo n’est pas disponible (fichier <code>${TUTO_DIR}${c.v}.mp4</code> absent). Le mode d’emploi écrit ci-contre reste valable.</div></div>
+      <div class="tc-t"><ol>${c.steps.map(s => `<li>${s}</li>`).join('')}</ol>
+        <div class="tip"><b>À savoir.</b> ${c.tip}</div>
+        <div class="noprint"><button class="btn s" data-a="tuto-go" data-v="${c.go}">${c.goL} →</button></div></div>
+    </div></section>`;
+  const done = TUTO.filter(c => seen.has(c.k)).length;
+  $('#view').innerHTML = `<div class="tuto"><header class="tuto-h"><h1 style="font-size:24px;margin:0 0 4px">Tutoriel</h1>
+    <div class="muted">Le mode d’emploi de l’outil, par thème : un texte à suivre pas à pas et une courte vidéo de démonstration pour chaque chapitre.</div>
+    <div class="tuto-bar noprint"><span class="muted" id="tuto-pg">${done} chapitre${done > 1 ? 's' : ''} lu${done > 1 ? 's' : ''} sur ${TUTO.length}</span><span class="sp"></span><button class="btn s" data-a="tour">🧭 Visite guidée</button><button class="btn s" data-a="print">Imprimer le mode d’emploi (PDF)</button></div>
+    <nav class="tuto-toc noprint" aria-label="Sommaire">${TUTO.map((c, i) => `<button class="chip" data-a="tuto-j" data-k="${c.k}">${i + 1}. ${c.t}</button>`).join('')}<button class="chip" data-a="tuto-j" data-k="aide">Couleurs et raccourcis</button><button class="chip" data-a="tuto-j" data-k="faq">En cas de souci</button></nav></header>
+    ${TUTO.map(chap).join('')}
+    <section class="card" id="tc-aide"><h2>Lire les couleurs</h2>
+      <ul class="tc-col"><li><span style="color:var(--bad)">●</span> <b>Rouge</b> : en retard, ou charge supérieure à 100 % (surcharge).</li><li><span style="color:var(--warn)">●</span> <b>Orange</b> : à surveiller (charge entre 80 et 100 %, information manquante, note ancienne).</li><li><span style="color:var(--ok)">●</span> <b>Vert</b> : dans le prévu.</li></ul>
+      <h2 style="margin-top:14px">Raccourcis clavier</h2>
+      <table class="tc-k">${TUTO_KEYS.map(([k, k2, d]) => `<tr><td><kbd>${k}</kbd>${k2 ? ` <span class="muted">${k2}</span>` : ''}</td><td>${d}</td></tr>`).join('')}</table></section>
+    <section class="card" id="tc-faq"><h2>En cas de souci</h2>${TUTO_FAQ.map(([q, a]) => `<details class="faq"><summary>${q}</summary><p>${a}</p></details>`).join('')}
+      <div class="muted noprint" style="margin-top:8px">Autre chose ? Le bouton <b>💬</b> en haut envoie votre remarque à la personne qui administre l’outil.</div></section></div>`;
+  $$('.tv video').forEach(v => {
+    const miss = () => { v.hidden = true; const m = v.parentNode.querySelector('.tv-miss'); if (m) m.hidden = false; };
+    const s = v.querySelector('source'); if (s) s.addEventListener('error', miss);
+    v.addEventListener('error', miss);
+  });
+}
+ACT['tuto-j'] = el => { const t = $('#tc-' + el.dataset.k); if (t) { t.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth', block: 'start'}); const h = t.querySelector('h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({preventScroll: true}); } } };
+ACT['tuto-go'] = el => go(el.dataset.v);
+ACT['tuto-seen'] = el => {
+  const s = tutoSeen(); s.has(el.dataset.k) ? s.delete(el.dataset.k) : s.add(el.dataset.k);
+  store.set('app-tuto-seen', JSON.stringify([...s]));
+  el.classList.toggle('on', s.has(el.dataset.k)); el.setAttribute('aria-pressed', s.has(el.dataset.k)); el.textContent = s.has(el.dataset.k) ? '✓ Lu' : 'Marquer comme lu';
+  const n = TUTO.filter(c => s.has(c.k)).length, pg = $('#tuto-pg'); if (pg) pg.textContent = `${n} chapitre${n > 1 ? 's' : ''} lu${n > 1 ? 's' : ''} sur ${TUTO.length}`;
+};
+VIEWS.tuto = {label: 'Tutoriel', render: () => vTuto(), refresh: () => {}};
+ACT['guide-tuto'] = () => { $('#gd').close(); go('tuto'); };
 /* =====================================================================
    Démarrage
    ===================================================================== */
