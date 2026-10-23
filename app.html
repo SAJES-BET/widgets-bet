@@ -303,7 +303,7 @@ dialog .f{margin-bottom:12px}.g2{display:grid;grid-template-columns:1fr 1fr;gap:
  #lh{display:block;margin:0 0 14px}
  .lh-top{display:flex;justify-content:space-between;align-items:flex-start}.lh-top img{width:34mm;height:auto}
  .lh-sv{text-align:right;font-size:12pt;line-height:1.3;max-width:95mm;margin-top:6mm}
- .lh-mid{display:flex;justify-content:space-between;font-size:9pt;margin:8mm 0 6mm}
+ .lh-mid{display:flex;justify-content:flex-end;font-size:9pt;margin:8mm 0 6mm}
  .lh-t{text-align:center;font-weight:700;font-size:13pt;margin-bottom:4mm}
  .lh-ft{position:fixed;bottom:0;left:0;right:0;text-align:left;font-size:7.5pt;color:#777;border-top:1px solid #ccc;padding-top:2mm}
  .syn header h1,.dw h1#md-title+.chips{display:none}.qe,.nt-f{display:none!important}.qj .qd{border:0;background:none;padding:0;-webkit-appearance:none;appearance:none}
@@ -2084,7 +2084,7 @@ const meName = () => { const a = D.by.agent.get(S.agentId); return a ? agentName
 function fillLh() {
   const el = $('#lh'); if (!el) return;
   el.innerHTML = `<div class="lh-top"><img src="data:image/png;base64,${LOGO_B64}" alt="Ministère de la Justice"><div class="lh-sv">Secrétariat général<br>Service des affaires juridiques, de l’expertise<br>et de la stratégie</div></div>
-    <div class="lh-mid"><span>Affaire suivie par : ${esc(meName())}</span><span>Paris, le ${frDate()}</span></div><div class="lh-t">${esc(docTitle())}</div>
+    <div class="lh-mid"><span>Paris, le ${frDate()}</span></div><div class="lh-t">${esc(docTitle())}</div>
     <div class="lh-ft">13, place Vendôme – 75042 Paris Cedex 01 · Téléphone : 01 44 77 60 60 · www.justice.gouv.fr</div>`;
 }
 window.addEventListener('beforeprint', fillLh); try { matchMedia('print').addEventListener('change', e => e.matches && fillLh()); } catch (e) {}
@@ -2154,7 +2154,7 @@ ACT.word = async el => {
     const body = []; wwalk(c, body);
     const files = await unzip(b64u8(TRAME_B64)), dec = new TextDecoder(), enc = new TextEncoder();
     let d = dec.decode(files['word/document.xml']);
-    d = d.replace('<w:t>:</w:t>', `<w:t xml:space="preserve">: ${XE(meName())}</w:t>`).replace('23 octobre 2026', frDate()).replace('<w:t>Titre</w:t>', `<w:t>${XE(docTitle())}</w:t>`);
+    d = d.replace('<w:t>Affaire suivie par</w:t>', '<w:t></w:t>').replace('<w:t>\u00a0</w:t>', '<w:t></w:t>').replace('<w:t>:</w:t>', '<w:t></w:t>').replace('23 octobre 2026', frDate()).replace('<w:t>Titre</w:t>', `<w:t>${XE(docTitle())}</w:t>`);
     const mark = '<w:p w14:paraId="7A3D60FF"'; if (!d.includes(mark)) throw new Error('trame inattendue');
     d = d.replace(mark, wpara('', {a: 120}) + body.join('') + mark);
     files['word/document.xml'] = enc.encode(d);
