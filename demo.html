@@ -82,7 +82,9 @@ const label = p => ((p.Titre || '').trim() || '(Sans titre)') + (p.Reference ? '
 
 async function removeProjects(ids) {
   const set = new Set(ids), acts = [];
-  const [J, Ph, T] = await Promise.all([fetchT('Jalons'), fetchT('Phases'), fetchT('Temps')]);
+  const [J, Ph, T, No, Hi] = await Promise.all([fetchT('Jalons'), fetchT('Phases'), fetchT('Temps'), fetchT('Notes'), fetchT('Historique')]);
+  rowsOf(No).filter(r => set.has(r.Projet)).forEach(r => acts.push(['RemoveRecord', 'Notes', r.id]));
+  rowsOf(Hi).filter(r => set.has(r.Projet)).forEach(r => acts.push(['RemoveRecord', 'Historique', r.id]));
   rowsOf(J).filter(r => set.has(r.Projet)).forEach(r => acts.push(['RemoveRecord', 'Jalons', r.id]));
   rowsOf(Ph).filter(r => set.has(r.Projet)).forEach(r => acts.push(['RemoveRecord', 'Phases', r.id]));
   rowsOf(T).filter(r => set.has(r.Projet)).forEach(r => acts.push(['RemoveRecord', 'Temps', r.id]));
@@ -96,7 +98,8 @@ async function removeDemoAbs() {
   if (acts.length) await act(acts); return acts.length;
 }
 async function ensurePhases() {
-  const [Ph, J, Ab] = await Promise.all([fetchT('Phases'), fetchT('Jalons'), fetchT('Absences')]), acts = [];
+  const [Ph, J, Ab, No] = await Promise.all([fetchT('Phases'), fetchT('Jalons'), fetchT('Absences'), fetchT('Notes')]), acts = [];
+  if (!(No && No.id)) acts.push(['AddTable', 'Notes', [{id: 'Projet', type: 'Ref:Projets'}, {id: 'Date', type: 'Date'}, {id: 'Texte', type: 'Text'}, {id: 'Auteur', type: 'Ref:Agents'}]]);
   if (!(Ab && Ab.id)) acts.push(['AddTable', 'Absences', [{id: 'Agent', type: 'Ref:Agents'}, {id: 'Date_debut', type: 'Date'}, {id: 'Date_fin', type: 'Date'}, {id: 'Type', type: 'Choice', widgetOptions: JSON.stringify({choices: ['Congés', 'Formation', 'Autre absence']})}, {id: 'Quotite', type: 'Numeric'}, {id: 'Origine', type: 'Text'}]]);
   if (!(Ph && Ph.id)) acts.push(['AddTable', 'Phases', [{id: 'Projet', type: 'Ref:Projets'}, {id: 'Libelle', type: 'Text'}, {id: 'Date_debut', type: 'Date'}, {id: 'Date_fin', type: 'Date'}, {id: 'Statut', type: 'Choice', widgetOptions: JSON.stringify({choices: PST})}]]);
   if (!(J && 'Phase' in J)) acts.push(['AddColumn', 'Jalons', 'Phase', {type: 'Ref:Phases'}]);
@@ -116,6 +119,8 @@ function genTemps(pid, ags, start, end, R, occ) {
   });
   return out;
 }
+/* Notes d'avancement fictives : [index du projet dans DEMO, décalage en jours, texte] */
+const DEMO_NOTES = [[0, -3, 'Entretiens terminés, synthèse en cours de rédaction.'], [0, -17, 'Calendrier des entretiens validé avec la direction.'], [1, -9, 'Retard sur la collecte des indicateurs : relance envoyée aux directions.'], [2, -5, 'Atelier de co-construction réalisé, retours positifs.'], [3, -2, 'Cadrage en cours : besoin de préciser le périmètre avec le commanditaire.'], [4, -12, 'Conventions recensées, tableau de suivi en construction.']];
 async function loadDemo() {
   await ensurePhases();
   const missing = new Set(), occ = {};
@@ -138,6 +143,8 @@ async function loadDemo() {
   for (let i = 0; i < acts.length; i += 150) await act(acts.slice(i, i + 150));
   const ab = DEMO_ABS.map(([nom, type, d1, d2, q]) => { const a = agentId(nom); if (!a) { missing.add(nom); return null; } return ['AddRecord', 'Absences', null, {Agent: a, Date_debut: today + d1 * DAY, Date_fin: today + d2 * DAY, Type: type, Quotite: q, Origine: 'DEMO'}]; }).filter(Boolean);
   if (ab.length) await act(ab);
+  const notes = DEMO_NOTES.filter(([i]) => pid[i]).map(([i, off, txt]) => ['AddRecord', 'Notes', null, {Projet: pid[i], Date: today + off * DAY, Texte: txt, Auteur: (defs[i].ag || [])[0] || 0}]);
+  if (notes.length) await act(notes);
   return {n: defs.length, missing: [...missing]};
 }
 
